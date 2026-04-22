@@ -7,9 +7,11 @@ Single-owner stdout / stderr / console mediator for a Silvery session. Intercept
 ## Shape
 
 ```ts
+import type { ReadSignal } from "@silvery/signals"
+
 interface Output extends Disposable {
   write(data: string | Uint8Array): boolean
-  readonly active: boolean
+  readonly active: ReadSignal<boolean>
   activate(options?: OutputOptions): void
   deactivate(): void
   readonly suppressedCount: number
@@ -21,6 +23,18 @@ interface OutputOptions {
   stderrLog?: string
   bufferStderr?: boolean
 }
+```
+
+`active` is a read-only alien-signal — call `term.output.active()` to read, or subscribe with `effect(() => term.output.active())`. Only the owner's `activate()` / `deactivate()` writes to it. `suppressedCount` and `redirectedCount` stay as plain numbers — they advance on every write and reactivity would flood subscribers.
+
+```ts
+import { effect } from "@silvery/signals"
+
+effect(() => {
+  if (term.output?.active()) {
+    // intercepts live — silvery is the only writer
+  }
+})
 ```
 
 ## Access

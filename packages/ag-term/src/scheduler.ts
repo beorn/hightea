@@ -484,11 +484,11 @@ export class RenderScheduler {
       // Get terminal dimensions. Prefer the Term's Size owner (coalesced
       // resize, alien-signals-backed) when provided. Falls back to direct
       // stdout reads for legacy embedders that haven't wired a Size yet.
-      const width = this.size?.cols ?? this.stdout.columns ?? 80
+      const width = this.size?.cols() ?? this.stdout.columns ?? 80
       // Inline mode: use NaN height so layout engine auto-sizes to content.
       // Fullscreen mode: use terminal rows as the constraint.
       const height =
-        this.mode === "inline" ? NaN : (this.size?.rows ?? this.stdout.rows ?? 24)
+        this.mode === "inline" ? NaN : (this.size?.rows() ?? this.stdout.rows ?? 24)
 
       log.debug?.(
         `render #${this.stats.renderCount + 1}: ${width}x${height}, nonTTYMode=${this.nonTTYMode}`,
@@ -516,7 +516,7 @@ export class RenderScheduler {
             this.mode,
             scrollbackOffset,
             this.mode === "inline"
-              ? (this.size?.rows ?? this.stdout.rows ?? 24)
+              ? (this.size?.rows() ?? this.stdout.rows ?? 24)
               : undefined,
             inlineCursor,
           )

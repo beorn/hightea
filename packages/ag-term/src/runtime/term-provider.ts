@@ -173,7 +173,7 @@ export interface TermProviderOptions {
   rows?: number
   /**
    * Shared Size owner (from Term). When provided, the provider reads dims
-   * from `size.snapshot` and emits coalesced resize events via
+   * from `size.cols()` / `size.rows()` and emits coalesced resize events via
    * `size.subscribe(...)`. When omitted, a private Size owner is constructed
    * and disposed with the provider (backward compatibility for standalone
    * use).
@@ -213,7 +213,7 @@ export function createTermProvider(
   // Current state — populated from size's signal; kept as a plain object so
   // getState() returns a cheap snapshot without triggering alien-signals
   // subscription.
-  let state: TermState = { cols: size.cols, rows: size.rows }
+  let state: TermState = { cols: size.cols(), rows: size.rows() }
 
   // Subscribers
   const listeners = new Set<(state: TermState) => void>()

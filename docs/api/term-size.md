@@ -1,31 +1,35 @@
 # term.size
 
-Single source of truth for terminal dimensions. Backed by [alien-signals](https://github.com/stackblitz/alien-signals) so every reader sees the same value and resize events coalesce into one notification per frame.
+Single source of truth for terminal dimensions, exposed as reactive `ReadSignal`s. Backed by [alien-signals](https://github.com/stackblitz/alien-signals) so every reader sees the same value and resize events coalesce into one notification per frame.
 
 `term.size` replaces direct `process.stdout.columns` / `stdout.rows` reads and ad-hoc `stdout.on("resize", …)` subscriptions. Scattered resize handling meant each consumer implemented its own coalescing (or didn't) — the owner centralizes both.
 
 ## Shape
 
 ```ts
+import type { ReadSignal } from "@silvery/signals"
+
 interface SizeSnapshot {
   readonly cols: number
   readonly rows: number
 }
 
 interface Size extends Disposable {
-  readonly cols: number
-  readonly rows: number
-  readonly snapshot: SizeSnapshot
+  readonly cols: ReadSignal<number>
+  readonly rows: ReadSignal<number>
+  readonly snapshot: ReadSignal<SizeSnapshot>
   subscribe(handler: (s: SizeSnapshot) => void): () => void
 }
 ```
+
+`cols`, `rows`, and `snapshot` are read-only callables: call with no arguments to read the current value, and use them inside `computed` / `effect` to subscribe reactively. Writes happen only inside the owner (on coalesced `resize` events or `createFixedSize.update(...)`). `subscribe(handler)` is retained alongside the signals for push-shaped consumers — React's `useSyncExternalStore` and the term-provider event queue.
 
 ## Access
 
 ```ts
 using term = createTerm()
 
-console.log(`starting size: ${term.size.cols}×${term.size.rows}`)
+console.log(`starting size: ${term.size.cols()}×${term.size.rows()}`)
 
 const unsubscribe = term.size.subscribe((s) => {
   console.log(`resized to ${s.cols}×${s.rows}`)
@@ -36,12 +40,12 @@ const unsubscribe = term.size.subscribe((s) => {
 
 ## Live reads
 
-`term.size.cols` and `term.size.rows` read the current value of the underlying alien-signal. Every read reflects the latest resize that has cleared the coalescing window.
+`term.size.cols()` and `term.size.rows()` read the current value of the underlying alien-signal. Every read reflects the latest resize that has cleared the coalescing window.
 
-`term.size.snapshot` returns a plain `SizeSnapshot` — useful when you want to pin values for a render pass:
+`term.size.snapshot()` returns a plain `SizeSnapshot` — useful when you want to pin values for a render pass:
 
 ```ts
-const { cols, rows } = term.size.snapshot
+const { cols, rows } = term.size.snapshot()
 const layout = computeLayout({ cols, rows })
 ```
 
@@ -50,7 +54,7 @@ Because the underlying storage is a signal, reads inside a `computed(…)` or `e
 ```ts
 import { computed } from "@silvery/signals"
 
-const columns = computed(() => Math.floor(term.size.cols / 20))
+const columns = computed(() => Math.floor(term.size.cols() / 20))
 // `columns` auto-recomputes on every resize
 ```
 
@@ -58,7 +62,7 @@ const columns = computed(() => Math.floor(term.size.cols / 20))
 
 Multiplexers (tmux, cmux, Ghostty tabs) can emit multiple `SIGWINCH` bursts as the PTY re-syncs. Without coalescing, each burst triggers a layout pass at an intermediate size and the user sees visible multi-phase layout shift.
 
-The owner coalesces bursts within a single 60 Hz frame (16 ms). Within that window, only the **final** geometry is delivered to subscribers:
+The owner coalesces bursts within a single 60 Hz frame (16 ms). Within that window, only the **final** geometry is delivered to subscribers and to `computed` / `effect` dependents:
 
 ```
 t=0   stdout.columns=100  stdout.emit("resize")
@@ -81,7 +85,7 @@ The coalescing window can be overridden via `createSize(stdout, { coalesceMs })`
 
 ## `subscribe(handler)`
 
-Registers a subscriber that fires on every coalesced change. Returns an unsubscribe function. Multiple subscribers can coexist; each receives the same `SizeSnapshot` reference.
+Registers an imperative subscriber that fires on every coalesced change. Returns an unsubscribe function. Multiple subscribers can coexist; each receives the same `SizeSnapshot` reference. Same update stream as `effect(() => size.cols())` — different caller shape.
 
 ```ts
 using term = createTerm()

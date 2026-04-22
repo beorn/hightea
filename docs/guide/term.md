@@ -27,7 +27,7 @@ Sub-owners fix the class of bug, not the symptom. Each one owns exactly one reso
 
 ## The six sub-owners
 
-Each sub-owner is a field on `Term`. They are constructed lazily (cheap — no syscalls, no ANSI until you call a setter), share the Term's dispose lifetime, and have the same shape: `active` / `capturing` getter, idempotent setters, `Symbol.dispose`.
+Each sub-owner is a field on `Term`. They are constructed lazily (cheap — no syscalls, no ANSI until you write a signal or call a setter), share the Term's dispose lifetime, and expose their state as alien-signals (callable getters — `modes.altScreen()`, `size.cols()`, `output.active()`, `console.capturing()`) plus imperative mutators where applicable. `Symbol.dispose` restores everything the owner activated.
 
 | Sub-owner         | Owns                                                          | Reference                     |
 | ----------------- | ------------------------------------------------------------- | ----------------------------- |
@@ -91,12 +91,12 @@ The full session startup happens in one place. No subsystem re-toggles the modes
 
 ### React to resize
 
-`term.size` is backed by [alien-signals](https://github.com/stackblitz/alien-signals) and coalesces PTY burst resizes within one 60 Hz frame (16 ms):
+`term.size` is backed by [alien-signals](https://github.com/stackblitz/alien-signals) and coalesces PTY burst resizes within one 60 Hz frame (16 ms). `cols`, `rows`, and `snapshot` are callable `ReadSignal`s — read with `size.cols()`, or subscribe reactively with `effect(() => size.cols())`. The imperative `subscribe(handler)` is retained for push-shaped consumers (React's `useSyncExternalStore`, event queues):
 
 ```ts
 using term = createTerm()
 
-console.log(`starting at ${term.size.cols}×${term.size.rows}`)
+console.log(`starting at ${term.size.cols()}×${term.size.rows()}`)
 
 const unsubscribe = term.size.subscribe((s) => {
   console.log(`resized to ${s.cols}×${s.rows}`)

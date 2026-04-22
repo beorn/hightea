@@ -5,6 +5,7 @@
  * Run: bun vitest run tests/features/console.test.ts
  */
 import { describe, expect, test, afterEach } from "vitest"
+import { effect } from "@silvery/signals"
 import { createConsole, type Console } from "@silvery/ag-term/runtime/devices/console"
 import { createTerm } from "@silvery/ag-term"
 
@@ -38,7 +39,28 @@ describe("createConsole", () => {
     expect(calls).toEqual([{ method: "log", args: ["hello"] }])
     expect(owner.getSnapshot()).toEqual([])
     expect(owner.getStats()).toEqual({ total: 0, errors: 0, warnings: 0 })
-    expect(owner.capturing).toBe(false)
+    expect(owner.capturing()).toBe(false)
+  })
+
+  test("effect(() => console.capturing()) fires on capture/restore", () => {
+    const { stub } = stubConsole()
+    owner = createConsole(stub)
+
+    const observed: boolean[] = []
+    const stop = effect(() => {
+      observed.push(owner!.capturing())
+    })
+
+    expect(observed).toEqual([false])
+    owner.capture({ suppress: true })
+    expect(observed).toEqual([false, true])
+    owner.restore()
+    expect(observed).toEqual([false, true, false])
+    // Idempotent — same-value write no-ops.
+    owner.restore()
+    expect(observed).toEqual([false, true, false])
+
+    stop()
   })
 
   test("captures console.* once capture() is called", () => {
@@ -50,7 +72,7 @@ describe("createConsole", () => {
     stub.error("second")
     stub.warn("third")
 
-    expect(owner.capturing).toBe(true)
+    expect(owner.capturing()).toBe(true)
     const snap = owner.getSnapshot()
     expect(snap).toHaveLength(3)
     expect(snap[0]).toMatchObject({ method: "log", stream: "stdout" })
@@ -103,7 +125,7 @@ describe("createConsole", () => {
     expect(owner.getSnapshot()).toHaveLength(1)
 
     owner.restore()
-    expect(owner.capturing).toBe(false)
+    expect(owner.capturing()).toBe(false)
 
     // Post-restore calls go straight to the stub.
     stub.log("after")
@@ -242,7 +264,7 @@ describe("createConsole", () => {
       using local = createConsole(stub)
       local.capture({ suppress: true })
       stub.log("inside")
-      expect(local.capturing).toBe(true)
+      expect(local.capturing()).toBe(true)
     }
     // Out of scope — dispose ran, stub is restored.
     stub.log("outside")
@@ -254,7 +276,7 @@ describe("term.console", () => {
   test("createTerm() constructs a Console for Node-backed terms", () => {
     using term = createTerm()
     expect(term.console).toBeDefined()
-    expect(term.console!.capturing).toBe(false)
+    expect(term.console!.capturing()).toBe(false)
   })
 
   test("headless terms have no console owner", () => {

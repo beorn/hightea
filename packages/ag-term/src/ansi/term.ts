@@ -326,11 +326,14 @@ export interface Term extends Disposable, StyleChain {
   readonly output: Output | undefined
 
   /**
-   * Size owner — single source of truth for terminal dimensions.
+   * Size owner — single source of truth for terminal dimensions, exposed as
+   * alien-signals `ReadSignal`s.
    *
-   * `term.size.cols` / `term.size.rows` / `term.size.snapshot` are live reads
-   * of the alien-signals-backed signal. `term.size.subscribe(handler)` fires
-   * on every coalesced resize (16ms window, matches one 60Hz frame).
+   * `term.size.cols()` / `term.size.rows()` / `term.size.snapshot()` read the
+   * current value and, inside `computed` / `effect`, subscribe to changes.
+   * `term.size.subscribe(handler)` is an imperative push callback for
+   * `useSyncExternalStore` and event-queue consumers. Both paths deliver the
+   * same 16ms-coalesced updates (one 60Hz frame).
    *
    * Replaces direct `process.stdout.columns` / `stdout.rows` reads — those
    * return stale snapshots under concurrent resize and scatter coalescing
@@ -863,10 +866,10 @@ function createNodeTerm(options: CreateTermOptions): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        // cols / rows are shorthand for term.size.cols / .rows. Non-TTY
+        // cols / rows are shorthand for term.size.cols() / .rows(). Non-TTY
         // streams have no reliable dims — surface undefined then.
-        cols: { get: () => (stdout.isTTY ? size.cols : undefined), enumerable: true },
-        rows: { get: () => (stdout.isTTY ? size.rows : undefined), enumerable: true },
+        cols: { get: () => (stdout.isTTY ? size.cols() : undefined), enumerable: true },
+        rows: { get: () => (stdout.isTTY ? size.rows() : undefined), enumerable: true },
         input: { get: () => getInput(), enumerable: true },
         output: { get: () => getOutput(), enumerable: true },
       },
@@ -945,8 +948,8 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        cols: { get: () => size.cols, enumerable: true },
-        rows: { get: () => size.rows, enumerable: true },
+        cols: { get: () => size.cols(), enumerable: true },
+        rows: { get: () => size.rows(), enumerable: true },
         // Headless Terms have no real stdin to own — sub-owner is undefined.
         input: { get: () => undefined, enumerable: true },
         // Headless Terms have no real stdout to own — sub-owner is undefined.
@@ -1026,8 +1029,8 @@ function createBackendTerm(emulator: TermEmulator): Term {
     { get: () => _frame },
     {
       defineProperties: {
-        cols: { get: () => size.cols, enumerable: true },
-        rows: { get: () => size.rows, enumerable: true },
+        cols: { get: () => size.cols(), enumerable: true },
+        rows: { get: () => size.rows(), enumerable: true },
         screen: { get: () => emulator.screen, enumerable: true },
         scrollback: { get: () => emulator.scrollback, enumerable: true },
         // Termless-backed Terms drive the emulator's input via emulator.feed,

@@ -3,9 +3,10 @@
  *
  * Verifies the alien-signals-backed Size owner:
  *  - Initializes from stdout.columns / stdout.rows (with fallbacks).
- *  - Exposes reactive cols / rows / snapshot.
+ *  - Exposes reactive cols / rows / snapshot as callable ReadSignals.
  *  - Coalesces burst resize events within the 16ms window.
- *  - Subscribers receive the final geometry once per burst.
+ *  - Push subscribers and reactive effects both receive the final geometry
+ *    once per burst.
  *  - Dispose stops listening and clears any pending coalesce timer.
  *
  * Mirrors the shape of term-provider-resize-coalesce.test.ts — the
@@ -16,6 +17,7 @@
 
 import EventEmitter from "node:events"
 import { describe, test, expect } from "vitest"
+import { effect } from "@silvery/signals"
 import {
   createSize,
   createFixedSize,
@@ -52,9 +54,9 @@ describe("createSize: initialization", () => {
   test("reads cols/rows from stdout at construction", () => {
     const stdout = createMockStdout(132, 40)
     using size = createSize(stdout)
-    expect(size.cols).toBe(132)
-    expect(size.rows).toBe(40)
-    expect(size.snapshot).toEqual({ cols: 132, rows: 40 })
+    expect(size.cols()).toBe(132)
+    expect(size.rows()).toBe(40)
+    expect(size.snapshot()).toEqual({ cols: 132, rows: 40 })
   })
 
   test("falls back to 80x24 when stdout dims are zero/missing", () => {
@@ -62,15 +64,15 @@ describe("createSize: initialization", () => {
     ;(stdout as unknown as { columns: number }).columns = undefined as unknown as number
     ;(stdout as unknown as { rows: number }).rows = undefined as unknown as number
     using size = createSize(stdout)
-    expect(size.cols).toBe(80)
-    expect(size.rows).toBe(24)
+    expect(size.cols()).toBe(80)
+    expect(size.rows()).toBe(24)
   })
 
   test("explicit options override stdout dims", () => {
     const stdout = createMockStdout(100, 30)
     using size = createSize(stdout, { cols: 200, rows: 60 })
-    expect(size.cols).toBe(200)
-    expect(size.rows).toBe(60)
+    expect(size.cols()).toBe(200)
+    expect(size.rows()).toBe(60)
   })
 })
 
@@ -86,8 +88,8 @@ describe("createSize: resize coalescing", () => {
     await sleep(50)
 
     expect(events).toEqual([{ cols: 100, rows: 30 }])
-    expect(size.cols).toBe(100)
-    expect(size.rows).toBe(30)
+    expect(size.cols()).toBe(100)
+    expect(size.rows()).toBe(30)
   })
 
   test("burst of 3 resizes within 16ms coalesces to ONE notification", async () => {
@@ -107,8 +109,8 @@ describe("createSize: resize coalescing", () => {
 
     expect(events.length).toBe(1)
     expect(events[0]).toEqual({ cols: 120, rows: 35 })
-    expect(size.cols).toBe(120)
-    expect(size.rows).toBe(35)
+    expect(size.cols()).toBe(120)
+    expect(size.rows()).toBe(35)
   })
 
   test("two resizes separated by > coalesce window produce two notifications", async () => {
@@ -177,6 +179,56 @@ describe("createSize: resize coalescing", () => {
   })
 })
 
+describe("createSize: reactive effect subscription", () => {
+  test("effect(() => size.cols()) fires on coalesced resize", async () => {
+    const stdout = createMockStdout(80, 24)
+    using size = createSize(stdout)
+    // Must subscribe (or call effect that reads a signal that reads the
+    // snapshot) to install the resize listener — matches the lazy-install
+    // contract exercised below.
+    size.subscribe(() => {})
+
+    const observed: number[] = []
+    const stop = effect(() => {
+      observed.push(size.cols())
+    })
+
+    // Seed read captures the construction-time value.
+    expect(observed).toEqual([80])
+
+    setDims(stdout, 120, 35)
+    await sleep(50)
+
+    expect(observed).toEqual([80, 120])
+
+    stop()
+  })
+
+  test("effect reads of size.rows and size.snapshot stay in sync", async () => {
+    const stdout = createMockStdout(80, 24)
+    using size = createSize(stdout)
+    size.subscribe(() => {})
+
+    const rowsLog: number[] = []
+    const snapLog: Array<{ cols: number; rows: number }> = []
+
+    const stopRows = effect(() => rowsLog.push(size.rows()))
+    const stopSnap = effect(() => snapLog.push(size.snapshot()))
+
+    setDims(stdout, 100, 50)
+    await sleep(50)
+
+    expect(rowsLog).toEqual([24, 50])
+    expect(snapLog).toEqual([
+      { cols: 80, rows: 24 },
+      { cols: 100, rows: 50 },
+    ])
+
+    stopRows()
+    stopSnap()
+  })
+})
+
 describe("createSize: lazy install", () => {
   // The resize listener is installed on first subscribe() — NOT at
   // construction. Style-only createTerm() callers (chalk-compat paths in
@@ -187,9 +239,9 @@ describe("createSize: lazy install", () => {
     const stdout = createMockStdout(80, 24)
     using size = createSize(stdout)
     expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
-    // Reads still work — they fall through to stdout.columns/rows.
-    expect(size.cols).toBe(80)
-    expect(size.rows).toBe(24)
+    // Reads still work — they fall through to the initial snapshot.
+    expect(size.cols()).toBe(80)
+    expect(size.rows()).toBe(24)
   })
 
   test("first subscribe installs the listener; subsequent subscribes do not stack", () => {
@@ -211,8 +263,8 @@ describe("createSize: lazy install", () => {
     ;(stdout as unknown as { columns: number }).columns = 132
     ;(stdout as unknown as { rows: number }).rows = 40
     // No subscribe, no listener — reads stay at the seeded initial.
-    expect(size.cols).toBe(80)
-    expect(size.rows).toBe(24)
+    expect(size.cols()).toBe(80)
+    expect(size.rows()).toBe(24)
   })
 })
 
@@ -257,9 +309,9 @@ describe("createSize: dispose", () => {
 describe("createFixedSize", () => {
   test("initial dims are set from the snapshot", () => {
     using size = createFixedSize({ cols: 100, rows: 30 })
-    expect(size.cols).toBe(100)
-    expect(size.rows).toBe(30)
-    expect(size.snapshot).toEqual({ cols: 100, rows: 30 })
+    expect(size.cols()).toBe(100)
+    expect(size.rows()).toBe(30)
+    expect(size.snapshot()).toEqual({ cols: 100, rows: 30 })
   })
 
   test("update() fires subscribers with new dims", () => {
@@ -269,8 +321,8 @@ describe("createFixedSize", () => {
 
     size.update(120, 40)
 
-    expect(size.cols).toBe(120)
-    expect(size.rows).toBe(40)
+    expect(size.cols()).toBe(120)
+    expect(size.rows()).toBe(40)
     expect(events).toEqual([{ cols: 120, rows: 40 }])
   })
 

@@ -26,6 +26,7 @@
 
 import { openSync, writeSync, closeSync } from "node:fs"
 import { createLogger } from "loggily"
+import { signal, type ReadSignal } from "@silvery/signals"
 
 const log = createLogger("silvery:guard")
 
@@ -34,8 +35,13 @@ export interface Output extends Disposable {
    * pipeline writes go through here). When inactive, forwards to the raw
    * stdout.write. */
   write(data: string | Uint8Array): boolean
-  /** Whether intercepts are currently installed. */
-  readonly active: boolean
+  /**
+   * Whether intercepts are currently installed — a `ReadSignal<boolean>`.
+   * Call `output.active()` to read; subscribe with
+   * `effect(() => output.active())`. The owner writes it internally from
+   * `activate()` / `deactivate()`.
+   */
+  readonly active: ReadSignal<boolean>
   /** Activate intercepts: installs stdout/stderr/console patches. Idempotent —
    * no-op if already active. Options override those passed at construction. */
   activate(options?: OutputOptions): void
@@ -43,10 +49,11 @@ export interface Output extends Disposable {
    * Idempotent. Closes stderr log fd if open. */
   deactivate(): void
   /** Number of stdout writes suppressed since construction (cumulative across
-   * activate/deactivate cycles). */
+   * activate/deactivate cycles). Plain getter — changes on every write, not
+   * worth the reactive cost. */
   readonly suppressedCount: number
   /** Number of stderr writes redirected since construction (cumulative across
-   * activate/deactivate cycles). */
+   * activate/deactivate cycles). Plain getter — changes on every write. */
   readonly redirectedCount: number
   /** Final cleanup: deactivates + any teardown. Idempotent. */
   dispose(): void
@@ -66,7 +73,9 @@ export interface OutputOptions {
  */
 export function createOutput(defaultOptions?: OutputOptions): Output {
   let disposed = false
-  let active = false
+  // Reactive `active` — internal writes from activate/deactivate only.
+  // Exposed read-only via the `active` ReadSignal on the public Output shape.
+  const _active = signal<boolean>(false)
 
   // Cumulative stats across activate/deactivate cycles
   let suppressedCount = 0
@@ -94,8 +103,8 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
 
   function activate(options?: OutputOptions): void {
     if (disposed) return
-    if (active) return
-    active = true
+    if (_active()) return
+    _active(true)
 
     const opts = { ...defaultOptions, ...options }
     bufferStderr = !!opts.bufferStderr
@@ -178,8 +187,8 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
   }
 
   function deactivate(): void {
-    if (!active) return
-    active = false
+    if (!_active()) return
+    _active(false)
 
     if (savedStdoutWrite) process.stdout.write = savedStdoutWrite
     if (savedStderrWrite) process.stderr.write = savedStderrWrite
@@ -229,7 +238,7 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
 
   return {
     write(data) {
-      if (active && origStdoutWrite) {
+      if (_active() && origStdoutWrite) {
         silveryWriting = true
         try {
           return origStdoutWrite(data)
@@ -241,9 +250,7 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
       // is now). Caller is responsible for any additional routing.
       return process.stdout.write(data as string | Uint8Array)
     },
-    get active() {
-      return active
-    },
+    active: _active as ReadSignal<boolean>,
     activate,
     deactivate,
     get suppressedCount() {

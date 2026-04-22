@@ -1,8 +1,11 @@
 /**
- * term.size — single source of truth for terminal dimensions.
+ * term.size — single source of truth for terminal dimensions, exposed as
+ * reactive ReadSignals.
  *
- * Wraps the WriteStream's columns/rows behind a reactive alien-signals signal
- * so every reader sees the same value and can subscribe to resize events.
+ * Wraps the WriteStream's columns/rows behind an alien-signals signal so every
+ * reader sees the same value and can participate in the reactive graph
+ * (computed / effect). The signals are read-only from the outside — writes
+ * happen internally on `resize` events (after coalescing).
  *
  * Resize coalescing: multiplexers (tmux, cmux, Ghostty tabs) can fire
  * multiple SIGWINCH bursts in rapid succession as the PTY re-syncs. Without
@@ -11,16 +14,30 @@
  * within one 60Hz frame (~16ms) into a single update carrying the final
  * geometry. Discrete resizes spaced further apart pass through normally.
  *
+ * ## API shape
+ *
+ * ```ts
+ * size.cols()          // current width
+ * size.rows()          // current height
+ * size.snapshot()      // { cols, rows }
+ * effect(() => { … use size.cols() … })  // subscribe reactively
+ * size.subscribe(fn)   // imperative push callback (useSyncExternalStore / event-queue)
+ * ```
+ *
+ * Both `effect(() => size.cols())` and `size.subscribe(fn)` get the same
+ * coalesced updates. The imperative `subscribe` is retained for callers
+ * that already have a push-callback shape (React's useSyncExternalStore and
+ * the term-provider event queue).
+ *
  * Ownership: one `Size` per terminal session. Constructed by `createTerm()`
- * (Node terminal) or the emulator path (termless). Readers call `size.cols`
- * / `size.rows` or `size.subscribe(handler)` and never touch
+ * (Node terminal) or the emulator path (termless). Readers never touch
  * `stdout.columns` / `stdout.rows` directly.
  *
- * Bead: km-silvery.term-sub-owners (Phase 5). Reference for the resize
- * coalescing rationale: km-tui.tab-switch-layout-shift.
+ * Bead: km-silvery.term-sub-owners (Phase 5) + km-silvery.modes-as-signals
+ * follow-up (expose as ReadSignal).
  */
 
-import { signal } from "@silvery/signals"
+import { signal, computed, type ReadSignal } from "@silvery/signals"
 
 /** Snapshot of terminal dimensions. */
 export interface SizeSnapshot {
@@ -31,23 +48,27 @@ export interface SizeSnapshot {
 /**
  * Terminal size sub-owner.
  *
- * Properties are live: every read of `size.cols` / `size.rows` reflects the
- * latest resize that has cleared the coalescing window. `subscribe` fires
- * on every coalesced change.
+ * `cols`, `rows`, and `snapshot` are alien-signals `ReadSignal`s — call them
+ * as functions to read the current value and, inside a `computed` / `effect`,
+ * to subscribe to changes. `subscribe(handler)` is a companion imperative
+ * push API retained for React's `useSyncExternalStore` and the term-provider
+ * event queue.
  */
 export interface Size extends Disposable {
   /** Current terminal width in columns. */
-  readonly cols: number
+  readonly cols: ReadSignal<number>
 
   /** Current terminal height in rows. */
-  readonly rows: number
+  readonly rows: ReadSignal<number>
 
   /** Current dimensions as a plain snapshot. */
-  readonly snapshot: SizeSnapshot
+  readonly snapshot: ReadSignal<SizeSnapshot>
 
   /**
-   * Subscribe to resize events. Handler fires after the 16ms coalescing
-   * window elapses with the final geometry. Returns an unsubscribe function.
+   * Subscribe to resize events via a push callback. Handler fires after the
+   * 16ms coalescing window elapses with the final geometry. Returns an
+   * unsubscribe function. Complementary to `effect(() => size.cols())` —
+   * same updates, different caller shape.
    */
   subscribe(handler: (s: SizeSnapshot) => void): () => void
 }
@@ -87,9 +108,11 @@ export function createSize(
   const initialCols = options.cols ?? stdout.columns ?? 80
   const initialRows = options.rows ?? stdout.rows ?? 24
 
-  // Reactive signal — readers via `size.cols/rows/snapshot`, fine-grained
-  // subscribers via `size.subscribe(...)`. Both paths see the same value.
-  const _size = signal<SizeSnapshot>({ cols: initialCols, rows: initialRows })
+  // Writable signal owned privately — readers see it only through the
+  // ReadSignal exports below. Fine-grained subscribers use `effect(() =>
+  // size.cols())` (or similar); the legacy `subscribe` callback list is
+  // kept in parallel for push-shaped consumers.
+  const _snapshot = signal<SizeSnapshot>({ cols: initialCols, rows: initialRows })
 
   // Subscriber set — notified on each coalesced resize.
   const listeners = new Set<(s: SizeSnapshot) => void>()
@@ -105,7 +128,7 @@ export function createSize(
       cols: stdout.columns ?? 80,
       rows: stdout.rows ?? 24,
     }
-    _size(next)
+    _snapshot(next)
     listeners.forEach((l) => l(next))
   }
 
@@ -125,24 +148,24 @@ export function createSize(
   // the MaxListenersExceededWarning that surfaced when every createTerm()
   // eagerly wired one. Matches the laziness of input/output/console owners.
   //
-  // Reads still go through `_size()` so the options.cols/rows override and
-  // the last known coalesced value remain authoritative.
+  // Reads still go through `_snapshot()` so the options.cols/rows override
+  // and the last known coalesced value remain authoritative.
   const ensureInstalled = () => {
     if (installed || disposed) return
     installed = true
     stdout.on("resize", onResize)
   }
 
+  const cols = computed(() => _snapshot().cols)
+  const rows = computed(() => _snapshot().rows)
+  // snapshot is already the underlying signal shape — a plain () => T is
+  // enough; wrapping it in a computed adds an extra node for no benefit.
+  const snapshotRead: ReadSignal<SizeSnapshot> = () => _snapshot()
+
   return {
-    get cols() {
-      return _size().cols
-    },
-    get rows() {
-      return _size().rows
-    },
-    get snapshot() {
-      return _size()
-    },
+    cols,
+    rows,
+    snapshot: snapshotRead,
     subscribe(handler: (s: SizeSnapshot) => void): () => void {
       ensureInstalled()
       listeners.add(handler)
@@ -175,20 +198,18 @@ export function createSize(
 export function createFixedSize(initial: SizeSnapshot): Size & {
   update(cols: number, rows: number): void
 } {
-  const _size = signal<SizeSnapshot>(initial)
+  const _snapshot = signal<SizeSnapshot>(initial)
   const listeners = new Set<(s: SizeSnapshot) => void>()
   let disposed = false
 
+  const cols = computed(() => _snapshot().cols)
+  const rows = computed(() => _snapshot().rows)
+  const snapshotRead: ReadSignal<SizeSnapshot> = () => _snapshot()
+
   return {
-    get cols() {
-      return _size().cols
-    },
-    get rows() {
-      return _size().rows
-    },
-    get snapshot() {
-      return _size()
-    },
+    cols,
+    rows,
+    snapshot: snapshotRead,
     subscribe(handler: (s: SizeSnapshot) => void): () => void {
       listeners.add(handler)
       return () => {
@@ -198,7 +219,7 @@ export function createFixedSize(initial: SizeSnapshot): Size & {
     update(cols: number, rows: number) {
       if (disposed) return
       const next: SizeSnapshot = { cols, rows }
-      _size(next)
+      _snapshot(next)
       listeners.forEach((l) => l(next))
     },
     [Symbol.dispose]() {

@@ -31,6 +31,8 @@
  * entry before Output's sink drops it. `restore()` them in reverse order.
  */
 
+import { signal, type ReadSignal } from "@silvery/signals"
+
 import type { ConsoleEntry, ConsoleMethod } from "../../ansi/types"
 
 /**
@@ -83,8 +85,13 @@ export interface Console extends Disposable {
    */
   restore(): void
 
-  /** Whether `capture()` is currently active. */
-  readonly capturing: boolean
+  /**
+   * Whether `capture()` is currently active — a `ReadSignal<boolean>`.
+   * Call `console.capturing()` to read; subscribe via
+   * `effect(() => console.capturing())`. The owner writes it internally from
+   * `capture()` / `restore()`.
+   */
+  readonly capturing: ReadSignal<boolean>
 
   /**
    * Read current entries. Returns the same reference until a new entry arrives
@@ -128,7 +135,9 @@ const EMPTY_ENTRIES: readonly ConsoleEntry[] = Object.freeze([])
  */
 export function createConsole(target: globalThis.Console = globalThis.console): Console {
   let disposed = false
-  let capturing = false
+  // Reactive `capturing` — written only by capture()/restore(), read by the
+  // public `capturing` ReadSignal.
+  const _capturing = signal<boolean>(false)
   let suppress = false
   let captureEntries = true
 
@@ -194,16 +203,16 @@ export function createConsole(target: globalThis.Console = globalThis.console): 
 
   function capture(options?: ConsoleCaptureOptions): void {
     if (disposed) return
-    if (capturing) return
-    capturing = true
+    if (_capturing()) return
+    _capturing(true)
     suppress = options?.suppress ?? false
     captureEntries = options?.capture ?? true
     install()
   }
 
   function restore(): void {
-    if (!capturing) return
-    capturing = false
+    if (!_capturing()) return
+    _capturing(false)
     uninstall()
   }
 
@@ -234,9 +243,7 @@ export function createConsole(target: globalThis.Console = globalThis.console): 
   return {
     capture,
     restore,
-    get capturing() {
-      return capturing
-    },
+    capturing: _capturing as ReadSignal<boolean>,
     getSnapshot() {
       return captureEntries ? snapshot : EMPTY_ENTRIES
     },

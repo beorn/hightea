@@ -4,6 +4,7 @@
  * Run: bun vitest run tests/features/output.test.ts
  */
 import { describe, expect, test, afterEach } from "vitest"
+import { effect } from "@silvery/signals"
 import { createOutput, type Output } from "@silvery/ag-term/runtime/devices/output"
 import { createTerm } from "@silvery/ag-term"
 import { readFileSync, unlinkSync, existsSync } from "node:fs"
@@ -189,21 +190,42 @@ describe("createOutput", () => {
     guard = null
   })
 
-  test("active property reflects owner state", () => {
+  test("active signal reflects owner state", () => {
     guard = createOutput()
-    expect(guard.active).toBe(false)
+    expect(guard.active()).toBe(false)
 
     guard.activate()
-    expect(guard.active).toBe(true)
+    expect(guard.active()).toBe(true)
 
     guard.deactivate()
-    expect(guard.active).toBe(false)
+    expect(guard.active()).toBe(false)
 
     guard.activate()
-    expect(guard.active).toBe(true)
+    expect(guard.active()).toBe(true)
 
     guard.dispose()
-    expect(guard.active).toBe(false)
+    expect(guard.active()).toBe(false)
+    guard = null
+  })
+
+  test("effect(() => output.active()) fires on activate/deactivate", () => {
+    guard = createOutput()
+    const observed: boolean[] = []
+    const stop = effect(() => {
+      observed.push(guard!.active())
+    })
+
+    expect(observed).toEqual([false])
+    guard.activate()
+    expect(observed).toEqual([false, true])
+    guard.deactivate()
+    expect(observed).toEqual([false, true, false])
+    // Same-value write — no re-emission.
+    guard.deactivate()
+    expect(observed).toEqual([false, true, false])
+
+    stop()
+    guard.dispose()
     guard = null
   })
 

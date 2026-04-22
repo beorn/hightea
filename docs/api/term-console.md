@@ -7,6 +7,8 @@ Single-owner `console.*` capture + replay for a Silvery session. Buffers stray `
 ## Shape
 
 ```ts
+import type { ReadSignal } from "@silvery/signals"
+
 interface ConsoleEntry {
   method: "log" | "info" | "warn" | "error" | "debug"
   args: unknown[]
@@ -22,7 +24,7 @@ interface ConsoleStats {
 interface Console extends Disposable {
   capture(options?: ConsoleCaptureOptions): void
   restore(): void
-  readonly capturing: boolean
+  readonly capturing: ReadSignal<boolean>
 
   getSnapshot(): readonly ConsoleEntry[]
   getStats(): ConsoleStats
@@ -34,6 +36,19 @@ interface ConsoleCaptureOptions {
   suppress?: boolean   // default false — forward to original console after capture
   capture?: boolean    // default true — buffer entries in memory (set false for count-only)
 }
+```
+
+`capturing` is a read-only alien-signal — call `term.console.capturing()` to read, subscribe with `effect(() => term.console.capturing())`. Only the owner's `capture()` / `restore()` writes to it. `subscribe(onStoreChange)` remains for React's `useSyncExternalStore` (`<Console>` component uses it).
+
+```ts
+import { effect } from "@silvery/signals"
+
+effect(() => {
+  if (!term.console) return
+  if (term.console.capturing()) {
+    // tap is live — buffered entries grow in getSnapshot()
+  }
+})
 ```
 
 ## Access
