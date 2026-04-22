@@ -955,11 +955,16 @@ async function renderAsync(
     throw new Error("Invalid second argument: expected Term, TermDef, or undefined")
   }
 
-  // Merge options
+  // Merge options. `resolved.stdout/stdin` come from `resolveFromTerm` (which
+  // reads them from the Term) or `resolveTermDef` (which takes them from the
+  // TermDef); the final `process.stdout/stdin` fallbacks apply only to the
+  // no-termOrDef path where nothing else supplied streams. Phase 8a: the
+  // raw-stream fields on Term are slated for removal
+  // (km-silvery.term-sub-owners Phase 8b) — we no longer reach into them here.
   const mergedOptions: RenderOptions = {
     ...options,
-    stdout: options?.stdout ?? resolved.stdout ?? term.stdout,
-    stdin: options?.stdin ?? (resolved.isStatic ? undefined : term.stdin),
+    stdout: options?.stdout ?? resolved.stdout ?? process.stdout,
+    stdin: options?.stdin ?? (resolved.isStatic ? undefined : process.stdin),
   }
 
   return renderImpl(element, mergedOptions, term, resolved)
@@ -1171,11 +1176,13 @@ export function renderSync(
     }
   }
 
-  // Merge options for interactive mode
+  // Merge options for interactive mode. See `renderAsync` above for the
+  // rationale behind `process.stdout/stdin` fallbacks instead of reaching
+  // into the deprecated Term raw-stream fields (Phase 8a: pre-delete migration).
   const mergedOptions: RenderOptions = {
     ...options,
-    stdout: options?.stdout ?? resolved.stdout ?? term.stdout,
-    stdin: options?.stdin ?? term.stdin,
+    stdout: options?.stdout ?? resolved.stdout ?? process.stdout,
+    stdin: options?.stdin ?? process.stdin,
   }
 
   // alternateScreen defaults to true for fullscreen mode

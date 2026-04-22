@@ -301,17 +301,25 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
     )
   }
 
-  const stdout = term.stdout as { write: (data: string | Uint8Array) => boolean } | undefined
-  if (!stdout || typeof stdout.write !== "function") {
-    throw new Error("recordFrames(): term.stdout is missing a write() method.")
+  // Hook term.paint() — emulator-backed Terms feed the emulator synchronously
+  // inside paint(), so snapshotting right after the original paint returns
+  // captures the same state the previous implementation did by wrapping the
+  // underlying write sink. This avoids reaching into the deprecated Term
+  // raw-stream field, which is slated for removal in
+  // km-silvery.term-sub-owners Phase 8b.
+  const paintable = term as unknown as {
+    paint?: (buffer: unknown, prev: unknown) => string
+  }
+  const originalPaint = paintable.paint
+  if (typeof originalPaint !== "function") {
+    throw new Error("recordFrames(): term is missing a paint() method.")
   }
 
   const frames: TextFrame[] = []
-  const originalWrite = stdout.write.bind(stdout)
   let stopped = false
 
-  stdout.write = (data: string | Uint8Array): boolean => {
-    const result = originalWrite(data)
+  paintable.paint = function (buffer: unknown, prev: unknown): string {
+    const result = originalPaint.call(this, buffer, prev)
     if (!stopped) {
       // The emulator has just been fed (synchronously) — snapshot its state.
       try {
@@ -348,7 +356,7 @@ export function recordFrames(target: Term | FrameRecordable): FrameRecording {
     stop() {
       if (stopped) return
       stopped = true
-      stdout.write = originalWrite
+      paintable.paint = originalPaint
     },
   }
 
