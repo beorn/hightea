@@ -37,6 +37,7 @@ import { nord, catppuccinLatte } from "@silvery/theme/schemes"
 import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 import type { TerminalCaps } from "../terminal-caps"
 import { createInputOwner } from "./input-owner"
+import { getInternalStreams } from "./term-internal"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -282,17 +283,14 @@ export async function run(
       const altScreen = termMode === "inline" ? false : true
 
       const app = createApp(() => () => ({}))
-      // SPECIAL CASE (km-silvery.term-sub-owners Phase 8a): the Term adapter
-      // here needs to pass the emulator's mock stdout into createApp's option
-      // bag — there is no sub-owner surface that wraps that fake stream. When
-      // Phase 8b deletes the public raw-stream fields on Term, this call site
-      // will need an internal accessor (e.g., an unexported adapter helper)
-      // to keep threading the stream through.
+      // Phase 8b: createApp.run() still wants raw streams. Use the internal
+      // accessor — public Term interface no longer exposes them.
+      const { stdout: termStdoutInternal } = getInternalStreams(term)
       const handle = await app.run(element, {
         alternateScreen: altScreen,
         ...termOptions,
         stdin: mockStdin,
-        stdout: term.stdout, // Feeds emulator — protocol escapes reach the emulator
+        stdout: termStdoutInternal, // Feeds emulator — protocol escapes reach the emulator
         guardOutput: false, // Don't monkeypatch process.stdout in test/emulator context
         cols: term.cols ?? 80,
         rows: term.rows ?? 24,
@@ -317,17 +315,15 @@ export async function run(
     // and term-provider.events() startup that killed host-TUI input.
     // Phase 2 will extend ownership across the entire session.
     //
-    // SPECIAL CASE (km-silvery.term-sub-owners Phase 8a): this pre-session
-    // probe is the transient owner window before `term.input` takes over.
-    // Constructing an InputOwner here is the correct primitive — the Term's
-    // own lazy `term.input` getter would yield a second owner competing for
-    // stdin. When Phase 8b deletes the raw-stream fields on Term, this
-    // factory call site will need an internal accessor (or a helper on Term
-    // that returns a probe-only InputOwner that hands raw mode off to the
-    // session owner).
+    // Phase 8b: pre-session probe is the transient owner window before
+    // `term.input` takes over. Constructing an InputOwner here is the correct
+    // primitive — the Term's own lazy `term.input` getter would yield a second
+    // owner competing for stdin. Internal accessor reads the raw streams
+    // since the public Term interface no longer exposes them.
+    const { stdin: termStdin, stdout: termStdout } = getInternalStreams(term)
     const probeOwner =
-      term.stdin?.isTTY && term.stdout?.isTTY
-        ? createInputOwner(term.stdin, term.stdout, { retainRawModeOnDispose: true })
+      termStdin?.isTTY && termStdout?.isTTY
+        ? createInputOwner(termStdin, termStdout, { retainRawModeOnDispose: true })
         : null
     let theme
     try {
@@ -342,16 +338,13 @@ export async function run(
     const resolvedTheme = termTier ? pickColorLevel(theme, termTier) : theme
     const themed = <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
     const app = createApp(() => () => ({}))
-    // SPECIAL CASE (km-silvery.term-sub-owners Phase 8a): real-terminal Term
-    // adapter — createApp's option bag currently takes a raw WriteStream /
-    // ReadStream, so we pass the Term's underlying streams through. These
-    // two remaining references are the counterpart to the emulator-path
-    // adapter above; Phase 8b will need an internal accessor to keep
-    // threading them once the public fields are gone.
+    // Phase 8b: real-terminal Term adapter — createApp's option bag still takes
+    // raw WriteStream / ReadStream, so we thread them via the internal accessor.
+    // (termStdin / termStdout are already in scope from the probe above.)
     const handle = await app.run(themed, {
       term,
-      stdout: term.stdout,
-      stdin: term.stdin,
+      stdout: termStdout,
+      stdin: termStdin,
       cols: term.cols ?? undefined,
       rows: term.rows ?? undefined,
       caps,

@@ -6,6 +6,7 @@
  */
 
 import type { ColorLevel, Term } from "./ansi/index"
+import { getInternalStreams } from "./runtime/term-internal"
 import type { Event, EventSource } from "@silvery/ag/types"
 
 // ============================================================================
@@ -216,13 +217,17 @@ export function resolveTermDef(def: TermDef): ResolvedTermDef {
  * @returns Resolved values
  */
 export function resolveFromTerm(term: Term): ResolvedTermDef {
+  // Phase 8b of km-silvery.term-sub-owners: public Term no longer exposes
+  // stdin / stdout. The legacy ResolvedTermDef shape still wants raw streams,
+  // so the runtime adapter reads them via the internal accessor.
+  const { stdin, stdout } = getInternalStreams(term)
   return {
-    stdout: term.stdout,
+    stdout,
     width: term.cols ?? DEFAULT_WIDTH,
     height: term.rows ?? DEFAULT_HEIGHT,
     colors: term.hasColor(),
     // Term instances always have interactive capabilities
-    events: createInputEvents(term.stdin),
+    events: createInputEvents(stdin),
     isStatic: false,
   }
 }

@@ -273,31 +273,22 @@ export interface Term extends Disposable, StyleChain {
   readonly rows: number | undefined
 
   // -------------------------------------------------------------------------
-  // Streams (DEPRECATED — being removed in Phase 8 of km-silvery.term-sub-owners)
+  // Sub-owners replace direct stdin/stdout (Phase 8 of km-silvery.term-sub-owners)
   //
-  // Direct access to raw stdin/stdout is the leak vector that produced the
+  // The public Term interface no longer exposes raw NodeJS.ReadStream /
+  // WriteStream. Direct access was the leak vector that produced the
   // 2026-04-22 wasRaw race class. Use the typed sub-owners instead:
-  //   - term.input  — for reads / probes (replaces term.stdin.on('data', …))
-  //   - term.output — for writes (replaces term.stdout.write(…))
-  //   - term.modes  — for raw mode + protocol toggles
-  //   - term.size   — for cols/rows + resize subscription
-  //   - term.signals — for process signal scope
-  //   - term.console — for patched console capture
+  //   - term.input   — reads / probes (was: term.stdin.on('data', …))
+  //   - term.output  — writes (was: term.stdout.write(…))
+  //   - term.modes   — raw mode + protocol toggles (was: term.stdin.setRawMode)
+  //   - term.size    — cols/rows + resize subscription
+  //   - term.signals — process signal scope
+  //   - term.console — patched console capture
   //
-  // Phase 8 deletes these fields entirely. New code MUST use sub-owners.
+  // Silvery's own runtime (run.tsx adapters) still needs the raw streams to
+  // bridge to legacy createApp.run() options — those access them via the
+  // package-private accessor `getInternalStreams(term)` from `./term-internal`.
   // -------------------------------------------------------------------------
-
-  /**
-   * Output stream (defaults to process.stdout).
-   * @deprecated Use `term.output` (km-silvery.term-sub-owners Phase 8).
-   */
-  readonly stdout: NodeJS.WriteStream
-
-  /**
-   * Input stream (defaults to process.stdin).
-   * @deprecated Use `term.input` (km-silvery.term-sub-owners Phase 8).
-   */
-  readonly stdin: NodeJS.ReadStream
 
   // -------------------------------------------------------------------------
   // Sub-owners (the typed I/O surface — see km-silvery.term-sub-owners)
