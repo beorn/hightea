@@ -16,7 +16,7 @@
 import type { ColorScheme, Theme } from "./types.ts"
 import { COLOR_SCHEME_FIELDS } from "./types.ts"
 import { deriveTheme, loadTheme } from "./derive.ts"
-import { probeColors } from "./detect.ts"
+import { probeColors, type ProbeInputOwner } from "./detect.ts"
 import { fingerprintMatch } from "./fingerprint.ts"
 import { defaultDarkScheme, defaultLightScheme } from "./default-schemes.ts"
 
@@ -62,6 +62,12 @@ export interface DetectSchemeOptions {
   enforce?: "strict" | "lenient" | "off"
   /** Add WCAG contrast check to the invariant validation. Default `false`. */
   wcag?: boolean
+  /**
+   * Optional InputOwner (from `@silvery/ag-term/runtime`). When provided,
+   * OSC queries route through it instead of touching process.stdin directly.
+   * See `probeColors` for the ownership rationale.
+   */
+  input?: ProbeInputOwner
 }
 
 function envOverride(): "truecolor" | "256" | "ansi16" | "scheme" | "mono" | "auto" | null {
@@ -135,7 +141,7 @@ export async function detectScheme(opts: DetectSchemeOptions = {}): Promise<Dete
   }
 
   // 2. Probe terminal
-  const detected = await probeColors(opts.timeoutMs)
+  const detected = await probeColors({ timeoutMs: opts.timeoutMs, input: opts.input })
 
   // No probe result → pure fallback
   if (!detected) {

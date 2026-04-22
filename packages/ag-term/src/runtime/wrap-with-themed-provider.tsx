@@ -32,6 +32,7 @@ import {
 } from "@silvery/ansi"
 import { ThemeProvider, type ThemeTokens } from "@silvery/ag-react"
 import type { ActiveScheme } from "@silvery/ansi"
+import { createInputOwner } from "./input-owner"
 
 // Re-export for callers that want to compose without re-importing.
 export type { DetectSchemeResult }
@@ -77,14 +78,33 @@ export async function wrapWithThemedProvider(
   element: ReactElement,
   opts: ThemedProviderOptions = {},
 ): Promise<WrapWithThemedProviderResult> {
-  const detectedResult = await detectScheme({
-    override: opts.override,
-    catalog: opts.catalog,
-    timeoutMs: opts.timeoutMs,
-    darkFallback: opts.darkFallback,
-    enforce: opts.enforce,
-    wcag: opts.wcag,
-  })
+  // Phase 1 of km-silvery.input-owner: if an InputOwner wasn't passed in,
+  // construct one for the detection window and dispose it when we're done.
+  // Avoids the wasRaw race between probeColors' finally and the enclosing
+  // term-provider.events() startup.
+  const ownedProbeOwner =
+    opts.input == null &&
+    typeof process !== "undefined" &&
+    process.stdin?.isTTY &&
+    process.stdout?.isTTY
+      ? createInputOwner(process.stdin, process.stdout)
+      : null
+  const effectiveInput = opts.input ?? ownedProbeOwner
+
+  let detectedResult: DetectSchemeResult
+  try {
+    detectedResult = await detectScheme({
+      override: opts.override,
+      catalog: opts.catalog,
+      timeoutMs: opts.timeoutMs,
+      darkFallback: opts.darkFallback,
+      enforce: opts.enforce,
+      wcag: opts.wcag,
+      ...(effectiveInput ? { input: effectiveInput } : {}),
+    })
+  } finally {
+    ownedProbeOwner?.dispose()
+  }
 
   const { theme, scheme: detectedScheme, source, confidence, matchedName } = detectedResult
 

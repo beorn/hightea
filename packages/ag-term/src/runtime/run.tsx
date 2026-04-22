@@ -36,6 +36,7 @@ import { detectTheme, pickColorLevel, type ColorTier } from "@silvery/ansi"
 import { nord, catppuccinLatte } from "@silvery/theme/schemes"
 import { ThemeProvider } from "@silvery/ag-react/ThemeProvider"
 import type { TerminalCaps } from "../terminal-caps"
+import { createInputOwner } from "./input-owner"
 
 // Re-export types from keys.ts
 export type { Key, InputHandler } from "./keys"
@@ -302,7 +303,25 @@ export async function run(
       : detectedCaps
     // Detect terminal colors via OSC — must happen before alt screen.
     // When colorLevel is forced, pre-quantize the detected theme.
-    const theme = await detectTheme({ fallbackDark: nord, fallbackLight: catppuccinLatte })
+    //
+    // Phase 1 of km-silvery.input-owner: we construct an InputOwner for the
+    // probe window only — it owns raw-mode + stdin listener for the duration
+    // of detectTheme, then disposes BEFORE createApp spins up the
+    // term-provider. This avoids the wasRaw race between probeColors' finally
+    // and term-provider.events() startup that killed host-TUI input.
+    // Phase 2 will extend ownership across the entire session.
+    const probeOwner =
+      term.stdin?.isTTY && term.stdout?.isTTY ? createInputOwner(term.stdin, term.stdout) : null
+    let theme
+    try {
+      theme = await detectTheme({
+        fallbackDark: nord,
+        fallbackLight: catppuccinLatte,
+        ...(probeOwner ? { input: probeOwner } : {}),
+      })
+    } finally {
+      probeOwner?.dispose()
+    }
     const resolvedTheme = termTier ? pickColorLevel(theme, termTier) : theme
     const themed = <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
     const app = createApp(() => () => ({}))
@@ -335,12 +354,30 @@ export async function run(
   // Detect terminal colors via OSC — must happen before alt screen (skipped for headless).
   // When colorLevel is forced, pre-quantize the detected theme to the chosen tier so
   // token hex values match what the pipeline will actually emit.
-  const themed = headless
-    ? element
-    : await detectTheme({ fallbackDark: nord, fallbackLight: catppuccinLatte }).then((theme) => {
-        const resolvedTheme = effectiveTier ? pickColorLevel(theme, effectiveTier) : theme
-        return <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
+  //
+  // See the primary detectTheme() call above for the InputOwner rationale.
+  const runStdin = (rest.stdin ?? process.stdin) as NodeJS.ReadStream
+  const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
+  const optsProbeOwner =
+    !headless && runStdin.isTTY && runStdout.isTTY
+      ? createInputOwner(runStdin, runStdout)
+      : null
+  let themed: ReactElement
+  if (headless) {
+    themed = element
+  } else {
+    try {
+      const theme = await detectTheme({
+        fallbackDark: nord,
+        fallbackLight: catppuccinLatte,
+        ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
       })
+      const resolvedTheme = effectiveTier ? pickColorLevel(theme, effectiveTier) : theme
+      themed = <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
+    } finally {
+      optsProbeOwner?.dispose()
+    }
+  }
   const app = createApp(() => () => ({}))
   const handle = await app.run(themed, {
     ...rest,
