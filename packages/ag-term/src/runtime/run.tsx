@@ -311,7 +311,9 @@ export async function run(
     // and term-provider.events() startup that killed host-TUI input.
     // Phase 2 will extend ownership across the entire session.
     const probeOwner =
-      term.stdin?.isTTY && term.stdout?.isTTY ? createInputOwner(term.stdin, term.stdout) : null
+      term.stdin?.isTTY && term.stdout?.isTTY
+        ? createInputOwner(term.stdin, term.stdout, { retainRawModeOnDispose: true })
+        : null
     let theme
     try {
       theme = await detectTheme({
@@ -360,7 +362,7 @@ export async function run(
   const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
   const optsProbeOwner =
     !headless && runStdin.isTTY && runStdout.isTTY
-      ? createInputOwner(runStdin, runStdout)
+      ? createInputOwner(runStdin, runStdout, { retainRawModeOnDispose: true })
       : null
   let themed: ReactElement
   if (headless) {

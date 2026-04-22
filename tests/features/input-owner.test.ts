@@ -300,6 +300,23 @@ describe("InputOwner", () => {
     expect(dataHandlers.size).toBe(0)
   })
 
+  it("retainRawModeOnDispose=true — dispose removes listener but keeps raw=true", () => {
+    // The session-handoff pattern: the probe owner disposes, but the
+    // upcoming term-provider is about to set raw=true again. Toggling
+    // off/on between is wasteful AND surfaces an extra termios transition
+    // (breaks tests that assert on teardown event ordering).
+    const { stdin, stdout, rawState, dataHandlers } = createMockIO()
+    const owner = createInputOwner(stdin, stdout, { retainRawModeOnDispose: true })
+    expect(rawState.isRaw).toBe(true)
+    expect(dataHandlers.size).toBe(1)
+
+    owner.dispose()
+    // Listener released (so the next owner won't multi-dispatch bytes)…
+    expect(dataHandlers.size).toBe(0)
+    // …but raw mode stays on for the handoff.
+    expect(rawState.isRaw).toBe(true)
+  })
+
   it("does not re-enable raw mode on dispose when it started raw", () => {
     const { stdin, stdout, rawState } = createMockIO()
     // Simulate: an outer raw-mode setter (nested session) is already active.

@@ -115,6 +115,19 @@ export interface InputOwnerOptions {
    * `outputGuard.writeStdout`). Defaults to `stdout.write.bind(stdout)`.
    */
   writeStdout?: (data: string) => boolean | void
+  /**
+   * When true, `dispose()` does NOT call `stdin.setRawMode(false)`. The
+   * listener is still removed and pending probes still resolve with null,
+   * but raw mode stays set so the next owner (typically the term-provider's
+   * events() generator) can take over seamlessly.
+   *
+   * Use this when the owner is the pre-session probe window AND a follow-up
+   * stdin consumer will re-set raw=true immediately — the off/on toggle is
+   * wasteful and surfaces extra termios transitions in tests that assert
+   * event ordering on teardown. In Phase 2, when the InputOwner becomes the
+   * session-long owner, this option is not needed.
+   */
+  retainRawModeOnDispose?: boolean
 }
 
 interface ProbeEntry {
@@ -331,15 +344,19 @@ export function createInputOwner(
       } catch {
         // listener already removed
       }
-      try {
-        if (rawWasSet) stdin.setRawMode(false)
-      } catch {
-        // stdin may already be closed
-      }
-      try {
-        stdin.pause()
-      } catch {
-        // stdin may already be closed
+      // Only restore raw=false when we set it AND the caller hasn't asked
+      // us to retain it for a follow-up owner (see retainRawModeOnDispose).
+      if (!options.retainRawModeOnDispose) {
+        try {
+          if (rawWasSet) stdin.setRawMode(false)
+        } catch {
+          // stdin may already be closed
+        }
+        try {
+          stdin.pause()
+        } catch {
+          // stdin may already be closed
+        }
       }
     }
 

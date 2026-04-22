@@ -87,7 +87,7 @@ export async function wrapWithThemedProvider(
     typeof process !== "undefined" &&
     process.stdin?.isTTY &&
     process.stdout?.isTTY
-      ? createInputOwner(process.stdin, process.stdout)
+      ? createInputOwner(process.stdin, process.stdout, { retainRawModeOnDispose: true })
       : null
   const effectiveInput = opts.input ?? ownedProbeOwner
 
