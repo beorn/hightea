@@ -96,6 +96,7 @@ export function createSize(
 
   let disposed = false
   let coalesceTimer: ReturnType<typeof setTimeout> | null = null
+  let installed = false
 
   const flush = () => {
     coalesceTimer = null
@@ -118,7 +119,19 @@ export function createSize(
     coalesceTimer = setTimeout(flush, coalesceMs)
   }
 
-  stdout.on("resize", onResize)
+  // Lazy install — the resize listener is only attached on first subscribe().
+  // Consumers that never subscribe (e.g. style-only createTerm() usages from
+  // chalk-compat call sites in km-tui/text/*) pay zero listeners. Prevents
+  // the MaxListenersExceededWarning that surfaced when every createTerm()
+  // eagerly wired one. Matches the laziness of input/output/console owners.
+  //
+  // Reads still go through `_size()` so the options.cols/rows override and
+  // the last known coalesced value remain authoritative.
+  const ensureInstalled = () => {
+    if (installed || disposed) return
+    installed = true
+    stdout.on("resize", onResize)
+  }
 
   return {
     get cols() {
@@ -131,6 +144,7 @@ export function createSize(
       return _size()
     },
     subscribe(handler: (s: SizeSnapshot) => void): () => void {
+      ensureInstalled()
       listeners.add(handler)
       return () => {
         listeners.delete(handler)
@@ -139,7 +153,10 @@ export function createSize(
     [Symbol.dispose]() {
       if (disposed) return
       disposed = true
-      stdout.off("resize", onResize)
+      if (installed) {
+        stdout.off("resize", onResize)
+        installed = false
+      }
       if (coalesceTimer !== null) {
         clearTimeout(coalesceTimer)
         coalesceTimer = null

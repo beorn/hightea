@@ -177,10 +177,50 @@ describe("createSize: resize coalescing", () => {
   })
 })
 
+describe("createSize: lazy install", () => {
+  // The resize listener is installed on first subscribe() — NOT at
+  // construction. Style-only createTerm() callers (chalk-compat paths in
+  // km-tui/text/*) never subscribe, so they pay zero listeners. Prevents
+  // the MaxListenersExceededWarning (11+ resize listeners) observed when
+  // every createTerm() eagerly wired one.
+  test("no listener is installed at construction", () => {
+    const stdout = createMockStdout(80, 24)
+    using size = createSize(stdout)
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
+    // Reads still work — they fall through to stdout.columns/rows.
+    expect(size.cols).toBe(80)
+    expect(size.rows).toBe(24)
+  })
+
+  test("first subscribe installs the listener; subsequent subscribes do not stack", () => {
+    const stdout = createMockStdout(80, 24)
+    using size = createSize(stdout)
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
+    size.subscribe(() => {})
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+    size.subscribe(() => {})
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+  })
+
+  test("reads without subscribe return the initial (construction-time) dims", () => {
+    // Without a listener the signal never advances, so reads reflect the
+    // snapshot captured at construction. That's fine for chalk-compat style
+    // usages that don't care about mid-run resizes.
+    const stdout = createMockStdout(80, 24)
+    using size = createSize(stdout)
+    ;(stdout as unknown as { columns: number }).columns = 132
+    ;(stdout as unknown as { rows: number }).rows = 40
+    // No subscribe, no listener — reads stay at the seeded initial.
+    expect(size.cols).toBe(80)
+    expect(size.rows).toBe(24)
+  })
+})
+
 describe("createSize: dispose", () => {
-  test("dispose removes the resize listener", () => {
+  test("dispose removes the resize listener when installed", () => {
     const stdout = createMockStdout(80, 24)
     const size = createSize(stdout)
+    size.subscribe(() => {})
     expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
     size[Symbol.dispose]()
     expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
