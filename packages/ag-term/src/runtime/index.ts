@@ -45,6 +45,16 @@ export {
 // See ./input-owner.ts for the wasRaw anti-pattern it replaces.
 export { createInputOwner, type InputOwner, type InputOwnerOptions } from "./input-owner"
 
+// Modes — single owner for terminal protocol modes (raw, alt-screen,
+// bracketed paste, kitty keyboard, mouse, focus reporting).
+// Consolidates the scattered enable*/disable* calls; see ./devices/modes.ts.
+export {
+  createModes,
+  KittyFlags,
+  type Modes,
+  type CreateModesOptions,
+} from "./devices/modes"
+
 // Layer 0: Pure render functions
 export { layout, layoutSync, ensureLayoutEngine, type LayoutOptions } from "./layout"
 export { diff, render, type DiffMode } from "./diff"
