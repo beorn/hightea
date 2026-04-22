@@ -903,6 +903,10 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
   // non-TTY so raw-mode toggles are tracked but never applied. Keeps the
   // `term.modes` surface uniform across Term variants.
   const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
+  // Signals owner — handlers register lazily; dispose removes them. Same
+  // shape as Node-backed Term so test code that mounts a Signals consumer
+  // works in both contexts.
+  const signals = createSignals()
 
   const termBase = {
     hasCursor: () => false,
@@ -914,6 +918,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     stdin: process.stdin,
     size,
     modes,
+    signals,
     console: undefined as DeviceConsole | undefined,
     write: () => {},
     writeLine: () => {},
@@ -934,6 +939,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
       if (disposed) return
       disposed = true
       controller.abort()
+      signals[Symbol.dispose]()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
     },

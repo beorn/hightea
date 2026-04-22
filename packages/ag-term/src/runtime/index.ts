@@ -55,6 +55,17 @@ export {
   type CreateModesOptions,
 } from "./devices/modes"
 
+// Signals — single owner for process-signal handlers with topologically-
+// ordered, error-isolated teardown. See ./devices/signals.ts for rationale
+// and the 2026-04-22 shared-global audit.
+export {
+  createSignals,
+  type Signals,
+  type SignalName,
+  type SignalOnOptions,
+  type CreateSignalsOptions,
+} from "./devices/signals"
+
 // Layer 0: Pure render functions
 export { layout, layoutSync, ensureLayoutEngine, type LayoutOptions } from "./layout"
 export { diff, render, type DiffMode } from "./diff"
