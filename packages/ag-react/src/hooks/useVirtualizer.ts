@@ -413,9 +413,23 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
   if (scrollTo !== undefined) {
     const clampedIndex = Math.max(0, Math.min(scrollTo, count - 1))
     selectedIndexRef.current = clampedIndex
-    if (clampedIndex !== scrollOffsetRef.current) {
+    // Edge-based scroll: only adjust the anchor when scrollTo would land
+    // OUTSIDE the currently visible window. Without this guard, every cursor
+    // move sets `scrollOffsetRef.current = scrollTo` — making the cursor item
+    // the leftmost (or topmost) visible item even when it was already in view.
+    // User-visible: pressing →/l in a multi-column board would scroll the
+    // board on every keypress, leaving the cursor "stuck" in column 0.
+    // Bead: km-tui.cursor-stuck-col-0-h-scrolls.
+    const currentOffset = scrollOffsetRef.current
+    const visibleEndExclusive = currentOffset + estimatedVisibleCount
+    if (clampedIndex < currentOffset) {
+      // Off-screen to the left/above: scroll so target becomes leftmost/topmost.
       scrollOffsetRef.current = clampedIndex
+    } else if (clampedIndex >= visibleEndExclusive) {
+      // Off-screen to the right/below: scroll so target becomes rightmost/bottommost.
+      scrollOffsetRef.current = Math.max(0, clampedIndex - estimatedVisibleCount + 1)
     }
+    // else: clampedIndex is in [currentOffset, visibleEndExclusive) — no scroll.
   }
 
   const effectiveScrollOffset = scrollOffsetRef.current
