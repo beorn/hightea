@@ -25,6 +25,11 @@ import {
 } from "./index"
 
 using term = createTerm({ color: "truecolor" })
+// Caps fixture for underline helpers — storybook is a diagnostic CLI that
+// demonstrates all styles regardless of whether the host terminal supports
+// them, so we pass a truecolor caps shape unconditionally. Post
+// unicode-plateau Phase 5: underline helpers require explicit caps.
+const ucaps = { underlineStyles: true, underlineColor: true }
 
 const divider = "═".repeat(60)
 const subDivider = "─".repeat(40)
@@ -68,16 +73,16 @@ section("Extended Underline Styles")
 subsection("Comparison with standard underline")
 
 console.log(` Standard:  ${term.underline("regular underline")}`)
-console.log(` Double:    ${doubleUnderline("double underline")}`)
-console.log(` Curly:     ${curlyUnderline("curly/wavy underline")}`)
-console.log(` Dotted:    ${dottedUnderline("dotted underline")}`)
-console.log(` Dashed:    ${dashedUnderline("dashed underline")}`)
+console.log(` Double:    ${doubleUnderline("double underline", ucaps)}`)
+console.log(` Curly:     ${curlyUnderline("curly/wavy underline", ucaps)}`)
+console.log(` Dotted:    ${dottedUnderline("dotted underline", ucaps)}`)
+console.log(` Dashed:    ${dashedUnderline("dashed underline", ucaps)}`)
 console.log()
 
 subsection("Side by side")
 
 console.log(
-  ` ${term.underline("standard")} | ${doubleUnderline("double")} | ${curlyUnderline("curly")} | ${dottedUnderline("dotted")} | ${dashedUnderline("dashed")}`,
+  ` ${term.underline("standard")} | ${doubleUnderline("double", ucaps)} | ${curlyUnderline("curly", ucaps)} | ${dottedUnderline("dotted", ucaps)} | ${dashedUnderline("dashed", ucaps)}`,
 )
 
 // =============================================================================
@@ -88,19 +93,19 @@ section("Independent Underline Color")
 
 subsection("Basic colors")
 
-console.log(` Red:    ${underlineColor(255, 0, 0, "error message")}`)
-console.log(` Orange: ${underlineColor(255, 165, 0, "warning message")}`)
-console.log(` Yellow: ${underlineColor(255, 255, 0, "caution message")}`)
-console.log(` Green:  ${underlineColor(0, 255, 0, "success message")}`)
-console.log(` Blue:   ${underlineColor(0, 128, 255, "info message")}`)
-console.log(` Purple: ${underlineColor(128, 0, 255, "special message")}`)
+console.log(` Red:    ${underlineColor(255, 0, 0, "error message", ucaps)}`)
+console.log(` Orange: ${underlineColor(255, 165, 0, "warning message", ucaps)}`)
+console.log(` Yellow: ${underlineColor(255, 255, 0, "caution message", ucaps)}`)
+console.log(` Green:  ${underlineColor(0, 255, 0, "success message", ucaps)}`)
+console.log(` Blue:   ${underlineColor(0, 128, 255, "info message", ucaps)}`)
+console.log(` Purple: ${underlineColor(128, 0, 255, "special message", ucaps)}`)
 console.log()
 
 subsection("With text color (independent)")
 
-console.log(` ${term.red(underlineColor(0, 255, 0, "Red text, green underline"))}`)
-console.log(` ${term.blue(underlineColor(255, 165, 0, "Blue text, orange underline"))}`)
-console.log(` ${term.white(underlineColor(255, 0, 0, "White text, red underline"))}`)
+console.log(` ${term.red(underlineColor(0, 255, 0, "Red text, green underline", ucaps))}`)
+console.log(` ${term.blue(underlineColor(255, 165, 0, "Blue text, orange underline", ucaps))}`)
+console.log(` ${term.white(underlineColor(255, 0, 0, "White text, red underline", ucaps))}`)
 
 // =============================================================================
 // Combined Style + Color
@@ -110,21 +115,21 @@ section("Combined Style + Color")
 
 subsection("Curly with colors (like spell-check)")
 
-console.log(` Spelling error: ${styledUnderline("curly", [255, 0, 0], "teh")} → the`)
-console.log(` Grammar issue:  ${styledUnderline("curly", [0, 128, 255], "alot")} → a lot`)
-console.log(` Style warning:  ${styledUnderline("curly", [0, 180, 0], "very unique")} → unique`)
+console.log(` Spelling error: ${styledUnderline("curly", [255, 0, 0], "teh", ucaps)} → the`)
+console.log(` Grammar issue:  ${styledUnderline("curly", [0, 128, 255], "alot", ucaps)} → a lot`)
+console.log(` Style warning:  ${styledUnderline("curly", [0, 180, 0], "very unique", ucaps)} → unique`)
 console.log()
 
 subsection("Dotted with colors (embedded content)")
 
-console.log(` From inbox:    ${styledUnderline("dotted", [100, 149, 237], "Review docs")}`)
-console.log(` From projects: ${styledUnderline("dotted", [147, 112, 219], "Sprint planning")}`)
+console.log(` From inbox:    ${styledUnderline("dotted", [100, 149, 237], "Review docs", ucaps)}`)
+console.log(` From projects: ${styledUnderline("dotted", [147, 112, 219], "Sprint planning", ucaps)}`)
 console.log()
 
 subsection("Dashed with colors (drafts/tentative)")
 
-console.log(` Draft:     ${styledUnderline("dashed", [128, 128, 128], "WIP: New feature")}`)
-console.log(` Tentative: ${styledUnderline("dashed", [169, 169, 169], "Maybe: Refactor auth")}`)
+console.log(` Draft:     ${styledUnderline("dashed", [128, 128, 128], "WIP: New feature", ucaps)}`)
+console.log(` Tentative: ${styledUnderline("dashed", [169, 169, 169], "Maybe: Refactor auth", ucaps)}`)
 
 // =============================================================================
 // Hyperlinks
@@ -156,7 +161,7 @@ section("ANSI Utilities")
 
 subsection("stripAnsi() - Remove escape codes")
 
-const styled = curlyUnderline("Hello ") + term.bold.red("World")
+const styled = curlyUnderline("Hello ", ucaps) + term.bold.red("World")
 console.log(` Styled:   "${styled}"`)
 console.log(` Stripped: "${stripAnsi(styled)}"`)
 console.log()
@@ -176,7 +181,7 @@ section("Practical Use Cases")
 
 subsection("IDE-style error highlighting")
 
-console.log(` const ${styledUnderline("curly", [255, 0, 0], "x")} = undefined;`)
+console.log(` const ${styledUnderline("curly", [255, 0, 0], "x", ucaps)} = undefined;`)
 console.log(`       ${term.red("^")} ${term.dim("Variable 'x' is declared but never used")}`)
 console.log()
 
@@ -184,13 +189,13 @@ subsection("Task manager styling")
 
 console.log(` ${term.green("✓")} ${term.dim.strikethrough("Completed task")}`)
 console.log(
-  ` ${term.yellow("◐")} ${styledUnderline("curly", [255, 180, 0], "Due today: Submit report")}`,
+  ` ${term.yellow("◐")} ${styledUnderline("curly", [255, 180, 0], "Due today: Submit report", ucaps)}`,
 )
 console.log(
-  ` ${term.red("○")} ${styledUnderline("curly", [255, 80, 80], "Overdue: Fix critical bug")}`,
+  ` ${term.red("○")} ${styledUnderline("curly", [255, 80, 80], "Overdue: Fix critical bug", ucaps)}`,
 )
-console.log(` ${term.blue("○")} ${dottedUnderline("Embedded from [[Projects]]")}`)
-console.log(` ${term.gray("○")} ${dashedUnderline("Draft: New feature idea")}`)
+console.log(` ${term.blue("○")} ${dottedUnderline("Embedded from [[Projects]]", ucaps)}`)
+console.log(` ${term.gray("○")} ${dashedUnderline("Draft: New feature idea", ucaps)}`)
 console.log()
 
 subsection("Documentation with clickable links")

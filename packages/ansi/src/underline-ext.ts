@@ -1,16 +1,26 @@
 /**
  * Extended underline style functions.
  *
- * Provides curly, dotted, dashed, and double underline styles
- * with graceful fallback to standard underline on unsupported terminals.
+ * Provides curly, dotted, dashed, and double underline styles with graceful
+ * fallback to regular underline on unsupported terminals.
  *
- * Post km-silvery.unicode-plateau Phase 1 (2026-04-23): capability gating
- * reads `caps.underlineStyles` / `caps.underlineColor` — a `TerminalCaps`
- * field populated by {@link createTerminalProfile}. Every helper accepts
- * an optional `caps` argument; when omitted, a lazily-cached
- * `createTerminalProfile()` fills in the ambient value so casual callers
- * (`curlyUnderline("misspelled")`) still work one-shot. Explicit caps wins
- * over the ambient fallback — tests + cross-target code pass their own.
+ * Post km-silvery.unicode-plateau Phase 5 (2026-04-23): capability gating is
+ * **required** via an explicit `caps: UnderlineCaps` argument. The earlier
+ * optional-caps-with-ambient-`createTerminalProfile()`-fallback was an
+ * ambient-authority leak — the helpers secretly read `process.env` when
+ * callers omitted caps. Per /pro review: "Silvery is a UI framework, not
+ * a string-formatting library. Callers should thread TerminalCaps from
+ * their Term (`term.caps`) or profile; the safe cross-platform fallback
+ * is to gracefully degrade (emit standard underline), not to implicitly
+ * probe the environment."
+ *
+ * Consumer pattern inside React components:
+ *   const caps = useTerm(t => t.caps)
+ *   return <Text>{curlyUnderline(value, caps)}</Text>
+ *
+ * Consumer pattern outside React (scripts, tests):
+ *   const { caps } = createTerminalProfile()
+ *   console.log(curlyUnderline(value, caps))
  */
 
 import {
@@ -20,7 +30,6 @@ import {
   UNDERLINE_RESET_STANDARD,
   buildUnderlineColorCode,
 } from "./constants"
-import { createTerminalProfile } from "./profile"
 import type { TerminalCaps } from "./detection"
 import type { UnderlineStyle, RGB } from "./types"
 
@@ -35,50 +44,26 @@ const UNDERLINE_CLOSE = "\x1b[24m"
  */
 export type UnderlineCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor">
 
-// Lazy-cache the ambient profile so `curlyUnderline("x")` without caps doesn't
-// re-probe env on every call. One cache per process — profile.ts itself
-// memoizes expensive sub-probes (macOS defaults read) and the env snapshot
-// doesn't change within a process lifetime.
-let _ambientCaps: UnderlineCaps | undefined
-
-function ambientCaps(): UnderlineCaps {
-  if (_ambientCaps === undefined) {
-    const { caps } = createTerminalProfile()
-    _ambientCaps = {
-      underlineStyles: caps.underlineStyles,
-      underlineColor: caps.underlineColor,
-    }
-  }
-  return _ambientCaps
-}
-
-/**
- * Reset the ambient caps cache. Test-only hook — call between tests that
- * mutate `process.env` to force the next helper call to re-probe.
- */
-export function _resetAmbientCapsForTesting(): void {
-  _ambientCaps = undefined
-}
-
 // =============================================================================
 // Extended Underline Functions
 // =============================================================================
 
 /**
  * Apply an extended underline style to text.
- * Falls back to regular underline on unsupported terminals.
+ * Falls back to standard underline on terminals without
+ * `caps.underlineStyles`.
  *
  * @param text - Text to underline
  * @param style - Underline style (default: "single")
- * @param caps - Terminal capabilities (default: ambient profile)
+ * @param caps - Terminal capabilities (`term.caps` or `createTerminalProfile().caps`)
  * @returns Styled text with ANSI codes
  */
 export function underline(
   text: string,
-  style: UnderlineStyle = "single",
-  caps?: UnderlineCaps,
+  style: UnderlineStyle,
+  caps: UnderlineCaps,
 ): string {
-  if (!(caps ?? ambientCaps()).underlineStyles || style === "single") {
+  if (!caps.underlineStyles || style === "single") {
     return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
   }
 
@@ -88,56 +73,45 @@ export function underline(
 /**
  * Apply curly/wavy underline to text.
  * Commonly used for spell check errors in IDEs.
- * Falls back to regular underline on unsupported terminals.
+ * Falls back to standard underline when `caps.underlineStyles` is false.
  *
  * @param text - Text to underline
- * @param caps - Terminal capabilities (default: ambient profile)
+ * @param caps - Terminal capabilities (`term.caps` or `createTerminalProfile().caps`)
  * @returns Styled text with curly underline
  *
  * @example
  * ```ts
- * import { curlyUnderline } from '@silvery/ansi';
+ * import { curlyUnderline, createTerminalProfile } from '@silvery/ansi'
  *
- * console.log(curlyUnderline('misspelled'));
+ * const { caps } = createTerminalProfile()
+ * console.log(curlyUnderline('misspelled', caps))
  * ```
  */
-export function curlyUnderline(text: string, caps?: UnderlineCaps): string {
+export function curlyUnderline(text: string, caps: UnderlineCaps): string {
   return underline(text, "curly", caps)
 }
 
 /**
  * Apply dotted underline to text.
- * Falls back to regular underline on unsupported terminals.
- *
- * @param text - Text to underline
- * @param caps - Terminal capabilities (default: ambient profile)
- * @returns Styled text with dotted underline
+ * Falls back to standard underline when `caps.underlineStyles` is false.
  */
-export function dottedUnderline(text: string, caps?: UnderlineCaps): string {
+export function dottedUnderline(text: string, caps: UnderlineCaps): string {
   return underline(text, "dotted", caps)
 }
 
 /**
  * Apply dashed underline to text.
- * Falls back to regular underline on unsupported terminals.
- *
- * @param text - Text to underline
- * @param caps - Terminal capabilities (default: ambient profile)
- * @returns Styled text with dashed underline
+ * Falls back to standard underline when `caps.underlineStyles` is false.
  */
-export function dashedUnderline(text: string, caps?: UnderlineCaps): string {
+export function dashedUnderline(text: string, caps: UnderlineCaps): string {
   return underline(text, "dashed", caps)
 }
 
 /**
  * Apply double underline to text.
- * Falls back to regular underline on unsupported terminals.
- *
- * @param text - Text to underline
- * @param caps - Terminal capabilities (default: ambient profile)
- * @returns Styled text with double underline
+ * Falls back to standard underline when `caps.underlineStyles` is false.
  */
-export function doubleUnderline(text: string, caps?: UnderlineCaps): string {
+export function doubleUnderline(text: string, caps: UnderlineCaps): string {
   return underline(text, "double", caps)
 }
 
@@ -147,32 +121,25 @@ export function doubleUnderline(text: string, caps?: UnderlineCaps): string {
 
 /**
  * Set underline color independently of text color.
- * On unsupported terminals, the color is ignored but underline still applies.
+ * On terminals without `caps.underlineColor`, the color is ignored but
+ * standard underline still applies.
  *
  * @param r - Red component (0-255)
  * @param g - Green component (0-255)
  * @param b - Blue component (0-255)
  * @param text - Text to style
- * @param caps - Terminal capabilities (default: ambient profile)
+ * @param caps - Terminal capabilities
  * @returns Styled text with colored underline
- *
- * @example
- * ```ts
- * import { underlineColor } from '@silvery/ansi';
- *
- * // Red underline (text color unchanged)
- * console.log(underlineColor(255, 0, 0, 'warning'));
- * ```
  */
 export function underlineColor(
   r: number,
   g: number,
   b: number,
   text: string,
-  caps?: UnderlineCaps,
+  caps: UnderlineCaps,
 ): string {
-  if (!(caps ?? ambientCaps()).underlineColor) {
-    // Fallback: just apply regular underline, ignore color
+  if (!caps.underlineColor) {
+    // Fallback: standard underline, ignore color
     return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
   }
 
@@ -183,35 +150,31 @@ export function underlineColor(
 /**
  * Combine underline style with underline color.
  *
+ * On terminals where `caps.underlineStyles` is false, degrades to standard
+ * underline (color dropped). When `caps.underlineStyles` is true but
+ * `caps.underlineColor` is false (rare — usually paired), emits the style
+ * without color.
+ *
  * @param style - Underline style ('curly', 'dotted', 'dashed', 'double', 'single')
  * @param rgb - Color as [r, g, b] tuple (0-255 each)
  * @param text - Text to style
- * @param caps - Terminal capabilities (default: ambient profile)
+ * @param caps - Terminal capabilities
  * @returns Styled text with colored underline in specified style
- *
- * @example
- * ```ts
- * import { styledUnderline } from '@silvery/ansi';
- *
- * // Red curly underline (spell-check style)
- * console.log(styledUnderline('curly', [255, 0, 0], 'misspelled'));
- * ```
  */
 export function styledUnderline(
   style: UnderlineStyle,
   rgb: RGB,
   text: string,
-  caps?: UnderlineCaps,
+  caps: UnderlineCaps,
 ): string {
-  const c = caps ?? ambientCaps()
-  if (!c.underlineStyles) {
+  if (!caps.underlineStyles) {
     return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
   }
 
   const [r, g, b] = rgb
   const styleCode = UNDERLINE_CODES[style]
 
-  if (!c.underlineColor) {
+  if (!caps.underlineColor) {
     // Terminal gates style but not color (rare — usually paired in caps).
     // Emit style-only.
     return `${styleCode}${text}${UNDERLINE_CODES.reset}`

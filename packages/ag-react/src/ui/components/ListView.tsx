@@ -104,11 +104,12 @@ export interface ListViewProps<T> {
   /** Render function for each item. Third arg provides cursor metadata. */
   renderItem: (item: T, index: number, meta: ListItemMeta) => React.ReactNode
 
-  /** Index to scroll to (declarative). When undefined, scroll state freezes.
-   * When nav=true and scrollTo is set, it wins over cursor-derived scroll —
-   * lets the consumer decouple viewport from cursor (e.g. wheel-scrolls-
-   * viewport while cursor stays put). Undefined in nav mode means
-   * "follow cursor", the default. */
+  /** Index to scroll to (declarative override). When set, wins over the
+   * internal viewport anchor and cursor-derived scroll — use for programmatic
+   * reveal (search matches, "jump to result", etc.). When undefined, the list
+   * follows its internal anchor: wheel over it scrolls the viewport with
+   * kinetic momentum (cursor stays put); keyboard cursor moves snap the
+   * viewport back to the cursor. */
   scrollTo?: number
 
   /** Extra items to render beyond viewport for smooth scrolling. Default: 5 */
@@ -134,12 +135,6 @@ export interface ListViewProps<T> {
 
   /** Render separator between items (alternative to gap) */
   renderSeparator?: () => React.ReactNode
-
-  /** Mouse wheel handler for scrolling. When provided, wins over nav mode's
-   * default cursor-moving behavior — lets the consumer implement
-   * wheel-scrolls-viewport (the natural "mouse follows hover, not focus"
-   * behavior) while keyboard still moves the cursor. */
-  onWheel?: (event: { deltaY: number }) => void
 
   /** Called when the visible range reaches near the end of the list (infinite scroll). */
   onEndReached?: () => void
@@ -213,8 +208,30 @@ const DEFAULT_ESTIMATE_HEIGHT = 1
 const DEFAULT_OVERSCAN = 5
 const DEFAULT_MAX_RENDERED = 100
 const DEFAULT_SCROLL_PADDING = 2
-/** Items to move per mouse wheel tick */
-const WHEEL_STEP = 3
+
+// ── Kinetic scroll physics (iOS UIScrollView "normal" deceleration) ────────
+//
+// Wheel events add to `velocity` (items/sec). A 60Hz loop advances the
+// float anchor by `velocity · dt` and decays velocity exponentially. The
+// sub-item accumulator (anchorFloat) is what gives low-speed momentum a
+// smooth feel even though the rendered anchor is integer (`Math.round`).
+//
+// The decay constant `KINETIC_DECAY_PER_FRAME = 0.95` at 60fps is
+// equivalent to ~0.9969 per ms — very close to UIScrollView's 0.998/ms
+// "normal" rate; slightly more aggressive to suit a discrete list where
+// one-item overshoot reads as sloppier than on iOS's pixel-smooth scroll.
+
+/** Each wheel click's contribution to velocity, in items per second.
+ * Tuned so one notch feels like ~3 items of travel before decay. */
+const KINETIC_IMPULSE = 18
+/** Max absolute velocity (items/sec). Prevents runaway from spammy trackpads. */
+const KINETIC_MAX_VELOCITY = 120
+/** Multiplicative decay per 60Hz frame. 0.95^60 ≈ 0.046 (~95% gone in 1s). */
+const KINETIC_DECAY_PER_FRAME = 0.95
+/** Stop the loop once velocity drops below this (items/sec). */
+const KINETIC_STOP_THRESHOLD = 0.8
+/** Animation loop period in ms — 60Hz. */
+const KINETIC_FRAME_MS = 16
 
 // =============================================================================
 // Measurement
@@ -278,7 +295,6 @@ function ListViewInner<T>(
     width,
     gap = 0,
     renderSeparator,
-    onWheel: onWheelProp,
     onEndReached,
     onEndReachedThreshold,
     listFooter,
@@ -308,13 +324,106 @@ function ListViewInner<T>(
   const [uncontrolledCursor, setUncontrolledCursor] = useState(0)
   const activeCursor = nav ? (isControlled ? cursorKeyProp! : uncontrolledCursor) : -1
 
+  // ── Viewport scroll anchor (decoupled from cursor) ────────────────
+  //
+  // Wheel events scroll the viewport without dragging the cursor along
+  // (mouse follows hover, keyboard moves focus). `viewportAnchor` pins the
+  // viewport to a specific item index; null means "follow cursor".
+  // `anchorFloatRef` is the sub-item accumulator used by the kinetic loop
+  // for smooth momentum; the rendered anchor is always an integer.
+  const [viewportAnchor, setViewportAnchor] = useState<number | null>(null)
+  const anchorFloatRef = useRef<number | null>(null)
+  const velocityRef = useRef(0)
+  const kineticLoopRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Latest item count — the wheel/kinetic paths close over a stale items.length
+  // on each frame otherwise.
+  const itemCountRef = useRef(items.length)
+  itemCountRef.current = items.length
+
+  const stopKinetic = useCallback(() => {
+    if (kineticLoopRef.current !== null) {
+      clearInterval(kineticLoopRef.current)
+      kineticLoopRef.current = null
+    }
+  }, [])
+
+  // Cleanup on unmount.
+  useEffect(() => () => stopKinetic(), [stopKinetic])
+
   const moveTo = useCallback(
     (next: number) => {
       const clamped = Math.max(0, Math.min(next, items.length - 1))
       if (!isControlled) setUncontrolledCursor(clamped)
       onCursor?.(clamped)
+      // Keyboard/programmatic cursor move → viewport snaps back to cursor.
+      // Kill any in-flight kinetic scroll.
+      anchorFloatRef.current = null
+      setViewportAnchor(null)
+      velocityRef.current = 0
+      stopKinetic()
     },
-    [isControlled, items.length, onCursor],
+    [isControlled, items.length, onCursor, stopKinetic],
+  )
+
+  // One frame of kinetic integration — shared by the inline wheel path (so
+  // the first frame happens at event time, feels instant) and the setInterval
+  // loop (continuation). Returns true if the loop should keep running.
+  const kineticStep = useCallback((): boolean => {
+    const float = anchorFloatRef.current
+    if (float === null) return false
+    const count = itemCountRef.current
+    if (count <= 0) return false
+    const maxIdx = count - 1
+    const dt = KINETIC_FRAME_MS / 1000
+    let nextFloat = float + velocityRef.current * dt
+    // Clamp to bounds. Hitting an edge kills velocity — no rubber-band
+    // overscroll in a discrete list; it just reads as chatter.
+    if (nextFloat <= 0) {
+      nextFloat = 0
+      velocityRef.current = 0
+    } else if (nextFloat >= maxIdx) {
+      nextFloat = maxIdx
+      velocityRef.current = 0
+    }
+    anchorFloatRef.current = nextFloat
+    const rendered = Math.round(nextFloat)
+    setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
+    velocityRef.current *= KINETIC_DECAY_PER_FRAME
+    if (Math.abs(velocityRef.current) < KINETIC_STOP_THRESHOLD) {
+      velocityRef.current = 0
+      return false
+    }
+    return true
+  }, [])
+
+  const startKinetic = useCallback(() => {
+    if (kineticLoopRef.current !== null) return
+    kineticLoopRef.current = setInterval(() => {
+      if (!kineticStep()) stopKinetic()
+    }, KINETIC_FRAME_MS)
+  }, [kineticStep, stopKinetic])
+
+  const handleWheel = useCallback(
+    ({ deltaY }: { deltaY: number }) => {
+      if (itemCountRef.current <= 0) return
+      // First wheel event seeds the anchor from the current cursor (nav
+      // mode) or 0 (passive mode — cursor is -1).
+      if (anchorFloatRef.current === null) {
+        anchorFloatRef.current = activeCursor >= 0 ? activeCursor : 0
+      }
+      const next = velocityRef.current + deltaY * KINETIC_IMPULSE
+      velocityRef.current = Math.max(
+        -KINETIC_MAX_VELOCITY,
+        Math.min(KINETIC_MAX_VELOCITY, next),
+      )
+      // Advance one frame immediately so each wheel event produces visible
+      // motion — the loop otherwise waits KINETIC_FRAME_MS before the first
+      // tick, making single notches feel unresponsive. Subsequent frames
+      // come from the setInterval.
+      kineticStep()
+      startKinetic()
+    },
+    [activeCursor, kineticStep, startKinetic],
   )
 
   // Observe search bar state — while the bar is open, the app-wide
@@ -341,10 +450,19 @@ function ListViewInner<T>(
     { isActive: nav && active !== false },
   )
 
-  // In nav mode, scrollTo defaults to cursor but an explicit scrollToProp wins
-  // — this lets consumers decouple viewport scroll from cursor position
-  // (e.g. wheel-scrolls-viewport while keyboard moves the cursor).
-  const scrollTo = scrollToProp !== undefined ? scrollToProp : nav ? activeCursor : undefined
+  // Resolve viewport target in priority order:
+  //   1. scrollToProp (declarative override — e.g. programmatic reveal)
+  //   2. viewportAnchor (wheel is driving — viewport decoupled from cursor)
+  //   3. activeCursor (nav mode default — viewport follows cursor)
+  //   4. undefined (passive list with no scroll position opinion)
+  const scrollTo =
+    scrollToProp !== undefined
+      ? scrollToProp
+      : viewportAnchor !== null
+        ? viewportAnchor
+        : nav
+          ? activeCursor
+          : undefined
 
   // ── Resolve cache config ─────────────────────────────────────────
   // When cache=true, use "auto" mode which reads CacheBackendContext.
@@ -692,19 +810,12 @@ function ListViewInner<T>(
   )
 
   // ── Mouse wheel handler ─────────────────────────────────────────
-  // Precedence: consumer-provided onWheel wins, because mouse follows hover
-  // (the wheel target), not focus. Nav mode's default (cursor-moving) kicks
-  // in only when the consumer hasn't opinionated about wheel behavior.
-  const onWheel = useMemo(() => {
-    if (onWheelProp) return onWheelProp
-    if (nav && active !== false) {
-      return (e: { deltaY: number }) => {
-        const delta = e.deltaY > 0 ? WHEEL_STEP : -WHEEL_STEP
-        moveTo(activeCursor + delta)
-      }
-    }
-    return undefined
-  }, [nav, active, activeCursor, moveTo, onWheelProp])
+  // Wheel over the list scrolls its viewport with iOS-style kinetic
+  // momentum (mouse follows hover, keyboard moves focus). Cursor is
+  // untouched by scrolling. Any subsequent keyboard cursor move snaps the
+  // viewport back to the cursor via `moveTo`. See `handleWheel` +
+  // `startKinetic` above for the physics model.
+  const onWheel = handleWheel
 
   // ── Empty state ─────────────────────────────────────────────────
   if (activeItems.length === 0) {
