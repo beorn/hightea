@@ -29,7 +29,14 @@ export const meta: ExampleMeta = {
 
 export async function main(): Promise<void> {
   using term = createTerm()
-  const { waitUntilExit } = await render(<App />, term)
+  // Enable SGR mouse tracking so trackpad/wheel events dispatch to the
+  // pane under the pointer (ComponentPreview, SchemeList, TokenTree).
+  // Without this, render() defaults to mouse:false and the terminal falls
+  // back to sending arrow keys for trackpad scroll — those go to the
+  // focused pane (SchemeList by default), which is why "the wheel always
+  // scrolls the picker" before this is set. `run()` defaults to mouse:true;
+  // render()'s default should probably follow — tracked in a separate bead.
+  const { waitUntilExit } = await render(<App />, term, { mouse: true })
   await waitUntilExit()
 }
 

@@ -112,10 +112,12 @@ function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
       detail: caps.kittyGraphics ? "Kitty" : caps.sixel ? "Sixel" : "none",
     },
     { name: "Notifications (OSC 9/99)", status: bool(caps.notifications) },
-    { name: "Underline Styles (SGR 4:x)", status: bool(caps.underlineStyles) },
+    { name: "Underline Styles (SGR 4:x)", status: bool(caps.underlineStyles.length > 0) },
     { name: "Underline Color (SGR 58)", status: bool(caps.underlineColor) },
     { name: "Unicode", status: bool(caps.unicode) },
-    { name: "Nerd Font", status: bool(caps.nerdfont) },
+    // Post km-silvery.caps-restructure (Phase 7) nerdfont lives on heuristics
+    // — but buildStaticEntries only sees caps, so drop this entry here; the
+    // header below reads it from heuristics directly.
   ]
 }
 
@@ -133,7 +135,13 @@ function TerminalCapsApp({
   }
 }) {
   const { exit } = useApp()
-  const [caps] = useState<TerminalCaps>(() => createTerminalProfile().caps)
+  // Post km-silvery.caps-restructure (Phase 7): caps / identity / heuristics
+  // are three sibling views on the profile — pull all three so the demo can
+  // render each.
+  const [profile] = useState(() => createTerminalProfile())
+  const caps = profile.caps
+  const identity = profile.identity
+  const heuristics = profile.heuristics
   const [colorScheme] = useState<BgMode>(initialProbes?.colorScheme ?? "unknown")
   const [widthConfig] = useState<TerminalWidthConfig | null>(initialProbes?.widthConfig ?? null)
   const [kittyDetected] = useState<boolean | null>(initialProbes?.kittyDetected ?? null)
@@ -194,19 +202,19 @@ function TerminalCapsApp({
     {
       name: "OSC 5522 Advanced Clipboard",
       // Kitty 0.28+ supports this; approximate via kitty detection
-      status: caps.term === "xterm-kitty" ? "supported" : "not-supported",
-      detail: caps.term === "xterm-kitty" ? "Kitty" : "not supported",
+      status: identity.termName === "xterm-kitty" ? "supported" : "not-supported",
+      detail: identity.termName === "xterm-kitty" ? "Kitty" : "not supported",
     },
     {
       name: "DA1/DA2/DA3",
       // All modern terminals respond to DA queries
-      status: caps.program !== "" ? "supported" : "not-supported",
+      status: identity.program !== "" ? "supported" : "not-supported",
     },
   ]
 
-  // Terminal info header
-  const termProgram = caps.program || "(unknown)"
-  const termType = caps.term || "(unknown)"
+  // Terminal info header (identity drives program / term, heuristics drives nerdfont/dark)
+  const termProgram = identity.program || "(unknown)"
+  const termType = identity.termName || "(unknown)"
   const colorTier = caps.colorTier
 
   // Column width for alignment
@@ -220,7 +228,7 @@ function TerminalCapsApp({
       <Box paddingBottom={1}>
         <Muted>
           Terminal: {termProgram} ({termType}) | Colors: {colorTier} | Background:{" "}
-          {caps.darkBackground ? "dark" : "light"}
+          {heuristics.darkBackground ? "dark" : "light"}
         </Muted>
       </Box>
 

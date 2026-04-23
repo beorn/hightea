@@ -26,7 +26,13 @@ import {
 // extended styles, regardless of the host terminal's detected caps.
 using term = createTerm({
   color: "truecolor",
-  caps: { underlineStyles: true, underlineColor: true },
+  // Post Phase 7 (caps-restructure) underlineStyles is a `readonly
+  // UnderlineStyle[]` — supply the full modern set so the storybook always
+  // demonstrates extended styles regardless of the host terminal's detection.
+  caps: {
+    underlineStyles: ["double", "curly", "dotted", "dashed"],
+    underlineColor: true,
+  },
 })
 
 const divider = "═".repeat(60)
@@ -56,7 +62,7 @@ console.log(` TERM: ${process.env.TERM ?? "(not set)"}`)
 console.log(` TERM_PROGRAM: ${process.env.TERM_PROGRAM ?? "(not set)"}`)
 const storybookCaps = createTerminalProfile().caps
 console.log(
-  ` Extended underline support: ${storybookCaps.underlineStyles ? term.green("Yes") : term.red("No (fallback mode)")}`,
+  ` Extended underline support: ${storybookCaps.underlineStyles.length > 0 ? term.green("Yes") : term.red("No (fallback mode)")}`,
 )
 console.log()
 console.log(term.dim(" Note: This storybook forces extended mode for display."))

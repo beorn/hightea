@@ -235,9 +235,10 @@ export function resolveFromTerm(term: Term): ResolvedTermDef {
     width: term.cols ?? DEFAULT_WIDTH,
     height: term.rows ?? DEFAULT_HEIGHT,
     // Post caps-restructure Phase 7: hasColor() is gone — read colorTier
-    // from the canonical profile. "mono" means no color → legacy expected
-    // `null` (falsy), higher tiers expected the tier string.
-    colors: term.profile.colorTier === "mono" ? null : term.profile.colorTier,
+    // from the canonical profile. `ResolvedTermDef.colors: ColorTier`
+    // already includes `"mono"` as the no-color state, so return the tier
+    // verbatim (no null coercion — `ColorTier` is the canonical spelling).
+    colors: term.profile.colorTier,
     // Term instances always have interactive capabilities
     events: createInputEvents(stdin),
     isStatic: false,

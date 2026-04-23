@@ -8,7 +8,7 @@
  * terminal emulators: xterm, iTerm2, Kitty, Ghostty, WezTerm, etc.
  */
 
-import { createTerminalProfile, type TerminalCaps } from "@silvery/ansi"
+import { createTerminalProfile } from "@silvery/ansi"
 
 const ESC = "\x1b"
 
@@ -52,18 +52,21 @@ export interface ScrollRegionConfig {
  * Most modern terminals do (xterm, iTerm2, Kitty, Ghostty, WezTerm, etc.)
  * but some (e.g., Linux console) may not handle them correctly.
  *
- * Pass `caps` when a {@link TerminalCaps} is in scope (via `term.caps` or
- * a test fixture). Without `caps`, this falls back to {@link createTerminalProfile}
- * — the canonical single-source-of-truth entry point in
- * `@silvery/ansi/profile`. Direct reads of terminal-signal env vars
+ * Pass `identity` (via `term.identity` or a test fixture) when in scope.
+ * Without it, this falls back to {@link createTerminalProfile} — the canonical
+ * single-source-of-truth entry point in `@silvery/ansi/profile`. Direct
+ * reads of terminal-signal env vars
  * (TERM / TERM_PROGRAM / …) are banned outside that module — see
  * `scripts/lint-env-reads.ts`.
  */
 export function supportsScrollRegions(
-  caps?: Pick<TerminalCaps, "program" | "term">,
+  /** Post km-silvery.caps-restructure (Phase 7, 2026-04-23): program /
+   * termName moved to {@link TerminalIdentity}. Accept identity here
+   * instead of the old caps.program / caps.term reads. */
+  identity?: { program: string; termName: string },
 ): boolean {
-  const resolved = caps ?? createTerminalProfile().caps
-  const term = resolved.term
+  const resolved = identity ?? createTerminalProfile().identity
+  const term = resolved.termName
   const termProgram = resolved.program
 
   // Known-good terminal programs

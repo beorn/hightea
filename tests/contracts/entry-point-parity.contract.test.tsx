@@ -79,9 +79,19 @@ function makeProfile(tier: "truecolor" | "256" | "ansi16" | "mono"): TerminalPro
     env: {},
     stdout: { isTTY: false },
     colorOverride: tier,
-    caps: {
+    // Post km-silvery.caps-restructure (Phase 7): caps / identity / heuristics
+    // live on separate options fields. program/term/darkBackground/nerdfont/
+    // textEmojiWide used to sit on caps; they moved out per /pro review.
+    identity: {
       program: "Ghostty",
-      term: "xterm-ghostty",
+      termName: "xterm-ghostty",
+    },
+    heuristics: {
+      darkBackground: true,
+      nerdfont: false,
+      textEmojiWide: true,
+    },
+    caps: {
       kittyKeyboard: false,
       kittyGraphics: false,
       sixel: false,
@@ -92,12 +102,9 @@ function makeProfile(tier: "truecolor" | "256" | "ansi16" | "mono"): TerminalPro
       mouse: false,
       syncOutput: true,
       unicode: true,
-      underlineStyles: true,
+      underlineStyles: ["double", "curly", "dotted", "dashed"],
       underlineColor: true,
-      textEmojiWide: true,
       textSizing: false,
-      darkBackground: true,
-      nerdfont: false,
     },
   })
 }
@@ -182,14 +189,14 @@ describe("parity: caps.colorTier is sourced from the shared profile", () => {
         expect(term.caps.colorTier).toBe(tier)
       }
 
-      // render() — sync renderer. Caps are carried via the renderer options;
-      // the resulting TextFrame width reflects the viewport, and both
-      // fixture strings must appear in the plain text.
+      // render() — sync renderer. The resulting TextFrame width reflects
+      // the viewport, and both fixture strings must appear in the plain text.
+      // (render() doesn't accept caps — it's a pure layout/text pipeline;
+      // caps only affect color output, which isn't observed here.)
       {
         const app = render(<Fixture />, {
           cols: DIMS.cols,
           rows: DIMS.rows,
-          caps: profile.caps,
         })
         expect(app.width).toBe(DIMS.cols)
         expect(app.text).toContain("Hello parity")
@@ -243,14 +250,16 @@ describe("parity: same element + dims produces the same plain text", () => {
   test("parity: render vs run vs createApp().run — identical plain text", async () => {
     const profile = makeProfile("truecolor")
 
-    // render() — sync TextFrame.
+    // render() — sync TextFrame. render() doesn't take caps; profile only
+    // affects color output which isn't compared here.
     const renderApp = render(<Fixture />, {
       cols: DIMS.cols,
       rows: DIMS.rows,
-      caps: profile.caps,
     })
     const renderText = renderApp.text
     renderApp.unmount()
+    // Reference profile so TS knows it's used (suppresses unused-var lint).
+    void profile
 
     // run() — headless writable sink.
     const runSink = makeSink()

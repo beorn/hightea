@@ -89,9 +89,14 @@ async function runCapturing(
         // Default to truecolor caps so the "no option" case has a predictable
         // baseline — otherwise non-TTY auto-detection would pick "none" and
         // strip color from every test (including the ones that should keep it).
-        program: "ghostty",
-        term: "xterm-ghostty",
+        // Post Phase 7: program/term/darkBackground/nerdfont/textEmojiWide
+        // moved to identity/heuristics; they're no longer valid on caps. The
+        // deprecated `caps` option keeps only hard protocol flags here.
+        cursor: true,
+        input: false,
         colorTier: "truecolor",
+        colorForced: false,
+        colorProvenance: "caller-caps",
         kittyKeyboard: false,
         kittyGraphics: false,
         sixel: false,
@@ -102,12 +107,9 @@ async function runCapturing(
         mouse: false,
         syncOutput: false,
         unicode: true,
-        underlineStyles: true,
+        underlineStyles: ["double", "curly", "dotted", "dashed"],
         underlineColor: true,
-        textEmojiWide: true,
         textSizing: false,
-        darkBackground: true,
-        nerdfont: false,
       },
       ...opts,
     })
