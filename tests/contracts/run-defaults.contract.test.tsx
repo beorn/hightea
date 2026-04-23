@@ -123,23 +123,23 @@ describe("contract: detectTerminalCaps env precedence", () => {
     expect(caps.colorLevel).toBe("256")
   })
 
-  test("contract: detectTerminalCaps honors FORCE_COLOR=1 (basic)", () => {
+  test("contract: detectTerminalCaps honors FORCE_COLOR=1 (ansi16)", () => {
     process.env.FORCE_COLOR = "1"
     const caps = detectTerminalCaps()
-    expect(caps.colorLevel).toBe("basic")
+    expect(caps.colorLevel).toBe("ansi16")
   })
 
-  test("contract: detectTerminalCaps honors FORCE_COLOR=0 (none)", () => {
+  test("contract: detectTerminalCaps honors FORCE_COLOR=0 (mono)", () => {
     process.env.FORCE_COLOR = "0"
     const caps = detectTerminalCaps()
-    expect(caps.colorLevel).toBe("none")
+    expect(caps.colorLevel).toBe("mono")
   })
 
   test("contract: NO_COLOR wins over FORCE_COLOR (documented precedence)", () => {
     process.env.NO_COLOR = "1"
     process.env.FORCE_COLOR = "3"
     const caps = detectTerminalCaps()
-    expect(caps.colorLevel).toBe("none")
+    expect(caps.colorLevel).toBe("mono")
   })
 })
 
