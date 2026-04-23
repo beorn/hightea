@@ -165,6 +165,12 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
   /** All registrations, regardless of signal. */
   const entries = new Map<string, Entry>()
 
+  /** Reverse index: every live handler name → its entry id. Used to reject
+   * duplicate names in `on()`, which would otherwise produce an ambiguous
+   * topological order when two handlers both claim the same `name` as a
+   * `before`/`after` key. */
+  const byName = new Map<string, string>()
+
   /** Shared `process.on(signal, …)` listeners, one per signal. */
   const installed = new Map<SignalName, () => void>()
 
@@ -308,9 +314,18 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
       return () => {}
     }
     const id = makeId()
+    const name = options.name ?? id
+    if (byName.has(name)) {
+      throw new Error(
+        `term.signals.on: handler name ${JSON.stringify(name)} is already registered. ` +
+          `Names must be unique across the Signals owner so that before/after refs ` +
+          `resolve unambiguously. Unregister the previous handler first, or pick a ` +
+          `different name.`,
+      )
+    }
     const entry: Entry = {
       id,
-      name: options.name ?? id,
+      name,
       signal,
       handler,
       priority: options.priority ?? 0,
@@ -320,10 +335,14 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
       onSignal: options.onSignal !== false,
     }
     entries.set(id, entry)
+    byName.set(name, id)
     if (entry.onSignal) installIfNeeded(signal)
 
     return () => {
+      const existing = entries.get(id)
+      if (!existing) return
       entries.delete(id)
+      byName.delete(existing.name)
       // If this was the last registration for the signal AND no other entries
       // need it for onSignal, drop the shared listener. Rare path — usually
       // dispose() handles the whole batch.
@@ -351,6 +370,7 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
     }
 
     entries.clear()
+    byName.clear()
   }
 
   return {

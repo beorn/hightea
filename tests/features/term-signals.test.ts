@@ -72,6 +72,29 @@ describe("createSignals — registration", () => {
     expect(signals.size).toBe(0)
     expect(proc.listenerCount("SIGINT")).toBe(0)
   })
+
+  it("rejects duplicate handler names — ambiguity in before/after graph", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    signals.on("SIGINT", () => {}, { name: "flush-db" })
+    expect(() => {
+      signals.on("SIGTERM", () => {}, { name: "flush-db" })
+    }).toThrow(/flush-db.*already registered/)
+    // First registration must still be intact.
+    expect(signals.size).toBe(1)
+  })
+
+  it("name is re-usable after its original handler unregisters", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const off = signals.on("SIGINT", () => {}, { name: "tmp" })
+    off()
+    // Slot freed — same name can be registered again.
+    expect(() => signals.on("SIGINT", () => {}, { name: "tmp" })).not.toThrow()
+    expect(signals.size).toBe(1)
+  })
 })
 
 describe("createSignals — signal delivery", () => {
