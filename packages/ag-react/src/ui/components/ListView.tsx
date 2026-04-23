@@ -321,11 +321,11 @@ const RELEASE_TIMEOUT_MS = 60
 /** How long (ms) the scrollbar stays visible after the last scroll activity. */
 const SCROLLBAR_FADE_AFTER_MS = 800
 /** How long (ms) the edge-bump indicator shows after hitting a boundary. */
-const EDGE_BUMP_SHOW_MS = 600
-/** Pulse period for the edge-bump indicator (ms per half-cycle). Produces a
- * dim on/off flash so the line reads as movement against static chrome — a
- * plain overline against e.g. an inverted top bar is nearly invisible. */
-const EDGE_BUMP_PULSE_MS = 250
+const EDGE_BUMP_SHOW_MS = 900
+/** Pulse period for the edge-bump indicator (ms per half-cycle). Fast flash
+ * so the line reads as movement against static chrome. Total show ≈ 900 ms
+ * produces ~4-5 on/off cycles — visible but not distracting. */
+const EDGE_BUMP_PULSE_MS = 110
 
 // =============================================================================
 // Measurement
@@ -1688,10 +1688,21 @@ function ListViewInner<T>(
       * so mergeAttrsInRect (km-silvery.text-box-attr-props) layers the
       * SGR on every cell in the row WITHOUT overwriting the text glyph /
       * fg / bg underneath. */}
-    {bumpedEdge === "top" && effectiveRowsAbove === 0 && isPulseOn && (
-      <Box position="absolute" top={0} left={0} right={0} height={1} overline bold />
+    {/* Edge-bump indicator — overline at top, underline at bottom. Only
+      * the SGR overline/underline is drawn; no `bold` attribute because
+      * bold on a position="absolute" Box propagates to the text cells
+      * underneath (mergeAttrsInRect), making the row's text flash bold
+      * too. We want ONLY the line to pulse, not the content. Color
+      * defaults to fg for visibility against inverted chrome.
+      *
+      * Render gate uses >=/<= (not strict ===) because on the first wheel
+      * event after startup-at-edge, `effectiveRowsAbove` can be a
+      * fractional seed (variable row heights, sub-row virtualizer offset)
+      * that rounds to scrollableRows but isn't exactly equal. */}
+    {bumpedEdge === "top" && effectiveRowsAbove <= 0 && isPulseOn && (
+      <Box position="absolute" top={0} left={0} right={0} height={1} overline />
     )}
-    {bumpedEdge === "bottom" && effectiveRowsAbove === scrollableRows && isPulseOn && (
+    {bumpedEdge === "bottom" && effectiveRowsAbove >= scrollableRows && isPulseOn && (
       <Box
         position="absolute"
         top={trackHeight - 1}
@@ -1700,7 +1711,6 @@ function ListViewInner<T>(
         height={1}
         underline="single"
         underlineColor="$fg"
-        bold
       />
     )}
     </Box>
