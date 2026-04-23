@@ -15,7 +15,7 @@
 import { EventEmitter } from "node:events"
 import { describe, it, expect, vi } from "vitest"
 import { createSignals } from "@silvery/ag-term/runtime"
-import { createTerm } from "@silvery/ag-term/ansi"
+import { createTerm, type Term } from "@silvery/ag-term/ansi"
 
 // =============================================================================
 // Fake process — EventEmitter with process.on / off shape, no real signals.
