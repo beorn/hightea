@@ -532,23 +532,25 @@ export function detectTerminalProfileFromEnv(
   stdout: TerminalProfileStdout,
 ): TerminalProfile {
   const program = env.TERM_PROGRAM ?? ""
+  const programLower = program.toLowerCase()
   const version = env.TERM_PROGRAM_VERSION ?? ""
   const TERM = env.TERM ?? ""
   const noColor = env.NO_COLOR !== undefined
 
-  const isAppleTerminal = program === "Apple_Terminal"
+  const isAppleTerminal = programLower === "apple_terminal"
   const colorLevel: ColorLevel = noColor ? "mono" : detectColorFromEnv(env, stdout)
 
   const isKitty = TERM === "xterm-kitty"
-  const isITerm = program === "iTerm.app"
-  // TERM_PROGRAM is capitalized "Ghostty" (matches detectColorFromEnv and every
-  // other silvery comparison site). Pre-plateau lowercase comparison meant every
-  // Ghostty cap flag (kittyKeyboard, kittyGraphics, osc52, hyperlinks, …) was
-  // falsely false. Regression test in tests/profile.test.ts pins the full cap
-  // matrix so this can't drift again. See km-silvery.ghostty-case-sensitivity.
-  const isGhostty = program === "Ghostty"
-  const isWezTerm = program === "WezTerm"
-  const isAlacritty = program === "Alacritty"
+  const isITerm = programLower === "iterm.app"
+  // Case-insensitive TERM_PROGRAM compare. Ghostty's own builds emit
+  // "ghostty" (lowercase) while iTerm2's and some multiplexers normalize
+  // to "Ghostty" (capitalized). Comparing lowercase on both sides covers
+  // both — prior two incidents (pre-plateau false-false and the 2026-04-23
+  // cmux/ghostty overline-missing report) were each just one casing.
+  // Applied uniformly so every terminal-detect site is robust.
+  const isGhostty = programLower === "ghostty"
+  const isWezTerm = programLower === "wezterm"
+  const isAlacritty = programLower === "alacritty"
   const isFoot = TERM === "foot" || TERM === "foot-extra"
   const isModern = isKitty || isITerm || isGhostty || isWezTerm || isFoot
 
