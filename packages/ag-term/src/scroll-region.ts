@@ -8,6 +8,8 @@
  * terminal emulators: xterm, iTerm2, Kitty, Ghostty, WezTerm, etc.
  */
 
+import { detectTerminalCaps, type TerminalCaps } from "@silvery/ansi"
+
 const ESC = "\x1b"
 
 /** Set terminal scroll region (1-indexed top and bottom rows). */
@@ -49,16 +51,26 @@ export interface ScrollRegionConfig {
  *
  * Most modern terminals do (xterm, iTerm2, Kitty, Ghostty, WezTerm, etc.)
  * but some (e.g., Linux console) may not handle them correctly.
+ *
+ * Pass `caps` when a {@link TerminalCaps} is in scope (via `term.caps` or
+ * a test fixture). Without `caps`, this falls back to {@link detectTerminalCaps}
+ * — the canonical env-reading entry point in `@silvery/ansi/profile`. Direct
+ * reads of terminal-signal env vars (TERM / TERM_PROGRAM / …) are banned
+ * outside that module — see `scripts/lint-env-reads.ts`.
  */
-export function supportsScrollRegions(): boolean {
-  const term = process.env.TERM ?? ""
-  const termProgram = process.env.TERM_PROGRAM ?? ""
+export function supportsScrollRegions(
+  caps?: Pick<TerminalCaps, "program" | "term">,
+): boolean {
+  const resolved = caps ?? detectTerminalCaps()
+  const term = resolved.term
+  const termProgram = resolved.program
 
   // Known-good terminal programs
   if (
     termProgram === "iTerm.app" ||
     termProgram === "WezTerm" ||
     termProgram === "ghostty" ||
+    termProgram === "Ghostty" ||
     termProgram === "vscode"
   )
     return true

@@ -17,6 +17,7 @@
  * - 'plain': Strip all ANSI codes
  */
 
+import { detectTerminalCaps, type TerminalCaps } from "@silvery/ansi"
 import { stripAnsi } from "./unicode"
 
 // ============================================================================
@@ -60,19 +61,34 @@ export type ResolvedNonTTYMode = Exclude<NonTTYMode, "auto">
  * - stdout.isTTY is false or undefined
  * - TERM=dumb
  * - CI environment variables are set
+ *
+ * Pass `caps` (from `term.caps` or a {@link TerminalCaps} fixture) when
+ * available to avoid a redundant env read. Without caps, the TERM=dumb
+ * check delegates to {@link detectTerminalCaps} — the canonical entry in
+ * `@silvery/ansi/profile`. CI env vars remain read directly because they
+ * are orthogonal to terminal capabilities (a CI runner's TTY status
+ * doesn't describe what the terminal can render).
  */
-export function isTTY(stdout: NodeJS.WriteStream = process.stdout): boolean {
+export function isTTY(
+  stdout: NodeJS.WriteStream = process.stdout,
+  caps?: Pick<TerminalCaps, "term">,
+): boolean {
   // Check stdout.isTTY
   if (!stdout.isTTY) {
     return false
   }
 
-  // Check TERM=dumb
-  if (process.env.TERM === "dumb") {
+  // Check TERM=dumb via caps (preferred) or the canonical detector.
+  const term = caps?.term ?? detectTerminalCaps().term
+  if (term === "dumb") {
     return false
   }
 
-  // Check common CI environment variables
+  // Check common CI environment variables.
+  // Note: these are *not* terminal-signal env vars — they describe the host
+  // environment (is this CI?), not terminal capabilities. They remain a
+  // direct env read by design; the lint in scripts/lint-env-reads.ts does
+  // not flag them.
   if (
     process.env.CI ||
     process.env.GITHUB_ACTIONS ||

@@ -18,6 +18,8 @@
  * with a simple nearest-color palette approach.
  */
 
+import { detectTerminalCaps, type TerminalCaps } from "@silvery/ansi"
+
 const DCS_START = "\x1bP"
 const ST = "\x1b\\"
 
@@ -161,18 +163,26 @@ export function encodeSixel(imageData: SixelImageData): string {
 /**
  * Check if the current terminal likely supports the Sixel protocol.
  *
- * This is a heuristic based on environment variables. For definitive
- * detection, send a DA1 (Device Attributes) query and check for "4"
- * in the response, but that requires async I/O.
+ * Pass `caps` (from `term.caps` or a {@link TerminalCaps} fixture) when
+ * available. Without caps, this falls back to {@link detectTerminalCaps} —
+ * the canonical env-reading entry point in `@silvery/ansi/profile`. Direct
+ * reads of terminal-signal env vars (TERM / TERM_PROGRAM / …) are banned
+ * outside that module — see `scripts/lint-env-reads.ts`.
+ *
+ * For definitive detection, send a DA1 (Device Attributes) query and check
+ * for "4" in the response, but that requires async I/O.
  *
  * Known supporting terminals: xterm (with +sixel), mlterm, foot, mintty,
  * WezTerm, Contour, Sixel-enabled builds of various terminals.
  *
  * @returns `true` if the terminal likely supports Sixel
  */
-export function isSixelSupported(): boolean {
-  const term = process.env.TERM ?? ""
-  const termProgram = process.env.TERM_PROGRAM ?? ""
+export function isSixelSupported(
+  caps?: Pick<TerminalCaps, "program" | "term">,
+): boolean {
+  const resolved = caps ?? detectTerminalCaps()
+  const term = resolved.term
+  const termProgram = resolved.program
 
   // mlterm supports Sixel natively
   if (termProgram === "mlterm" || term.startsWith("mlterm")) return true

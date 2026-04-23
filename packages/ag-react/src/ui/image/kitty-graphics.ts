@@ -15,6 +15,8 @@
  * - Images can be assigned an `i=<id>` for later deletion
  */
 
+import { detectTerminalCaps, type TerminalCaps } from "@silvery/ansi"
+
 const APC_START = "\x1b_G"
 const ST = "\x1b\\"
 
@@ -103,7 +105,12 @@ export function deleteKittyImage(id: number): string {
 /**
  * Check if the current terminal likely supports the Kitty graphics protocol.
  *
- * This is a heuristic based on `TERM` and `TERM_PROGRAM` environment variables.
+ * Pass `caps` (from `term.caps` or a {@link TerminalCaps} fixture) when
+ * available. Without caps, this falls back to {@link detectTerminalCaps} —
+ * the canonical env-reading entry point in `@silvery/ansi/profile`. Direct
+ * reads of terminal-signal env vars (TERM / TERM_PROGRAM / …) are banned
+ * outside that module — see `scripts/lint-env-reads.ts`.
+ *
  * For definitive detection, use a terminal query (send the graphics protocol
  * query and check for a response), but that requires async I/O.
  *
@@ -111,9 +118,12 @@ export function deleteKittyImage(id: number): string {
  *
  * @returns `true` if the terminal likely supports Kitty graphics
  */
-export function isKittyGraphicsSupported(): boolean {
-  const term = process.env.TERM ?? ""
-  const termProgram = process.env.TERM_PROGRAM ?? ""
+export function isKittyGraphicsSupported(
+  caps?: Pick<TerminalCaps, "program" | "term">,
+): boolean {
+  const resolved = caps ?? detectTerminalCaps()
+  const term = resolved.term
+  const termProgram = resolved.program
 
   // Kitty terminal
   if (term === "xterm-kitty" || termProgram === "kitty") return true
@@ -121,8 +131,9 @@ export function isKittyGraphicsSupported(): boolean {
   // WezTerm supports Kitty graphics protocol
   if (termProgram === "WezTerm") return true
 
-  // Ghostty supports Kitty graphics
-  if (termProgram === "ghostty") return true
+  // Ghostty supports Kitty graphics (both capitalizations survive for
+  // pre-plateau fixtures; profile.ts canonicalizes to "Ghostty").
+  if (termProgram === "ghostty" || termProgram === "Ghostty") return true
 
   // Konsole 22.04+ supports Kitty graphics
   if (termProgram === "konsole") return true

@@ -11,6 +11,8 @@ import {
   disableMouse as _disableMouse,
   enableKittyKeyboard as _enableKittyKeyboard,
   disableKittyKeyboard as _disableKittyKeyboard,
+  detectTerminalCaps,
+  type TerminalCaps,
 } from "@silvery/ansi"
 
 // ============================================================================
@@ -272,18 +274,23 @@ export function notifyKitty(message: string, opts?: { title?: string }): string 
 /**
  * Send a terminal notification using the best available method.
  *
- * Auto-detects terminal type via TERM_PROGRAM / TERM env vars:
+ * Auto-detects terminal type via {@link TerminalCaps}:
  * - iTerm2 → OSC 9
  * - Kitty → OSC 99
  * - Others → BEL (audible/visual bell)
+ *
+ * Pass `caps` when a {@link TerminalCaps} is in scope (typically `term.caps`).
+ * Without caps, falls back to {@link detectTerminalCaps} — the canonical
+ * env-reading entry in `@silvery/ansi/profile`.
  */
 export function notify(
   stdout: NodeJS.WriteStream,
   message: string,
-  opts?: { title?: string },
+  opts?: { title?: string; caps?: Pick<TerminalCaps, "program" | "term"> },
 ): void {
-  const termProgram = process.env.TERM_PROGRAM ?? ""
-  const term = process.env.TERM ?? ""
+  const caps = opts?.caps ?? detectTerminalCaps()
+  const termProgram = caps.program
+  const term = caps.term
 
   if (termProgram === "iTerm.app") {
     stdout.write(notifyITerm2(message))
