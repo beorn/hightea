@@ -8,10 +8,21 @@
  * Phase 3 of `km-silvery.terminal-profile-plateau`. Phase 4 (unify entry
  * points) will thread the profile through `run()`, `createApp().run()`, and
  * `render()` so every Term instance is populated from one detection pass.
+ *
+ * Phase 7 of `km-silvery.caps-restructure` (Pro verdict 2026-04-23): the flat
+ * `TerminalCaps` interface split into three layers bundled on the profile —
+ * `profile.caps` (protocol flags), `profile.identity` (program/version/termName),
+ * `profile.heuristics` (darkBackground/nerdfont/textEmojiWide).
  */
 
-import { defaultCaps } from "./detection"
-import type { TerminalCaps } from "./detection"
+import {
+  defaultCaps,
+  defaultIdentity,
+  defaultHeuristics,
+  type TerminalCaps,
+  type TerminalIdentity,
+  type TerminalHeuristics,
+} from "./detection"
 import type { ColorTier } from "./types"
 import { detectTheme } from "./theme/detect"
 import type { DetectThemeOptions, ProbeInputOwner } from "./theme/detect"
@@ -27,14 +38,14 @@ import { pickColorLevel } from "./color-maps"
  *
  * - `"env"` — `NO_COLOR` or `FORCE_COLOR` env var won.
  * - `"override"` — caller-supplied `colorOverride` won.
- * - `"caller-caps"` — `options.caps.colorLevel` fallback won. Note this
+ * - `"caller-caps"` — `options.caps.colorTier` fallback won. Note this
  *   conflates "pre-detected real caps the Term committed to" with
  *   "synthetically forced caps from a test fixture / user config"; callers
  *   that need to tell those apart pass `colorOverride` explicitly instead.
  * - `"auto"` — env-based auto-detection (TERM/COLORTERM/TERM_PROGRAM) won.
  *
  * Consumers that only need "was the tier forced?" should read
- * {@link TerminalProfile.colorForced} instead of comparing against this enum.
+ * {@link TerminalCaps.colorForced} instead of comparing against this enum.
  * Phase 5 of `km-silvery.terminal-profile-plateau` (per /pro review 2026-04-23):
  * the flat `source` field was retired because it read like whole-profile
  * provenance but only described color tier.
@@ -53,49 +64,40 @@ export type TerminalProfileSource = ColorProvenance
  * A fully-resolved view of the current terminal.
  *
  * Bundled intentionally — callers shouldn't mix and match detection sources.
- * `colorTier` mirrors `caps.colorLevel`; it's exposed as a top-level field so
+ * `colorTier` mirrors `caps.colorTier`; it's exposed as a top-level field so
  * callers that only need the tier (e.g. `createStyle({ level })`) don't have
  * to reach into the caps object.
  *
  * **Immutability**: profiles are snapshot values — the whole plateau depends
- * on `colorTier === caps.colorLevel` never drifting. Every field is
+ * on `colorTier === caps.colorTier` never drifting. Every field is
  * `readonly` at the type level, and `createTerminalProfile` freezes the
  * returned object (and its nested `caps`) in dev builds so accidental
  * mutation crashes loudly. Production builds skip the freeze to keep the
  * allocation cheap; the type-level `readonly` already blocks TS writers.
  *
+ * Post km-silvery.caps-restructure (Phase 7, 2026-04-23): three-layer shape
+ * — `identity` / `heuristics` / `caps`. `colorForced` and `colorProvenance`
+ * moved into `caps` because they describe color resolution.
+ *
  * @see createTerminalProfile
  */
 export interface TerminalProfile {
-  /** Full terminal capabilities (including colorLevel, unicode, kittyKeyboard, etc.) */
-  readonly caps: Readonly<TerminalCaps>
-  /** Convenience alias for `caps.colorLevel`. */
+  /** Environment identity — what terminal IS this (program, version, TERM). */
+  readonly identity: TerminalIdentity
+  /** Subjective heuristics — darkBackground / nerdfont / textEmojiWide. */
+  readonly heuristics: TerminalHeuristics
+  /** Hard protocol-capability flags — what this terminal can do at the wire
+   * level. Also carries `colorTier` / `colorForced` / `colorProvenance`. */
+  readonly caps: TerminalCaps
+  /** Convenience alias for `caps.colorTier`. Exposed as a top-level field
+   * because callers that only need the tier (e.g. `createStyle({ level })`)
+   * shouldn't have to reach into the caps object. */
   readonly colorTier: ColorTier
-  /**
-   * Was the color tier forced by env vars or a caller-supplied
-   * {@link CreateTerminalProfileOptions.colorOverride}? Equivalent to
-   * `colorProvenance === "env" || colorProvenance === "override"` — exposed
-   * as a precomputed boolean because that's the question every pre-quantize
-   * gate in run.tsx / create-app.tsx actually asks.
-   *
-   * "Forced" here specifically means forced *color tier* — other caps fields
-   * (unicode, kittyGraphics, …) can still come from any source regardless of
-   * this flag's value.
-   */
-  readonly colorForced: boolean
-  /**
-   * Which rung of the precedence chain resolved {@link colorTier}. Use
-   * {@link colorForced} for the common "was the tier forced?" check; use this
-   * enum only when the specific rung matters (e.g. diagnostics, theme
-   * detection, debug output). See {@link ColorProvenance} for the scope
-   * caveat — this describes color tier, not whole-profile provenance.
-   */
-  readonly colorProvenance: ColorProvenance
   /**
    * OSC-detected terminal theme, populated only when the profile was built via
    * {@link probeTerminalProfile}. Pre-quantized to {@link colorTier} when the
-   * tier was {@link colorForced} so token hex values match what the pipeline
-   * will actually emit.
+   * tier was {@link TerminalCaps.colorForced} so token hex values match what
+   * the pipeline will actually emit.
    *
    * Absent on sync {@link createTerminalProfile} — theme detection is an async
    * OSC probe and can't run inside a sync call. Entry points that need a
@@ -104,6 +106,22 @@ export interface TerminalProfile {
    * Post km-silvery.plateau-profile-theme (H2 of the /big review 2026-04-23).
    */
   readonly theme?: Theme
+}
+
+/**
+ * Default profile — bundles {@link defaultCaps}, {@link defaultIdentity}, and
+ * {@link defaultHeuristics} into a single TerminalProfile value. Handy when a
+ * caller wants a deterministic profile without running detection (tests, the
+ * headless Term, canvas/DOM backends).
+ */
+export function defaultProfile(): TerminalProfile {
+  const caps = defaultCaps()
+  return {
+    identity: defaultIdentity(),
+    heuristics: defaultHeuristics(),
+    caps,
+    colorTier: caps.colorTier,
+  }
 }
 
 /**
@@ -147,14 +165,14 @@ export interface CreateTerminalProfileOptions {
    */
   stdin?: TerminalProfileStdin
   /**
-   * Explicit color tier override. Wins over `caps.colorLevel` but NOT over
+   * Explicit color tier override. Wins over `caps.colorTier` but NOT over
    * NO_COLOR / FORCE_COLOR env vars. `null` is accepted as an alias for
    * `"mono"` (pre-plateau no-color spelling).
    */
   colorOverride?: ColorTier | null
   /**
    * Base capabilities. When provided, skips the env-based caps detection —
-   * the profile uses these as the starting point. `caps.colorLevel` acts as
+   * the profile uses these as the starting point. `caps.colorTier` acts as
    * the fallback tier (used only if env+override both decline to set one).
    *
    * Typical uses:
@@ -163,6 +181,18 @@ export interface CreateTerminalProfileOptions {
    * - Tests want a known-good caps fixture → pass a fully-populated object.
    */
   caps?: Partial<TerminalCaps>
+  /**
+   * Base identity. When provided, skips identity detection and uses these
+   * values. Typical use: Term constructors that already resolved TERM_PROGRAM
+   * from their stdin/stdout context.
+   */
+  identity?: Partial<TerminalIdentity>
+  /**
+   * Base heuristics. When provided, skips heuristic detection and uses these
+   * values. Typical use: tests that want deterministic darkBackground /
+   * nerdfont without touching env.
+   */
+  heuristics?: Partial<TerminalHeuristics>
 }
 
 /**
@@ -172,7 +202,7 @@ export interface CreateTerminalProfileOptions {
  *   1. `NO_COLOR` env var → `"mono"`
  *   2. `FORCE_COLOR` env var → `0/false → mono, 1 → ansi16, 2 → 256, 3 → truecolor`
  *   3. `options.colorOverride` (caller-supplied explicit tier)
- *   4. `options.caps.colorLevel` (base caps' pre-detected tier)
+ *   4. `options.caps.colorTier` (base caps' pre-detected tier)
  *   5. Auto-detected tier from env (TERM, COLORTERM, TERM_PROGRAM, …)
  *
  * The env-var precedence (1 & 2) matches the existing `detectColor()` semantics
@@ -182,7 +212,7 @@ export interface CreateTerminalProfileOptions {
  * When `options.caps` is provided, the profile treats those as the base
  * capabilities and skips the env-based caps detection — only the color tier
  * is resolved through the precedence chain above. When `options.caps` is
- * absent, the full `detectTerminalCapsFromEnv` pass runs.
+ * absent, the full `detectTerminalProfileFromEnv` pass runs.
  *
  * No I/O beyond whatever `detectTerminalCaps()` already does (a `defaults read`
  * call on macOS for Apple Terminal dark-mode heuristics — cached).
@@ -233,12 +263,12 @@ export function createTerminalProfile(
 
   // Pre-detected caps' color tier (used when caller passes full `caps` from a
   // Term constructor or test fixture).
-  const baseCapsTier = options.caps?.colorLevel
+  const baseCapsTier = options.caps?.colorTier
 
   // Precedence chain: env > override > base caps > env-based auto-detect.
   // Walk the rungs explicitly so we can record which one won — callers use
-  // `profile.colorForced` to tell "forced tier" from "natural tier" and
-  // `profile.colorProvenance` when the specific rung matters.
+  // `caps.colorForced` to tell "forced tier" from "natural tier" and
+  // `caps.colorProvenance` when the specific rung matters.
   let resolvedTier: ColorTier
   let colorProvenance: ColorProvenance
   if (envTier !== undefined) {
@@ -258,9 +288,21 @@ export function createTerminalProfile(
   // When the caller supplied a caps base, use it as-is — don't re-detect every
   // flag from env (that would clobber backend-specific caps the Term already
   // chose, e.g. headless mono defaults). Otherwise run the full env probe.
+  const detected: TerminalProfile | undefined = options.caps
+    ? undefined
+    : detectTerminalProfileFromEnv(env, stdout)
+
   const baseCaps: TerminalCaps = options.caps
     ? { ...defaultCaps(), ...options.caps }
-    : detectTerminalCapsFromEnv(env, stdout)
+    : (detected as TerminalProfile).caps
+
+  const baseIdentity: TerminalIdentity = options.identity
+    ? { ...defaultIdentity(), ...options.identity }
+    : (detected?.identity ?? defaultIdentity())
+
+  const baseHeuristics: TerminalHeuristics = options.heuristics
+    ? { ...defaultHeuristics(), ...options.heuristics }
+    : (detected?.heuristics ?? defaultHeuristics())
 
   // caps.input is orthogonal to env — it depends on stdin's TTY + raw-mode
   // availability. When a caller passed pre-computed `options.caps`, honor
@@ -272,26 +314,28 @@ export function createTerminalProfile(
 
   const caps: TerminalCaps = {
     ...baseCaps,
-    colorLevel: resolvedTier,
+    colorTier: resolvedTier,
+    colorForced: colorProvenance === "env" || colorProvenance === "override",
+    colorProvenance,
     input: inputResolved,
   }
 
   const profile: TerminalProfile = {
+    identity: baseIdentity,
+    heuristics: baseHeuristics,
     caps,
     colorTier: resolvedTier,
-    colorForced: colorProvenance === "env" || colorProvenance === "override",
-    colorProvenance,
   }
 
   return freezeProfileInDev(profile)
 }
 
 /**
- * Freeze a profile (plus its nested caps) in dev builds so
- * `profile.colorTier === profile.caps.colorLevel` and every other invariant
- * can't silently drift via direct mutation. Production builds skip the freeze
- * to keep the allocation cheap; the type-level `readonly` fields already
- * block TS-side writes.
+ * Freeze a profile (plus its nested caps / identity / heuristics) in dev
+ * builds so `profile.colorTier === profile.caps.colorTier` and every other
+ * invariant can't silently drift via direct mutation. Production builds skip
+ * the freeze to keep the allocation cheap; the type-level `readonly` fields
+ * already block TS-side writes.
  *
  * Per km-silvery.profile-immutable (/pro review 2026-04-23): profiles are
  * snapshot values by contract. Any caller that needs to "change" a profile
@@ -301,6 +345,8 @@ export function createTerminalProfile(
 function freezeProfileInDev(profile: TerminalProfile): TerminalProfile {
   if (process.env.NODE_ENV === "production") return profile
   Object.freeze(profile.caps)
+  Object.freeze(profile.identity)
+  Object.freeze(profile.heuristics)
   Object.freeze(profile)
   return profile
 }
@@ -351,7 +397,7 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  *
  * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
  * 2. Pre-quantize the resulting theme via {@link pickColorLevel} when the
- *    tier was forced ({@link TerminalProfile.colorForced} is `true`) so
+ *    tier was forced ({@link TerminalCaps.colorForced} is `true`) so
  *    token hex values match what the pipeline will actually emit.
  * 3. Return the profile with `theme` populated — one detection, one profile
  *    flowing end-to-end through run() / createApp().
@@ -376,7 +422,7 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  *   fallbackLight: catppuccinLatte,
  *   input: probeOwner, // structural InputOwner from @silvery/ag-term
  * })
- * // profile.caps, profile.colorTier, profile.colorForced, profile.theme
+ * // profile.caps, profile.colorTier, profile.caps.colorForced, profile.theme
  * ```
  *
  * @see createTerminalProfile — sync variant, no theme probe
@@ -407,7 +453,9 @@ export async function probeTerminalProfile(
   // Pre-quantize when the tier was forced — same gate run.tsx applied
   // inline. With the gate co-located with the profile factory, entry-point
   // branches collapse to one `await probeTerminalProfile(...)` call.
-  const resolvedTheme = profile.colorForced ? pickColorLevel(theme, profile.colorTier) : theme
+  const resolvedTheme = profile.caps.colorForced
+    ? pickColorLevel(theme, profile.colorTier)
+    : theme
 
   // Re-freeze: the sync factory already froze `profile`, but `{ ...profile,
   // theme }` creates a fresh object that's not frozen. The theme-bundled
@@ -497,24 +545,28 @@ function envColorTier(
 }
 
 /**
- * Deterministic variant of {@link detectTerminalCaps}. Reads env explicitly
- * (no `process.env` access) so callers can inject custom environments in
- * tests. Color tier is derived via {@link detectColorFromEnv} and therefore
- * honors FORCE_COLOR / NO_COLOR.
+ * Deterministic env-based detection of the full three-layer profile
+ * ({@link TerminalCaps} + {@link TerminalIdentity} + {@link TerminalHeuristics}).
+ * Reads env explicitly (no `process.env` access) so callers can inject custom
+ * environments in tests. Color tier is derived via {@link detectColorFromEnv}
+ * and therefore honors FORCE_COLOR / NO_COLOR.
+ *
+ * Renamed from `detectTerminalCapsFromEnv` in Phase 7 — the function now
+ * returns the whole profile, not just caps.
  */
-export function detectTerminalCapsFromEnv(
+export function detectTerminalProfileFromEnv(
   env: Record<string, string | undefined>,
   stdout: TerminalProfileStdout,
-): TerminalCaps {
+): TerminalProfile {
   const program = env.TERM_PROGRAM ?? ""
   const version = env.TERM_PROGRAM_VERSION ?? ""
-  const term = env.TERM ?? ""
+  const termName = env.TERM ?? ""
   const noColor = env.NO_COLOR !== undefined
 
   const isAppleTerminal = program === "Apple_Terminal"
-  const colorLevel: ColorTier = noColor ? "mono" : detectColorFromEnv(env, stdout)
+  const colorTier: ColorTier = noColor ? "mono" : detectColorFromEnv(env, stdout)
 
-  const isKitty = term === "xterm-kitty"
+  const isKitty = termName === "xterm-kitty"
   const isITerm = program === "iTerm.app"
   // TERM_PROGRAM is capitalized "Ghostty" (matches detectColorFromEnv and every
   // other silvery comparison site). Pre-plateau lowercase comparison meant every
@@ -524,7 +576,7 @@ export function detectTerminalCapsFromEnv(
   const isGhostty = program === "Ghostty"
   const isWezTerm = program === "WezTerm"
   const isAlacritty = program === "Alacritty"
-  const isFoot = term === "foot" || term === "foot-extra"
+  const isFoot = termName === "foot" || termName === "foot-extra"
   const isModern = isKitty || isITerm || isGhostty || isWezTerm || isFoot
 
   let isKittyWithTextSizing = false
@@ -551,6 +603,12 @@ export function detectTerminalCapsFromEnv(
   else if (nfEnv === "1" || nfEnv === "true") nerdfont = true
 
   const underlineExtensions = isModern || isAlacritty
+  // Phase 7 semantic upgrade: underlineStyles is now an array of supported
+  // SGR 4:x styles (was a single boolean). Modern terminals + Alacritty get
+  // the full modern set; others get an empty list ("stick to SGR 4").
+  const underlineStyles: readonly import("./types").UnderlineStyle[] = underlineExtensions
+    ? ["double", "curly", "dotted", "dashed"]
+    : []
 
   // Unicode: modern terminals + explicit UTF-8 locales + Windows Terminal +
   // CI runners we know emit UTF-8. Absorbed from the pre-plateau standalone
@@ -563,40 +621,55 @@ export function detectTerminalCapsFromEnv(
     env.WT_SESSION !== undefined ||
     env.KITTY_WINDOW_ID !== undefined ||
     utf8Locale(env) ||
-    termImpliesUnicode(term) ||
+    termImpliesUnicode(termName) ||
     (env.CI !== undefined && env.GITHUB_ACTIONS !== undefined)
 
-  // defaultCaps supplies the structural shape; we overwrite every dynamic field
-  // explicitly so any future addition in defaultCaps gets a sensible default.
   // Cursor control: same TTY + !dumb gate that the retired `detectCursor`
   // helper used. Exposed on caps so every Term constructor + downstream
   // consumer reads one source of truth instead of re-probing stdout/env.
-  const cursor = stdout.isTTY === true && term !== "dumb"
+  const cursor = stdout.isTTY === true && termName !== "dumb"
 
-  return {
-    ...defaultCaps(),
-    program,
-    version,
-    term,
+  const identity: TerminalIdentity = { program, version, termName }
+  const heuristics: TerminalHeuristics = { darkBackground, nerdfont, textEmojiWide: !isAppleTerminal }
+  const caps: TerminalCaps = {
     cursor,
-    colorLevel,
+    input: false, // filled in by createTerminalProfile from stdin shape
+    colorTier,
+    colorForced: noColor || env.FORCE_COLOR !== undefined,
+    colorProvenance: noColor || env.FORCE_COLOR !== undefined ? "env" : "auto",
+    unicode,
+    underlineStyles,
+    underlineColor: underlineExtensions,
+    textSizing: isKittyWithTextSizing,
     kittyKeyboard: isKitty || isGhostty || isWezTerm || isFoot,
+    bracketedPaste: true,
+    mouse: true,
     kittyGraphics: isKitty || isGhostty,
     sixel: isFoot || isWezTerm,
     osc52: isModern || isAlacritty,
     hyperlinks: isModern || isAlacritty,
     notifications: isITerm || isKitty,
-    bracketedPaste: true,
-    mouse: true,
     syncOutput: isModern || isAlacritty,
-    unicode,
-    underlineStyles: underlineExtensions,
-    underlineColor: underlineExtensions,
-    textEmojiWide: !isAppleTerminal,
-    textSizingSupported: isKittyWithTextSizing,
-    darkBackground,
-    nerdfont,
   }
+
+  return {
+    identity,
+    heuristics,
+    caps,
+    colorTier,
+  }
+}
+
+/**
+ * @deprecated Renamed to {@link detectTerminalProfileFromEnv} in Phase 7.
+ * Kept as a thin alias returning just the caps slice so external consumers
+ * that imported the old name don't break on upgrade. Remove in 1.1.
+ */
+export function detectTerminalCapsFromEnv(
+  env: Record<string, string | undefined>,
+  stdout: TerminalProfileStdout,
+): TerminalCaps {
+  return detectTerminalProfileFromEnv(env, stdout).caps
 }
 
 /**
@@ -653,4 +726,4 @@ function detectMacOSDarkMode(): boolean {
 }
 
 // Re-export the shim consumers still need to import alongside the profile.
-export { defaultCaps }
+export { defaultCaps, defaultIdentity, defaultHeuristics }
