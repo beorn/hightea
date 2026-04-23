@@ -52,9 +52,9 @@ describe("buildPlan — inactive cases", () => {
     expect(plan.excludes).toEqual([])
   })
 
-  test("colorLevel=none short-circuits even with markers present", () => {
+  test("colorLevel=mono short-circuits even with markers present", () => {
     const root = fakeNode({}, null, [fakeNode({ "data-backdrop-fade": 0.4 }, RECT)])
-    const plan = buildPlan(root, { colorLevel: "none" })
+    const plan = buildPlan(root, { colorLevel: "mono" })
     expect(plan.active).toBe(false)
   })
 

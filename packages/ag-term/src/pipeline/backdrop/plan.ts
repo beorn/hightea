@@ -65,19 +65,22 @@
 
 import { relativeLuminance } from "@silvery/color"
 import type { AgNode, Rect } from "@silvery/ag/types"
-import type { ColorLevel as AnsiColorLevel } from "@silvery/ansi"
+import type { ColorTier } from "@silvery/ansi"
 import { type HexColor, normalizeHex } from "./color"
 
 /**
- * Terminal color tier for the backdrop pass. Extends `@silvery/ansi`'s
- * `ColorLevel` with `"none"`, which short-circuits the pass to a no-op on
- * monochrome terminals.
+ * Terminal color tier for the backdrop pass.
+ *
+ * Re-export of the canonical {@link ColorTier} — kept under the historical
+ * name for backwards-compat with external consumers of the backdrop module.
+ * Post km-silvery.terminal-profile-plateau Phase 1 the local `"none"` alias
+ * and the 3-state `AnsiColorLevel` alias are gone.
  */
-export type ColorLevel = AnsiColorLevel | "none"
+export type ColorLevel = ColorTier
 
 export interface BackdropOptions {
   /**
-   * Terminal color tier. `"none"` short-circuits to a no-op (monochrome).
+   * Terminal color tier. `"mono"` short-circuits to a no-op (monochrome).
    * All other tiers run the same sRGB scrim mix — output phase quantizes
    * to the tier's palette on emit.
    */
@@ -313,7 +316,7 @@ const INACTIVE_CORE_PLAN: CorePlan = Object.freeze({
  * (terminal, canvas, DOM) — the realizer decides how to paint the plan.
  *
  * Returns a frozen inactive plan when:
- * - `colorLevel === "none"` (no-op, e.g. monochrome terminal).
+ * - `colorLevel === "mono"` (no-op, e.g. monochrome terminal).
  * - The tree has no backdrop markers, OR all markers have `amount <= 0`.
  *
  * Implemented as a thin wrapper over `buildPlan` that strips the
@@ -345,7 +348,7 @@ export function buildCorePlan(root: AgNode, options?: BackdropOptions): CorePlan
  */
 export function buildPlan(root: AgNode, options?: BackdropOptions): TerminalPlan {
   const colorLevel: ColorLevel = options?.colorLevel ?? "truecolor"
-  if (colorLevel === "none") return INACTIVE_PLAN
+  if (colorLevel === "mono") return INACTIVE_PLAN
 
   // Collect rects + per-marker amounts. The amounts are inspected only to
   // verify the single-amount invariant; they're discarded after.

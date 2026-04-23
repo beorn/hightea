@@ -23,7 +23,7 @@
 
 import { createMixedStyle, createStyle, type Style } from "@silvery/ansi"
 import type {
-  ColorLevel,
+  ColorTier,
   CreateTermOptions,
   TermEmulator,
   TermEmulatorBackend,
@@ -240,10 +240,15 @@ export interface Term extends Disposable, StyleChain {
   hasInput(): boolean
 
   /**
-   * Check color level supported by terminal.
-   * Returns null if no color support.
+   * Check the color tier supported by the terminal.
+   *
+   * Returns the canonical 4-state {@link ColorTier}:
+   * `"mono"` (no color) | `"ansi16"` | `"256"` | `"truecolor"`.
+   *
+   * Post km-silvery.terminal-profile-plateau Phase 1 this no longer returns
+   * `null`; the no-color case is spelt `"mono"`.
    */
-  hasColor(): ColorLevel | null
+  hasColor(): ColorTier
 
   /**
    * Check if terminal can render unicode symbols.
@@ -652,10 +657,15 @@ function createNodeTerm(options: CreateTermOptions): Term {
   const stdout = options.stdout ?? process.stdout
   const stdin = options.stdin ?? process.stdin
 
-  // Cache detection results
+  // Cache detection results. `options.color === null` is the legacy no-color
+  // spelling from before km-silvery.terminal-profile-plateau — normalize to
+  // the canonical `"mono"` so downstream consumers only see ColorTier values.
   const cachedCursor = options.cursor ?? detectCursor(stdout)
   const cachedInput = detectInput(stdin)
-  const cachedColor = options.color !== undefined ? options.color : detectColor(stdout)
+  const cachedColor: ColorTier =
+    options.color !== undefined
+      ? (options.color ?? "mono")
+      : detectColor(stdout)
   const cachedUnicode = options.unicode ?? detectUnicode()
 
   // Detect terminal capabilities (only when interactive)
@@ -856,7 +866,7 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
   const termBase = {
     hasCursor: () => false,
     hasInput: () => false,
-    hasColor: () => null as ColorLevel | null,
+    hasColor: () => "mono" as ColorTier,
     hasUnicode: () => false,
     caps: undefined as TerminalCaps | undefined,
     size,
@@ -937,7 +947,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
   const termBase = {
     hasCursor: () => true,
     hasInput: () => true,
-    hasColor: () => "truecolor" as ColorLevel | null,
+    hasColor: () => "truecolor" as ColorTier,
     hasUnicode: () => true,
     caps: undefined as TerminalCaps | undefined,
     size,

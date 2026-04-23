@@ -10,7 +10,7 @@
 // =============================================================================
 
 export type {
-  ColorLevel,
+  ColorTier,
   RGB,
   AnsiColorName,
   Color,
@@ -68,8 +68,12 @@ export interface CreateTermOptions {
   stdout?: NodeJS.WriteStream
   stdin?: NodeJS.ReadStream
 
-  // Override auto-detection (for testing or forcing)
-  color?: import("@silvery/ansi").ColorLevel | null // override hasColor()
+  // Override auto-detection (for testing or forcing).
+  //
+  // `color` accepts the canonical {@link ColorTier}. Legacy callers that
+  // passed `null` (pre-terminal-profile-plateau no-color spelling) still
+  // compile — the term factory normalizes `null` to `"mono"`.
+  color?: import("@silvery/ansi").ColorTier | null // override hasColor()
   unicode?: boolean // override hasUnicode()
   cursor?: boolean // override hasCursor()
 

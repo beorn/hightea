@@ -55,11 +55,15 @@ export function getActiveTheme(): Theme {
  * (`createPipeline()` in `@silvery/ag-term/measurer.ts`) before the first
  * render, and updated on cap changes.
  *
- * At `"none"` (monochrome), `parseColor("$primary")` returns `null` and
+ * At `"mono"` (monochrome), `parseColor("$primary")` returns `null` and
  * `getTextStyle()` injects mono-attrs (bold, dim, italic, underline, inverse,
  * strikethrough) from `DEFAULT_MONO_ATTRS`. See `hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p4`.
+ *
+ * Post km-silvery.terminal-profile-plateau Phase 1 this is an alias for the
+ * canonical {@link ColorTier} — the `ActiveColorLevel` name is retained for
+ * backwards compat with consumers.
  */
-export type ActiveColorLevel = "none" | "basic" | "256" | "truecolor"
+export type ActiveColorLevel = import("@silvery/ansi").ColorTier
 
 let _activeColorLevel: ActiveColorLevel = "truecolor"
 

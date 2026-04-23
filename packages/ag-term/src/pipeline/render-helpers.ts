@@ -135,7 +135,7 @@ export function parseColor(color: string): Color {
     // by per-token SGR attrs (see getTextStyle → monoAttrsForColorString). The
     // output phase sees `null` and emits SGR 39/49 (terminal default), never
     // an RGB sequence.
-    if (getActiveColorLevel() === "none") return null
+    if (getActiveColorLevel() === "mono") return null
     const resolved = resolveThemeColor(color, getActiveTheme())
     if (resolved && resolved !== color) return parseColor(resolved)
     return null
@@ -318,7 +318,7 @@ export function getTextStyle(props: TextProps): Style {
   // are stripped by parseColor (returns null for $tokens at mono tier). The
   // attrs carry the hierarchy: $primary → bold, $muted → dim, $error →
   // bold+inverse, $link → underline, etc. User-supplied attrs always OR-in.
-  if (getActiveColorLevel() === "none") {
+  if (getActiveColorLevel() === "mono") {
     const monoAttrs = new Set<MonoAttr>()
     collectMonoAttrs(props.color, monoAttrs)
     collectMonoAttrs(props.backgroundColor, monoAttrs)

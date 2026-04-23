@@ -312,7 +312,7 @@ export async function run(
     // Honor termOptions.colorLevel + env vars (same precedence as the options path).
     const termTier = resolveColorTier(termOptions?.colorLevel, detectedCaps)
     const caps: TerminalCaps = termTier
-      ? { ...detectedCaps, colorLevel: tierToCapsLevel(termTier) }
+      ? { ...detectedCaps, colorLevel: termTier }
       : detectedCaps
     // Detect terminal colors via OSC — must happen before alt screen.
     // When colorLevel is forced, pre-quantize the detected theme.
@@ -373,7 +373,7 @@ export async function run(
   // Resolve effective tier (env wins over the user override, auto-detect loses).
   const effectiveTier = resolveColorTier(colorLevelOption, detectedCaps)
   const caps: TerminalCaps = effectiveTier
-    ? { ...detectedCaps, colorLevel: tierToCapsLevel(effectiveTier) }
+    ? { ...detectedCaps, colorLevel: effectiveTier }
     : detectedCaps
   const headless = rest.writable != null || (rest.cols != null && rest.rows != null && !rest.stdout)
   // Detect terminal colors via OSC — must happen before alt screen (skipped for headless).
@@ -419,38 +419,6 @@ export async function run(
 }
 
 /**
- * Map the public `ColorTier` spelling (used by `run({ colorLevel })` and
- * `pickColorLevel`) to the internal caps spelling (`"none" | "basic" | "256"
- * | "truecolor"`). The pipeline lives in caps-space.
- */
-function tierToCapsLevel(tier: ColorTier): TerminalCaps["colorLevel"] {
-  switch (tier) {
-    case "mono":
-      return "none"
-    case "ansi16":
-      return "basic"
-    case "256":
-      return "256"
-    case "truecolor":
-      return "truecolor"
-  }
-}
-
-/** Inverse of {@link tierToCapsLevel} — caps-space to tier-space. */
-function capsLevelToTier(level: TerminalCaps["colorLevel"]): ColorTier {
-  switch (level) {
-    case "none":
-      return "mono"
-    case "basic":
-      return "ansi16"
-    case "256":
-      return "256"
-    case "truecolor":
-      return "truecolor"
-  }
-}
-
-/**
  * Resolve the effective color tier, honoring env-var precedence.
  *
  * Priority (highest wins):
@@ -461,6 +429,10 @@ function capsLevelToTier(level: TerminalCaps["colorLevel"]): ColorTier {
  *
  * Returns `undefined` when nothing overrides auto-detection (callers keep
  * `detectedCaps` as-is).
+ *
+ * Post km-silvery.terminal-profile-plateau Phase 1: the `tierToCapsLevel` /
+ * `capsLevelToTier` coercion shims are gone — `ColorTier` is used end-to-end
+ * so no translation happens at the tier ⇄ caps.colorLevel boundary anymore.
  */
 function resolveColorTier(
   optionTier: ColorTier | undefined,
@@ -475,15 +447,11 @@ function resolveColorTier(
     if (force === "1") return "ansi16"
     if (force === "2") return "256"
     if (force === "3") return "truecolor"
-    // Unknown truthy FORCE_COLOR → basic (mirrors @silvery/ansi detectColor)
+    // Unknown truthy FORCE_COLOR → ansi16 (mirrors @silvery/ansi detectColor)
     return "ansi16"
   }
   return optionTier
 }
-
-// Expose the mapping helpers for tests / advanced callers that need to
-// bridge the two spellings (ColorTier ⇄ caps.colorLevel).
-export { tierToCapsLevel, capsLevelToTier }
 
 /** Duck-type check: Term has the sub-owner umbrella (size + modes + signals).
  *  Note: Term is a Proxy wrapping chalk, so typeof is "function" not "object". */

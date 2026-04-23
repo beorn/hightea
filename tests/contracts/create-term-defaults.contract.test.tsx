@@ -89,12 +89,12 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
     expect(term.caps?.colorLevel).toBe("truecolor")
   })
 
-  test("contract: explicit caps override auto-detection (none)", () => {
+  test("contract: explicit caps override auto-detection (mono)", () => {
     process.env.FORCE_COLOR = "3"
     const term = createTerm({
-      caps: { colorLevel: "none" } as any,
+      caps: { colorLevel: "mono" } as any,
     })
-    expect(term.caps?.colorLevel).toBe("none")
+    expect(term.caps?.colorLevel).toBe("mono")
   })
 })
 

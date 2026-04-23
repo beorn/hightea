@@ -5,7 +5,7 @@
  * Handles auto-detection of events from stdin, dimension defaults, etc.
  */
 
-import type { ColorLevel, Term } from "./ansi/index"
+import type { ColorTier, Term } from "./ansi/index"
 import { getInternalStreams } from "./runtime/term-internal"
 import type { Event, EventSource } from "@silvery/ag/types"
 
@@ -53,8 +53,13 @@ export interface TermDef {
   /** Height in rows (default: stdout?.rows ?? 24) */
   height?: number
 
-  /** Color support (true=detect, false=none, or specific level) */
-  colors?: boolean | ColorLevel | null
+  /**
+   * Color support (true=detect, false=mono, or specific {@link ColorTier}).
+   *
+   * `null` is accepted as a compat alias for `"mono"` (pre-terminal-profile-plateau
+   * no-color spelling).
+   */
+  colors?: boolean | ColorTier | null
 
   // -------------------------------------------------------------------------
   // Input Configuration
@@ -118,8 +123,8 @@ export interface ResolvedTermDef {
   /** Height in rows */
   height: number
 
-  /** Color level (null = no colors) */
-  colors: ColorLevel | null
+  /** Resolved color tier. `"mono"` = no colors. */
+  colors: ColorTier
 
   /** Event source (null = static mode) */
   events: AsyncIterable<Event> | null
@@ -176,17 +181,16 @@ export function resolveTermDef(def: TermDef): ResolvedTermDef {
   const width = def.width ?? def.stdout?.columns ?? DEFAULT_WIDTH
   const height = def.height ?? def.stdout?.rows ?? DEFAULT_HEIGHT
 
-  // Resolve colors
-  let colors: ColorLevel | null = null
+  // Resolve colors. `false` / `null` → `"mono"` (no color). `true` or
+  // undefined → auto-detect. Explicit tier passes through.
+  let colors: ColorTier
   if (def.colors === true) {
-    // Auto-detect from stdout
     colors = detectColorLevel(def.stdout)
   } else if (def.colors === false || def.colors === null) {
-    colors = null
+    colors = "mono"
   } else if (def.colors) {
     colors = def.colors
   } else {
-    // Default: auto-detect
     colors = detectColorLevel(def.stdout)
   }
 
@@ -237,41 +241,37 @@ export function resolveFromTerm(term: Term): ResolvedTermDef {
 // ============================================================================
 
 /**
- * Detect color level from stdout stream.
+ * Detect the color tier from a stdout stream.
+ *
+ * This is a small, self-contained probe used by `resolveTermDef()` — it
+ * intentionally mirrors (without depending on) the canonical
+ * `detectColor()` in `@silvery/ansi`. Phase 3 of km-silvery.terminal-profile-plateau
+ * will collapse both into a single function.
  */
-function detectColorLevel(stdout?: NodeJS.WriteStream): ColorLevel | null {
-  // Check environment variables
-  if (process.env.NO_COLOR !== undefined) {
-    return null
-  }
+function detectColorLevel(stdout?: NodeJS.WriteStream): ColorTier {
+  if (process.env.NO_COLOR !== undefined) return "mono"
 
   if (process.env.FORCE_COLOR !== undefined) {
     const level = Number.parseInt(process.env.FORCE_COLOR, 10)
-    if (level === 0) return null
-    if (level === 1) return "basic"
+    if (level === 0) return "mono"
+    if (level === 1) return "ansi16"
     if (level === 2) return "256"
     if (level >= 3) return "truecolor"
-    return "basic"
+    return "ansi16"
   }
 
-  // Check COLORTERM for truecolor
   if (process.env.COLORTERM === "truecolor" || process.env.COLORTERM === "24bit") {
     return "truecolor"
   }
 
-  // Check if TTY
-  if (!stdout?.isTTY) {
-    return null
-  }
+  if (!stdout?.isTTY) return "mono"
 
-  // Check TERM for 256 color support
   const term = process.env.TERM ?? ""
   if (term.includes("256color") || term.includes("256")) {
     return "256"
   }
 
-  // Default to basic if TTY
-  return "basic"
+  return "ansi16"
 }
 
 // ============================================================================

@@ -29,7 +29,7 @@
 // Types
 // =============================================================================
 
-export type { ColorLevel, RGB, AnsiColorName, Color, UnderlineStyle, TerminalCaps } from "./types"
+export type { ColorTier, RGB, AnsiColorName, Color, UnderlineStyle, TerminalCaps } from "./types"
 
 // =============================================================================
 // Constants
@@ -89,7 +89,6 @@ export {
   bgFromRgb,
   quantizeHex,
   pickColorLevel,
-  type ColorTier,
 } from "./color-maps"
 
 // =============================================================================

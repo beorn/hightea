@@ -23,7 +23,7 @@ const autoStyle = createStyle()
 // When a user explicitly calls colorizeHelp(), they want color regardless
 // of terminal detection. The function name means "add color" — if you
 // don't want color, don't call it.
-const s = createStyle({ level: "basic" })
+const s = createStyle({ level: "ansi16" })
 
 /**
  * Check if color output should be enabled.

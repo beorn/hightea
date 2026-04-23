@@ -2,14 +2,17 @@
  * `run({ colorLevel })` — programmatic color-tier override.
  *
  * Covers:
- * - ColorTier ⇄ caps.colorLevel mapping (helpers exported from run.tsx)
  * - env-var precedence (NO_COLOR > FORCE_COLOR > option > auto-detect)
  * - end-to-end: forcing `"mono"` strips color SGRs from the ANSI stream
  *   (the single tier the output phase already honors for inline hex +
- *   $tokens alike). Other tiers are exercised via the mapping helpers
- *   and env-precedence cases; theme pre-quantization (hex leaves reaching
- *   canonical 16-slot / 256-cube values) is covered by
- *   `packages/ansi/tests/pick-color-level.test.ts`.
+ *   $tokens alike). Other tiers are exercised via the env-precedence cases;
+ *   theme pre-quantization (hex leaves reaching canonical 16-slot / 256-cube
+ *   values) is covered by `packages/ansi/tests/pick-color-level.test.ts`.
+ *
+ * Post km-silvery.terminal-profile-plateau Phase 1: the `ColorTier ⇄ caps`
+ * mapping helpers (`tierToCapsLevel`, `capsLevelToTier`) are gone — the two
+ * spellings collapsed into one canonical `ColorTier`. The round-trip test
+ * is therefore also gone (trivially the identity).
  *
  * Strategy: use the `writable` option to capture raw ANSI. `run({ writable,
  * cols, rows })` takes the headless code path — no alt-screen, no OSC theme
@@ -20,12 +23,7 @@ import React from "react"
 import { afterEach, describe, expect, test, beforeEach } from "vitest"
 
 import { Box, Text } from "../../src/index.js"
-import {
-  run,
-  capsLevelToTier,
-  tierToCapsLevel,
-  type RunHandle,
-} from "../../packages/ag-term/src/runtime/run"
+import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 
 // ============================================================================
 // Env-var scaffolding — isolate each test from the ambient environment.
@@ -110,26 +108,6 @@ async function runCapturing(
   }
   return sink.raw
 }
-
-// ============================================================================
-// Tier ⇄ caps spelling round-trip
-// ============================================================================
-
-describe("tierToCapsLevel / capsLevelToTier", () => {
-  test("round-trips every tier through the caps spelling", () => {
-    const tiers = ["mono", "ansi16", "256", "truecolor"] as const
-    for (const tier of tiers) {
-      expect(capsLevelToTier(tierToCapsLevel(tier))).toBe(tier)
-    }
-  })
-
-  test("tierToCapsLevel emits the internal caps vocabulary", () => {
-    expect(tierToCapsLevel("mono")).toBe("none")
-    expect(tierToCapsLevel("ansi16")).toBe("basic")
-    expect(tierToCapsLevel("256")).toBe("256")
-    expect(tierToCapsLevel("truecolor")).toBe("truecolor")
-  })
-})
 
 // ============================================================================
 // End-to-end — caps.colorLevel override observable in the ANSI stream

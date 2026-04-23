@@ -514,7 +514,7 @@ export { createConsole } from "./ansi/index"
 export type {
   UnderlineStyle,
   RGB,
-  ColorLevel,
+  ColorTier,
   Color as AnsiColor,
   AnsiColorName,
   StyleOptions,

@@ -1,7 +1,7 @@
 /**
  * Mono-tier SGR attrs — end-to-end regression.
  *
- * When `colorLevel === "none"` (NO_COLOR / TERM=dumb / SILVERY_COLOR=mono),
+ * When `colorLevel === "mono"` (NO_COLOR / TERM=dumb / SILVERY_COLOR=mono),
  * the render pipeline must:
  *
  *   1. Strip all colors. `$primary`, `$muted`, ..., `#FF0000`, `"red"` — all
@@ -63,7 +63,7 @@ function withTheme(theme: typeof ansi16DarkTheme, fn: () => void): void {
 function withMonoTier(run: () => void): void {
   const prevLevel = getActiveColorLevel()
   try {
-    setActiveColorLevel("none")
+    setActiveColorLevel("mono")
     withTheme(ansi16DarkTheme, run)
   } finally {
     setActiveColorLevel(prevLevel)
@@ -230,7 +230,7 @@ describe("output phase: mono tier strips fg/bg SGR codes", () => {
     // Write a cell with red fg — as if a user wrote color="#FF0000"
     buf.setCell(0, 0, { char: "X", fg: { r: 255, g: 0, b: 0 } })
 
-    const renderMono = createOutputPhase({ colorLevel: "none" })
+    const renderMono = createOutputPhase({ colorLevel: "mono" })
     const out = renderMono(null, buf, "fullscreen")
 
     // Must NOT contain a 38;2;... (truecolor fg) or 38;5;... (256) sequence
@@ -243,7 +243,7 @@ describe("output phase: mono tier strips fg/bg SGR codes", () => {
     const buf = createBuffer(6, 1)
     buf.setCell(0, 0, { char: "X", bg: { r: 0, g: 128, b: 255 } })
 
-    const renderMono = createOutputPhase({ colorLevel: "none" })
+    const renderMono = createOutputPhase({ colorLevel: "mono" })
     const out = renderMono(null, buf, "fullscreen")
 
     expect(out).not.toMatch(/48;2;0;128;255/)
@@ -257,7 +257,7 @@ describe("output phase: mono tier strips fg/bg SGR codes", () => {
       attrs: { bold: true, inverse: true, underline: true, underlineStyle: "single" },
     })
 
-    const renderMono = createOutputPhase({ colorLevel: "none" })
+    const renderMono = createOutputPhase({ colorLevel: "mono" })
     const out = renderMono(null, buf, "fullscreen")
 
     // Bold = SGR 1, inverse = SGR 7, underline = SGR 4 or 4:1
@@ -290,7 +290,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
   // to the output phase. That round-trip (render writes Style → output emits
   // ANSI) is exercised separately in "output phase: mono tier strips ...".
   beforeEach(() => {
-    setActiveColorLevel("none")
+    setActiveColorLevel("mono")
     pushContextTheme(ansi16DarkTheme)
   })
 
@@ -369,7 +369,7 @@ describe("render pipeline: $token attrs reach the buffer at mono tier", () => {
 
 describe("mono tier: realistic 50+ node fixture (STRICT compounding safety)", () => {
   beforeEach(() => {
-    setActiveColorLevel("none")
+    setActiveColorLevel("mono")
     pushContextTheme(ansi16DarkTheme)
   })
 

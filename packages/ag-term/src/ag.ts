@@ -74,8 +74,8 @@ export interface CreateAgOptionsInternal {
   measurer?: Measurer
   /**
    * Terminal color tier for the backdrop-fade pass (see `pipeline/backdrop/`).
-   * Defaults to `"truecolor"` (OKLab blend). Set to `"basic"` at ANSI 16 tier
-   * (SGR 2 dim) or `"none"` to disable the pass entirely.
+   * Defaults to `"truecolor"` (OKLab blend). Set to `"ansi16"` at ANSI 16 tier
+   * (SGR 2 dim) or `"mono"` to disable the pass entirely.
    */
   colorLevel?: BackdropColorLevel
   /**

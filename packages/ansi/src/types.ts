@@ -7,12 +7,21 @@
 // =============================================================================
 
 /**
- * Color level supported by terminal.
- * - 'basic': 16 colors (SGR 30-37, 40-47)
- * - '256': 256 colors (SGR 38;5;n)
- * - 'truecolor': 16M colors (SGR 38;2;r;g;b)
+ * The canonical 4-state color tier supported by a terminal.
+ *
+ * One enum, one spelling — used everywhere a color capability is described
+ * (caps, style level, chalk compat, tier quantization, etc.).
+ *
+ * - `"mono"` — no color (OSC queries disabled, monochrome attribute fallback).
+ * - `"ansi16"` — 16-slot palette (SGR 30-37, 90-97 / 40-47, 100-107).
+ * - `"256"` — xterm-256 palette (SGR 38;5;n).
+ * - `"truecolor"` — 24-bit RGB (SGR 38;2;r;g;b).
+ *
+ * Prior to km-silvery.terminal-profile-plateau this type went by three
+ * different names with three different spellings for the no-color case
+ * (`null`, `"none"`, `"mono"`). Canonicalized to `ColorTier` + `"mono"`.
  */
-export type ColorLevel = "basic" | "256" | "truecolor"
+export type ColorTier = "mono" | "ansi16" | "256" | "truecolor"
 
 /**
  * RGB color tuple for underline color.

@@ -6,49 +6,49 @@ const ESC = "\x1b["
 describe("createStyle (from @silvery/ansi)", () => {
   describe("basic modifiers", () => {
     it("applies bold", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.bold("hello")).toBe(`${ESC}1mhello${ESC}22m`)
     })
 
     it("applies dim", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.dim("text")).toBe(`${ESC}2mtext${ESC}22m`)
     })
 
     it("applies italic", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.italic("text")).toBe(`${ESC}3mtext${ESC}23m`)
     })
 
     it("applies underline", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.underline("text")).toBe(`${ESC}4mtext${ESC}24m`)
     })
 
     it("applies strikethrough", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.strikethrough("text")).toBe(`${ESC}9mtext${ESC}29m`)
     })
   })
 
   describe("foreground colors", () => {
     it("applies red", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.red("error")).toBe(`${ESC}31merror${ESC}39m`)
     })
 
     it("applies cyan", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.cyan("info")).toBe(`${ESC}36minfo${ESC}39m`)
     })
 
     it("applies bright colors", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.redBright("hot")).toBe(`${ESC}91mhot${ESC}39m`)
     })
 
     it("applies gray/grey alias", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.gray("muted")).toBe(`${ESC}90mmuted${ESC}39m`)
       expect(s.grey("muted")).toBe(`${ESC}90mmuted${ESC}39m`)
     })
@@ -56,12 +56,12 @@ describe("createStyle (from @silvery/ansi)", () => {
 
   describe("chaining", () => {
     it("chains bold + red", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.bold.red("error")).toBe(`${ESC}1;31merror${ESC}22;39m`)
     })
 
     it("chains modifier + fg + bg", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.bold.red.bgWhite("alert")).toBe(`${ESC}1;31;47malert${ESC}22;39;49m`)
     })
   })
@@ -94,25 +94,25 @@ describe("createStyle (from @silvery/ansi)", () => {
     })
 
     it("falls back to ANSI defaults without theme", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.primary("deploy")).toBe(`${ESC}33mdeploy${ESC}39m`)
       expect(s.error("fail")).toBe(`${ESC}31mfail${ESC}39m`)
     })
 
     it("muted uses dim modifier as fallback", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.muted("note")).toBe(`${ESC}2mnote${ESC}22m`)
     })
   })
 
   describe("multiple arguments (chalk compat)", () => {
     it("joins multiple args with spaces", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s.red("hello", "there")).toBe(`${ESC}31mhello there${ESC}39m`)
     })
 
     it("joins multiple args without styles", () => {
-      const s = createStyle({ level: "basic" })
+      const s = createStyle({ level: "ansi16" })
       expect(s("hello", "there")).toBe("hello there")
     })
 
@@ -132,7 +132,7 @@ describe("createStyle (from @silvery/ansi)", () => {
   describe("level property (chalk compat)", () => {
     it("returns numeric level", () => {
       expect(createStyle({ level: null }).level).toBe(0)
-      expect(createStyle({ level: "basic" }).level).toBe(1)
+      expect(createStyle({ level: "ansi16" }).level).toBe(1)
       expect(createStyle({ level: "truecolor" }).level).toBe(3)
     })
 
@@ -147,12 +147,12 @@ describe("createStyle (from @silvery/ansi)", () => {
 
 describe("createPlainStyle", () => {
   it("creates style without theme", () => {
-    const s = createPlainStyle("basic")
+    const s = createPlainStyle("ansi16")
     expect(s.red("error")).toBe(`${ESC}31merror${ESC}39m`)
   })
 
   it("theme tokens use fallback defaults", () => {
-    const s = createPlainStyle("basic")
+    const s = createPlainStyle("ansi16")
     expect(s.primary("x")).toBe(`${ESC}33mx${ESC}39m`)
   })
 })

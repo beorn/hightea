@@ -72,7 +72,7 @@ export { createConsole } from "../runtime/devices/console"
 export type {
   UnderlineStyle,
   RGB,
-  ColorLevel,
+  ColorTier,
   Color,
   AnsiColorName,
   StyleOptions,

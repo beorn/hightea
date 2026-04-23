@@ -146,7 +146,7 @@ describe("colorizeHelp", () => {
 
   it("should accept custom color options", () => {
     const program = createTestProgram()
-    const cs = createStyle({ level: "basic" })
+    const cs = createStyle({ level: "ansi16" })
     colorizeHelp(program, {
       commands: (t) => cs.red(t),
       flags: (t) => cs.yellow(t),
@@ -175,7 +175,7 @@ describe("colorizeHelp", () => {
   it("should propagate custom colors to subcommands", () => {
     const program = createTestProgram()
     addSubcommands(program)
-    const cs = createStyle({ level: "basic" })
+    const cs = createStyle({ level: "ansi16" })
     colorizeHelp(program, { flags: (t) => cs.red(t) })
 
     const buildCmd = program.commands.find((c) => c.name() === "build")!

@@ -625,7 +625,10 @@ export type {
   Console as PatchedConsole,
   ConsoleCaptureOptions,
   ConsoleStats,
-  ColorLevel,
+  // `ColorTier` is also exported from `@silvery/ansi` above. Both exports
+  // point to the same canonical type; this comment documents the duplicate
+  // for readers but the actual type only exports once (ag-term re-exports
+  // from @silvery/ansi).
   ConsoleEntry,
 } from "@silvery/ag-term/ansi"
 

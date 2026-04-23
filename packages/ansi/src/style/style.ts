@@ -131,18 +131,18 @@ const THEME_TOKENS = new Set([
 // Public API
 // =============================================================================
 
-/** Convert chalk numeric level (0-3) to ColorLevel. */
-function fromChalkLevel(n: number): import("../types.ts").ColorLevel | null {
-  if (n <= 0) return null
-  if (n === 1) return "basic"
+/** Convert chalk numeric level (0-3) to {@link ColorTier}. */
+function fromChalkLevel(n: number): import("../types.ts").ColorTier {
+  if (n <= 0) return "mono"
+  if (n === 1) return "ansi16"
   if (n === 2) return "256"
   return "truecolor"
 }
 
-/** Convert ColorLevel to chalk numeric level (0-3). */
-function toChalkLevel(cl: import("../types.ts").ColorLevel | null): number {
-  if (cl === null) return 0
-  if (cl === "basic") return 1
+/** Convert {@link ColorTier} to chalk numeric level (0-3). */
+function toChalkLevel(cl: import("../types.ts").ColorTier): number {
+  if (cl === "mono") return 0
+  if (cl === "ansi16") return 1
   if (cl === "256") return 2
   return 3
 }
@@ -168,19 +168,23 @@ function toChalkLevel(cl: import("../types.ts").ColorLevel | null): number {
  * ```
  */
 export function createStyle(options?: StyleOptions): Style {
-  // Mutable level ref — shared across all chains from this instance
+  // Mutable level ref — shared across all chains from this instance.
+  // Post km-silvery.terminal-profile-plateau Phase 1: level is the canonical
+  // {@link ColorTier}, where `"mono"` is the no-color state (previously `null`).
   const ref = {
-    level: null as import("../types.ts").ColorLevel | null,
+    level: "mono" as import("../types.ts").ColorTier,
     theme: options?.theme as ThemeLike | undefined,
   }
 
-  if (options?.level !== undefined) {
+  if (options?.level !== undefined && options.level !== null) {
     ref.level = options.level
+  } else if (options?.level === null) {
+    ref.level = "mono"
   } else {
     try {
       ref.level = detectColor(process.stdout)
     } catch {
-      ref.level = null
+      ref.level = "mono"
     }
   }
 
@@ -195,7 +199,7 @@ export function createStyle(options?: StyleOptions): Style {
  *
  * @param level - Color level override. Auto-detected if omitted.
  */
-export function createPlainStyle(level?: import("../types.ts").ColorLevel | null): Style {
+export function createPlainStyle(level?: import("../types.ts").ColorTier | null): Style {
   return createStyle({ level })
 }
 
@@ -212,7 +216,7 @@ export const style: Style = createStyle()
  */
 function createChainWithRef(
   state: ChainState,
-  ref: { level: import("../types.ts").ColorLevel | null; theme: ThemeLike | undefined },
+  ref: { level: import("../types.ts").ColorTier; theme: ThemeLike | undefined },
 ): Style {
   // proxyRef lets the handler reference its own proxy (needed for Function.prototype methods)
   const proxyRef: { proxy: Style | null } = { proxy: null }
@@ -220,8 +224,8 @@ function createChainWithRef(
     apply(_target, _thisArg, args) {
       const level = ref.level
 
-      // chalk compat: visible modifier suppresses output when level === 0
-      if (state.visible && level === null) return ""
+      // chalk compat: visible modifier suppresses output when level === 0 (mono)
+      if (state.visible && level === "mono") return ""
 
       // Resolve text from args — supports: string, multiple args (chalk compat), template literals
       let text: string
@@ -238,7 +242,7 @@ function createChainWithRef(
       // chalk compat: don't output escape codes if the input is empty
       if (text === "") return ""
 
-      if (level === null || state.opens.length === 0) return text
+      if (level === "mono" || state.opens.length === 0) return text
 
       const open = `${ESC}${state.opens.join(";")}m`
       const close = `${ESC}${state.closes.join(";")}m`
@@ -291,7 +295,7 @@ function createChainWithRef(
       // Color methods
       if (prop === "hex" || prop === "bgHex") {
         return (color: string) => {
-          if (level === null) return createChainWithRef(state, ref)
+          if (level === "mono") return createChainWithRef(state, ref)
           const rgb = hexToRgb(color)
           if (!rgb) return createChainWithRef(state, ref)
           const code =
@@ -308,7 +312,7 @@ function createChainWithRef(
 
       if (prop === "rgb" || prop === "bgRgb") {
         return (r: number, g: number, b: number) => {
-          if (level === null) return createChainWithRef(state, ref)
+          if (level === "mono") return createChainWithRef(state, ref)
           const code = prop === "rgb" ? fgFromRgb(r, g, b, level) : bgFromRgb(r, g, b, level)
           const close = prop === "rgb" ? "39" : "49"
           return createChainWithRef(
@@ -320,7 +324,7 @@ function createChainWithRef(
 
       if (prop === "ansi256") {
         return (code: number) => {
-          if (level === null) return createChainWithRef(state, ref)
+          if (level === "mono") return createChainWithRef(state, ref)
           return createChainWithRef(
             { opens: [...state.opens, `38;5;${code}`], closes: [...state.closes, "39"] },
             ref,
@@ -330,7 +334,7 @@ function createChainWithRef(
 
       if (prop === "bgAnsi256") {
         return (code: number) => {
-          if (level === null) return createChainWithRef(state, ref)
+          if (level === "mono") return createChainWithRef(state, ref)
           return createChainWithRef(
             { opens: [...state.opens, `48;5;${code}`], closes: [...state.closes, "49"] },
             ref,
@@ -340,7 +344,7 @@ function createChainWithRef(
 
       // Modifiers
       if (prop in MODIFIERS) {
-        if (level === null) return createChainWithRef(state, ref)
+        if (level === "mono") return createChainWithRef(state, ref)
         const [open, close] = MODIFIERS[prop]!
         return createChainWithRef(
           { opens: [...state.opens, String(open)], closes: [...state.closes, String(close)] },
@@ -350,7 +354,7 @@ function createChainWithRef(
 
       // Foreground colors
       if (prop in FG_COLORS) {
-        if (level === null) return createChainWithRef(state, ref)
+        if (level === "mono") return createChainWithRef(state, ref)
         return createChainWithRef(
           { opens: [...state.opens, String(FG_COLORS[prop]!)], closes: [...state.closes, "39"] },
           ref,
@@ -359,7 +363,7 @@ function createChainWithRef(
 
       // Background colors
       if (prop in BG_COLORS) {
-        if (level === null) return createChainWithRef(state, ref)
+        if (level === "mono") return createChainWithRef(state, ref)
         return createChainWithRef(
           { opens: [...state.opens, String(BG_COLORS[prop]!)], closes: [...state.closes, "49"] },
           ref,
@@ -368,7 +372,7 @@ function createChainWithRef(
 
       // Theme tokens
       if (THEME_TOKENS.has(prop)) {
-        if (level === null) return createChainWithRef(state, ref)
+        if (level === "mono") return createChainWithRef(state, ref)
         const hex = resolveToken(prop, ref.theme)
         if (hex) {
           const rgb = hexToRgb(hex)

@@ -15,24 +15,24 @@
  * @packageDocumentation
  */
 
-import { createStyle, detectColor, type Style, type ColorLevel } from "@silvery/ansi"
+import { createStyle, detectColor, type Style, type ColorTier } from "@silvery/ansi"
 
 // =============================================================================
-// Color level conversion (chalk uses 0-3, silvery uses string|null)
+// Color tier conversion (chalk uses 0-3, silvery uses ColorTier)
 // =============================================================================
 
 type ChalkLevel = 0 | 1 | 2 | 3
 
-function toChalkLevel(cl: ColorLevel | null): ChalkLevel {
-  if (cl === null) return 0
-  if (cl === "basic") return 1
+function toChalkLevel(cl: ColorTier): ChalkLevel {
+  if (cl === "mono") return 0
+  if (cl === "ansi16") return 1
   if (cl === "256") return 2
   return 3 // truecolor
 }
 
-function fromChalkLevel(level: ChalkLevel): ColorLevel | null {
-  if (level === 0) return null
-  if (level === 1) return "basic"
+function fromChalkLevel(level: ChalkLevel): ColorTier {
+  if (level === 0) return "mono"
+  if (level === 1) return "ansi16"
   if (level === 2) return "256"
   return "truecolor"
 }
@@ -41,8 +41,8 @@ function fromChalkLevel(level: ChalkLevel): ColorLevel | null {
 // Default instance (auto-detected)
 // =============================================================================
 
-const detectedColor =
-  typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : null
+const detectedColor: ColorTier =
+  typeof process !== "undefined" && process.stdout ? detectColor(process.stdout) : "mono"
 
 /**
  * Default chalk instance — drop-in replacement for `import chalk from 'chalk'`.
@@ -167,4 +167,4 @@ export const colorNames = [...foregroundColorNames, ...backgroundColorNames] as 
 
 // Re-export detection utilities that chalk users often need
 export { detectColor, toChalkLevel, fromChalkLevel }
-export type { ColorLevel, ChalkLevel }
+export type { ColorTier, ChalkLevel }

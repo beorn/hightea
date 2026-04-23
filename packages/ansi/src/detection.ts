@@ -10,7 +10,7 @@
  * - Terminal capabilities profile (TerminalCaps)
  */
 
-import type { ColorLevel } from "./types"
+import type { ColorTier } from "./types"
 
 // =============================================================================
 // Cursor Detection
@@ -64,41 +64,46 @@ const CI_ENVS = [
 ]
 
 /**
- * Detect color level supported by terminal.
- * Returns null if no color support.
+ * Detect the color tier supported by the terminal.
+ *
+ * Returns a 4-state {@link ColorTier}:
+ * - `"mono"` when no color (NO_COLOR, non-TTY without FORCE_COLOR, dumb term)
+ * - `"ansi16"` for 4-bit / basic-color terminals
+ * - `"256"` for xterm-256 terminals
+ * - `"truecolor"` for 24-bit RGB terminals
  *
  * Checks (in order):
- * 1. NO_COLOR env var - forces no color
- * 2. FORCE_COLOR env var - forces color level
- * 3. COLORTERM=truecolor - truecolor support
- * 4. TERM patterns - detect from terminal type
- * 5. CI detection - basic colors in CI
+ * 1. NO_COLOR env var — forces mono
+ * 2. FORCE_COLOR env var — forces color tier
+ * 3. COLORTERM=truecolor — truecolor support
+ * 4. TERM patterns — detect from terminal type
+ * 5. CI detection — basic colors in CI
  */
-export function detectColor(stdout: NodeJS.WriteStream): ColorLevel | null {
+export function detectColor(stdout: NodeJS.WriteStream): ColorTier {
   // NO_COLOR takes precedence (see https://no-color.org/)
   if (process.env.NO_COLOR !== undefined) {
-    return null
+    return "mono"
   }
 
   // FORCE_COLOR overrides detection
   const forceColor = process.env.FORCE_COLOR
   if (forceColor !== undefined) {
-    if (forceColor === "0" || forceColor === "false") return null
-    if (forceColor === "1") return "basic"
+    if (forceColor === "0" || forceColor === "false") return "mono"
+    if (forceColor === "1") return "ansi16"
     if (forceColor === "2") return "256"
     if (forceColor === "3") return "truecolor"
-    // Any other truthy value defaults to basic
-    return "basic"
+    // Any other truthy value defaults to ansi16
+    return "ansi16"
   }
 
-  // Non-TTY without FORCE_COLOR - no colors
+  // Non-TTY without FORCE_COLOR — no colors
   if (!stdout.isTTY) {
-    return null
+    return "mono"
   }
 
   // Dumb terminal
   if (process.env.TERM === "dumb") {
-    return null
+    return "mono"
   }
 
   // COLORTERM=truecolor indicates 24-bit support
@@ -144,12 +149,12 @@ export function detectColor(stdout: NodeJS.WriteStream): ColorLevel | null {
 
   // xterm-color variants get basic colors
   if (term.includes("xterm") || term.includes("color") || term.includes("ansi")) {
-    return "basic"
+    return "ansi16"
   }
 
   // CI environments usually support basic colors
   if (CI_ENVS.some((env) => process.env[env] !== undefined)) {
-    return "basic"
+    return "ansi16"
   }
 
   // Windows Terminal (modern)
@@ -158,7 +163,7 @@ export function detectColor(stdout: NodeJS.WriteStream): ColorLevel | null {
   }
 
   // Default: basic colors if TTY
-  return "basic"
+  return "ansi16"
 }
 
 // =============================================================================
@@ -274,8 +279,8 @@ export interface TerminalCaps {
   program: string
   /** TERM value */
   term: string
-  /** Color support level */
-  colorLevel: "none" | "basic" | "256" | "truecolor"
+  /** Color support tier. See {@link ColorTier}. */
+  colorLevel: ColorTier
   /** Kitty keyboard protocol supported */
   kittyKeyboard: boolean
   /** Kitty graphics protocol (inline images) */
@@ -381,23 +386,19 @@ export function detectTerminalCaps(): TerminalCaps {
 
   const isAppleTerminal = program === "Apple_Terminal"
 
-  // Delegate colour-level detection to the canonical `detectColor()` — it
+  // Delegate tier detection to the canonical `detectColor()` — it
   // understands FORCE_COLOR, COLORTERM, TERM patterns (xterm-ghostty,
   // xterm-kitty, wezterm), TERM_PROGRAM (iTerm.app / Ghostty / WezTerm),
   // KITTY_WINDOW_ID, and CI fallbacks. Previously this block only checked
   // COLORTERM and TERM-256 — so modern terminals that advertise via
   // TERM_PROGRAM (e.g. Ghostty without COLORTERM set) fell through to
-  // "basic", and FORCE_COLOR was silently ignored at the caps layer.
+  // "ansi16", and FORCE_COLOR was silently ignored at the caps layer.
+  //
+  // Phase 1 of km-silvery.terminal-profile-plateau collapsed the null/none/mono
+  // spelling: `detectColor` now returns `ColorTier` directly (never null), and
+  // `TerminalCaps.colorLevel` shares that enum. No coercion lives here anymore.
   const stdout = process.stdout as NodeJS.WriteStream | undefined
-  let colorLevel: TerminalCaps["colorLevel"]
-  if (noColor) {
-    colorLevel = "none"
-  } else if (stdout) {
-    const detected = detectColor(stdout)
-    colorLevel = detected === null ? "none" : detected === "basic" ? "basic" : detected
-  } else {
-    colorLevel = "none"
-  }
+  const colorLevel: ColorTier = noColor ? "mono" : stdout ? detectColor(stdout) : "mono"
 
   const isKitty = term === "xterm-kitty"
   const isITerm = program === "iTerm.app"

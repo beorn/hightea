@@ -7,7 +7,11 @@
  * @see https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
  */
 
-import type { ColorLevel } from "./types"
+import type { ColorTier } from "./types"
+
+// Re-export so existing callers that do `import { ColorTier } from "./color-maps"`
+// keep compiling after the canonical definition moved to `./types`.
+export type { ColorTier }
 
 // =============================================================================
 // SGR Code Constants
@@ -159,23 +163,30 @@ export function rgbToAnsi256(r: number, g: number, b: number): number {
 }
 
 /**
- * Generate SGR foreground code for an RGB color at the given color level.
+ * Generate SGR foreground code for an RGB color at the given color tier.
  * Returns the SGR parameter string (e.g., "31" or "38;5;196" or "38;2;255;0;0").
+ *
+ * Tiers `"truecolor"`, `"256"`, and `"ansi16"` emit color codes. `"mono"`
+ * is handled by the caller (no SGR code is emitted for color at the mono tier)
+ * — this function coerces `"mono"` to the `"ansi16"` code path rather than
+ * throwing, since callers that get here with `"mono"` have already bypassed
+ * the mono short-circuit.
  */
-export function fgFromRgb(r: number, g: number, b: number, level: ColorLevel): string {
-  if (level === "truecolor") return `38;2;${r};${g};${b}`
-  if (level === "256") return `38;5;${rgbToAnsi256(r, g, b)}`
-  // basic: map to ANSI 16
+export function fgFromRgb(r: number, g: number, b: number, tier: ColorTier): string {
+  if (tier === "truecolor") return `38;2;${r};${g};${b}`
+  if (tier === "256") return `38;5;${rgbToAnsi256(r, g, b)}`
+  // ansi16 / mono: map to ANSI 16
   const idx = nearestAnsi16(r, g, b)
   return idx < 8 ? `${30 + idx}` : `${82 + idx}` // 90-97 for bright
 }
 
 /**
- * Generate SGR background code for an RGB color at the given color level.
+ * Generate SGR background code for an RGB color at the given color tier.
+ * See {@link fgFromRgb} for tier handling.
  */
-export function bgFromRgb(r: number, g: number, b: number, level: ColorLevel): string {
-  if (level === "truecolor") return `48;2;${r};${g};${b}`
-  if (level === "256") return `48;5;${rgbToAnsi256(r, g, b)}`
+export function bgFromRgb(r: number, g: number, b: number, tier: ColorTier): string {
+  if (tier === "truecolor") return `48;2;${r};${g};${b}`
+  if (tier === "256") return `48;5;${rgbToAnsi256(r, g, b)}`
   const idx = nearestAnsi16(r, g, b)
   return idx < 8 ? `${40 + idx}` : `${92 + idx}` // 100-107 for bright
 }
@@ -237,14 +248,10 @@ function parseHexLocal(hex: string): [number, number, number] | null {
   return [r, g, b]
 }
 
-/**
- * Color tier for preview quantization.
- *
- * Mirrors the tiers a real terminal would resolve to when the output phase
- * emits ANSI: `truecolor` (pass-through), `256` (6×6×6 cube + grayscale ramp),
- * `ansi16` (nearest of 16 slots), `mono` (luminance → black/white).
- */
-export type ColorTier = "truecolor" | "256" | "ansi16" | "mono"
+// `ColorTier` is re-exported below from `./types` for backwards compatibility
+// with call sites that import it from `@silvery/ansi/color-maps`. The canonical
+// definition lives in `./types` so the ansi package has a single source of
+// truth for the 4-state color tier enum.
 
 /**
  * Hex-in / hex-out quantization for previews.
