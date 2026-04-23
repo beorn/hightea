@@ -90,14 +90,6 @@ export interface DeriveFieldsInput {
   }
 }
 
-// Legacy discriminant-union type aliases — retained for any external callers
-// that still reference the old named types. Both are now identical to
-// DeriveFieldsInput (the `mode` field is no longer read).
-// Kept as stable type aliases for backward compatibility; new code should use
-// DeriveFieldsInput directly.
-export type DeriveFieldsAnsi16Input = DeriveFieldsInput
-export type DeriveFieldsTruecolorInput = DeriveFieldsInput
-
 // =============================================================================
 // Output type
 // =============================================================================

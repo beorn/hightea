@@ -217,12 +217,7 @@ export type { Style, StyleOptions, ThemeLike, UnderlineCaps } from "./style/type
 export { deriveTheme, deriveAnsi16Theme, loadTheme } from "./theme/derive"
 export type { ThemeAdjustment, LoadThemeOptions } from "./theme/derive"
 export { deriveFields, DEFAULT_VARIANTS } from "./theme/derived"
-export type {
-  DeriveFieldsInput,
-  DeriveFieldsAnsi16Input,
-  DeriveFieldsTruecolorInput,
-  DerivedFields,
-} from "./theme/derived"
+export type { DeriveFieldsInput, DerivedFields } from "./theme/derived"
 export {
   deriveMonochromeTheme,
   monoAttrsFor,
