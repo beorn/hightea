@@ -823,3 +823,77 @@ describe("probeTerminalProfile — contract", () => {
     expect(profile.colorForced).toBe(true)
   })
 })
+
+// ============================================================================
+// Immutability invariants — km-silvery.profile-immutable (/pro review)
+// ============================================================================
+//
+// TerminalProfile is a snapshot value. The whole plateau leans on the
+// invariants below never drifting; without type-level readonly + dev freeze,
+// any caller could silently rewrite `profile.colorTier` and break the
+// "one detection, one source of truth" contract.
+//
+// These tests are intentionally defensive — the type system already rejects
+// direct writes, but test builds run with NODE_ENV=undefined (dev mode) so
+// the Object.freeze path is always exercised here.
+
+describe("createTerminalProfile — immutability invariants", () => {
+  test("invariant: profile.colorTier === profile.caps.colorLevel across all rungs", () => {
+    const cases = [
+      createTerminalProfile({ env: { NO_COLOR: "1" }, stdout: tty }),
+      createTerminalProfile({ env: { FORCE_COLOR: "3" }, stdout: nonTty }),
+      createTerminalProfile({ env: {}, stdout: tty, colorOverride: "256" }),
+      createTerminalProfile({ env: {}, stdout: nonTty, caps: { colorLevel: "truecolor" } }),
+      createTerminalProfile({ env: { TERM: "xterm-ghostty" }, stdout: tty }),
+    ]
+    for (const profile of cases) {
+      expect(profile.colorTier).toBe(profile.caps.colorLevel)
+    }
+  })
+
+  test("invariant: profile is frozen in dev (mutation throws)", () => {
+    const profile = createTerminalProfile({ env: {}, stdout: tty, colorOverride: "256" })
+    expect(Object.isFrozen(profile)).toBe(true)
+    // Mutating any top-level field throws in strict mode — TS strict modules
+    // run implicit strict, so the assignment below is a TypeError at runtime.
+    expect(() => {
+      ;(profile as unknown as { colorTier: string }).colorTier = "mono"
+    }).toThrow(TypeError)
+  })
+
+  test("invariant: profile.caps is frozen in dev (nested mutation throws)", () => {
+    const profile = createTerminalProfile({ env: {}, stdout: tty, colorOverride: "256" })
+    expect(Object.isFrozen(profile.caps)).toBe(true)
+    expect(() => {
+      ;(profile.caps as unknown as { colorLevel: string }).colorLevel = "mono"
+    }).toThrow(TypeError)
+  })
+
+  test("invariant: probeTerminalProfile result is frozen in dev", async () => {
+    const profile = await probeTerminalProfile({
+      env: { FORCE_COLOR: "3" },
+      stdout: tty,
+      probeTheme: false,
+    })
+    expect(Object.isFrozen(profile)).toBe(true)
+    expect(Object.isFrozen(profile.caps)).toBe(true)
+    expect(() => {
+      ;(profile as unknown as { colorTier: string }).colorTier = "mono"
+    }).toThrow(TypeError)
+  })
+
+  test("invariant: probeTerminalProfile with theme re-freezes after spread", async () => {
+    // probeTerminalProfile does `{ ...profile, theme }` which creates a fresh
+    // unfrozen object; the factory must re-freeze it so the immutability
+    // contract survives the theme-bundle path.
+    const profile = await probeTerminalProfile({
+      env: { NO_COLOR: "1" },
+      stdout: tty,
+    })
+    expect(Object.isFrozen(profile)).toBe(true)
+    expect(profile.theme).toBeDefined()
+    expect(() => {
+      ;(profile as unknown as { theme: unknown }).theme = undefined
+    }).toThrow(TypeError)
+  })
+})

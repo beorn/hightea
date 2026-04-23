@@ -57,13 +57,20 @@ export type TerminalProfileSource = ColorProvenance
  * callers that only need the tier (e.g. `createStyle({ level })`) don't have
  * to reach into the caps object.
  *
+ * **Immutability**: profiles are snapshot values — the whole plateau depends
+ * on `colorTier === caps.colorLevel` never drifting. Every field is
+ * `readonly` at the type level, and `createTerminalProfile` freezes the
+ * returned object (and its nested `caps`) in dev builds so accidental
+ * mutation crashes loudly. Production builds skip the freeze to keep the
+ * allocation cheap; the type-level `readonly` already blocks TS writers.
+ *
  * @see createTerminalProfile
  */
 export interface TerminalProfile {
   /** Full terminal capabilities (including colorLevel, unicode, kittyKeyboard, etc.) */
-  caps: TerminalCaps
+  readonly caps: Readonly<TerminalCaps>
   /** Convenience alias for `caps.colorLevel`. */
-  colorTier: ColorTier
+  readonly colorTier: ColorTier
   /**
    * Was the color tier forced by env vars or a caller-supplied
    * {@link CreateTerminalProfileOptions.colorOverride}? Equivalent to
@@ -75,7 +82,7 @@ export interface TerminalProfile {
    * (unicode, kittyGraphics, …) can still come from any source regardless of
    * this flag's value.
    */
-  colorForced: boolean
+  readonly colorForced: boolean
   /**
    * Which rung of the precedence chain resolved {@link colorTier}. Use
    * {@link colorForced} for the common "was the tier forced?" check; use this
@@ -83,7 +90,7 @@ export interface TerminalProfile {
    * detection, debug output). See {@link ColorProvenance} for the scope
    * caveat — this describes color tier, not whole-profile provenance.
    */
-  colorProvenance: ColorProvenance
+  readonly colorProvenance: ColorProvenance
   /**
    * OSC-detected terminal theme, populated only when the profile was built via
    * {@link probeTerminalProfile}. Pre-quantized to {@link colorTier} when the
@@ -96,7 +103,7 @@ export interface TerminalProfile {
    *
    * Post km-silvery.plateau-profile-theme (H2 of the /big review 2026-04-23).
    */
-  theme?: Theme
+  readonly theme?: Theme
 }
 
 /**
@@ -233,12 +240,33 @@ export function createTerminalProfile(
 
   const caps: TerminalCaps = { ...baseCaps, colorLevel: resolvedTier }
 
-  return {
+  const profile: TerminalProfile = {
     caps,
     colorTier: resolvedTier,
     colorForced: colorProvenance === "env" || colorProvenance === "override",
     colorProvenance,
   }
+
+  return freezeProfileInDev(profile)
+}
+
+/**
+ * Freeze a profile (plus its nested caps) in dev builds so
+ * `profile.colorTier === profile.caps.colorLevel` and every other invariant
+ * can't silently drift via direct mutation. Production builds skip the freeze
+ * to keep the allocation cheap; the type-level `readonly` fields already
+ * block TS-side writes.
+ *
+ * Per km-silvery.profile-immutable (/pro review 2026-04-23): profiles are
+ * snapshot values by contract. Any caller that needs to "change" a profile
+ * must build a new one — the plateau-era single-source-of-truth guarantee
+ * leans on this.
+ */
+function freezeProfileInDev(profile: TerminalProfile): TerminalProfile {
+  if (process.env.NODE_ENV === "production") return profile
+  Object.freeze(profile.caps)
+  Object.freeze(profile)
+  return profile
 }
 
 // ============================================================================
@@ -345,7 +373,10 @@ export async function probeTerminalProfile(
   // branches collapse to one `await probeTerminalProfile(...)` call.
   const resolvedTheme = profile.colorForced ? pickColorLevel(theme, profile.colorTier) : theme
 
-  return { ...profile, theme: resolvedTheme }
+  // Re-freeze: the sync factory already froze `profile`, but `{ ...profile,
+  // theme }` creates a fresh object that's not frozen. The theme-bundled
+  // profile must keep the same immutability contract as the sync variant.
+  return freezeProfileInDev({ ...profile, theme: resolvedTheme })
 }
 
 // ============================================================================
