@@ -74,6 +74,33 @@ export function H3({ children, color, ...rest }: TypographyProps) {
   )
 }
 
+/** Sub-group heading — bold + $fg-muted. Recedes from H3. */
+export function H4({ children, color, ...rest }: TypographyProps) {
+  return (
+    <Text variant="h4" color={color} {...rest}>
+      {children}
+    </Text>
+  )
+}
+
+/** Minor heading — italic + $fg-muted. A step further down the hierarchy. */
+export function H5({ children, color, ...rest }: TypographyProps) {
+  return (
+    <Text variant="h5" color={color} {...rest}>
+      {children}
+    </Text>
+  )
+}
+
+/** Deepest heading — $fg-muted + dim. Minimum weight before body text. */
+export function H6({ children, color, ...rest }: TypographyProps) {
+  return (
+    <Text variant="h6" color={color} {...rest}>
+      {children}
+    </Text>
+  )
+}
+
 // ============================================================================
 // Body Text
 // ============================================================================
