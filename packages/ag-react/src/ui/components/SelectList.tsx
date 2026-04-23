@@ -153,20 +153,15 @@ export function SelectList({
   )
 
   const renderItem = useCallback(
-    (item: SelectOption, index: number, meta: { isCursor: boolean }) => {
+    (item: SelectOption, _index: number, meta: { isCursor: boolean }) => {
       // Fake cursor uses scheme cursorColor/cursorText ($bg-cursor + $fg-cursor)
       // so it matches the user's terminal cursor color — native feel per theme.
       // Disabled rows route through $fg-muted (not dimColor) per token system.
-
-      // Default hover/click handlers: hover moves keyboard cursor; click
-      // moves cursor + confirms selection (Enter-equivalent).
-      const handleHover = onItemHover ? () => onItemHover(index) : () => handleCursor(index)
-      const handleClick = onItemClick
-        ? () => onItemClick(index)
-        : () => {
-            handleCursor(index)
-            handleSelect(index)
-          }
+      //
+      // Mouse hover/click handlers are owned by ListView (via the onItemHover/
+      // onItemClick props we pass below). Attaching them here too would
+      // double-fire onSelect on click (two onClick wrappers — ListView's
+      // nav-mode default + SelectList's own inner Box).
 
       if (!indicator) {
         // No-indicator mode (default): communicate selection via full-row bg.
@@ -176,8 +171,6 @@ export function SelectList({
             key={item.value}
             width="100%"
             backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
-            onMouseEnter={handleHover}
-            onClick={handleClick}
           >
             <Text
               color={item.disabled ? "$fg-muted" : meta.isCursor ? "$fg-cursor" : undefined}
@@ -195,16 +188,29 @@ export function SelectList({
           key={item.value}
           color={item.disabled ? "$fg-muted" : meta.isCursor ? "$fg-cursor" : undefined}
           backgroundColor={meta.isCursor ? "$bg-cursor" : undefined}
-          onMouseEnter={handleHover}
-          onClick={handleClick}
         >
           {meta.isCursor ? indicator : " ".repeat(indicator.length)}
           {item.label}
         </Text>
       )
     },
-    [indicator, onItemHover, onItemClick, handleCursor, handleSelect],
+    [indicator],
   )
+
+  // Click + hover handlers live on ListView (single source of truth).
+  // Defaults: hover moves cursor (handleCursor); click moves cursor + confirms
+  // selection (handleCursor + handleSelect). Consumers can override either.
+  const listHover =
+    onItemHover ??
+    ((index: number) => {
+      handleCursor(index)
+    })
+  const listClick =
+    onItemClick ??
+    ((index: number) => {
+      handleCursor(index)
+      handleSelect(index)
+    })
 
   return (
     <ListView
@@ -215,6 +221,8 @@ export function SelectList({
       cursorKey={currentIndex}
       onCursor={handleCursor}
       onSelect={handleSelect}
+      onItemHover={listHover}
+      onItemClick={listClick}
       active={isActive}
       getKey={(item) => item.value}
       renderItem={renderItem}

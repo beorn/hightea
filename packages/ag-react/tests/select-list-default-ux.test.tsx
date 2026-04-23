@@ -221,3 +221,54 @@ describe("SelectList backward compat: indicator prop", () => {
     expect(app.cell(0, 1).bg).toBeNull()
   })
 })
+
+// ============================================================================
+// 6. Regression: onSelect must fire exactly once per click (no double-fire)
+//
+// The ListView default click wrapper (added in 48143ef0) combined with
+// SelectList's own inner-Box onClick would trigger onSelect twice on a
+// single click. Fix: SelectList routes click/hover through ListView's
+// onItemClick/onItemHover props instead of attaching duplicate handlers.
+// ============================================================================
+
+describe("SelectList regression: single onSelect per click", () => {
+  test("indicator mode: click fires onSelect exactly once", async () => {
+    const onSelect = vi.fn()
+    const render = createRenderer({ cols: 40, rows: 10 })
+    const app = render(<SelectList items={OPTIONS} onSelect={onSelect} indicator="▸ " />)
+
+    await app.click(0, 1)
+
+    expect(onSelect).toHaveBeenCalledTimes(1)
+    expect(onSelect.mock.calls[0]![0].value).toBe("banana")
+  })
+
+  test("clicking three different rows fires onSelect exactly three times", async () => {
+    const onSelect = vi.fn()
+    const render = createRenderer({ cols: 40, rows: 10 })
+    const app = render(<SelectList items={OPTIONS} onSelect={onSelect} />)
+
+    await app.click(0, 0)
+    await app.click(0, 1)
+    await app.click(0, 2)
+
+    expect(onSelect).toHaveBeenCalledTimes(3)
+    expect(onSelect.mock.calls.map((c) => c[0].value)).toEqual(["apple", "banana", "cherry"])
+  })
+
+  test("onItemClick override fires exactly once (default suppressed)", async () => {
+    const onSelect = vi.fn()
+    const onItemClick = vi.fn()
+    const render = createRenderer({ cols: 40, rows: 10 })
+    const app = render(
+      <SelectList items={OPTIONS} onSelect={onSelect} onItemClick={onItemClick} />,
+    )
+
+    await app.click(0, 2)
+
+    expect(onItemClick).toHaveBeenCalledTimes(1)
+    expect(onItemClick).toHaveBeenCalledWith(2)
+    // Default behaviour (moveCursor + onSelect) is replaced — onSelect must NOT fire.
+    expect(onSelect).not.toHaveBeenCalled()
+  })
+})
