@@ -706,16 +706,23 @@ function createNodeTerm(options: CreateTermOptions): Term {
     stdin,
   })
 
-  // Eager Input — constructed at term creation for TTY-backed Node terms.
+  // Lazy Input — constructed on first access for TTY-backed Node terms.
   // Owns stdin's raw mode + data listener + bracketed-paste protocol for the
-  // Term's lifetime. Single stdin authority — no other code should call
-  // stdin.on("data", …) or stdin.setRawMode. Non-TTY backed terms (tests,
+  // Term's lifetime once accessed. Lazy construction avoids piling up
+  // listeners when cold Terms are constructed during startup orchestration
+  // (km-cli's multi-step progress UI briefly instantiates several Terms
+  // before the live TUI one — if Input were eager, each would attach an
+  // 11th `data` listener on process.stdin). Non-TTY backed terms (tests,
   // piped stdin) get undefined; callers branch off `term.input` existence.
   // See km-silvery.term-sub-owners Phase 2 + km-silvery.input-structured-events.
-  const _input: Input | null = stdin.isTTY
-    ? createInputOwner(stdin, stdout, { writeStdout: ownedWrite, modes })
-    : null
-  const getInput = (): Input | undefined => _input ?? undefined
+  let _input: Input | null = null
+  const getInput = (): Input | undefined => {
+    if (!stdin.isTTY) return undefined
+    if (!_input) {
+      _input = createInputOwner(stdin, stdout, { writeStdout: ownedWrite, modes })
+    }
+    return _input
+  }
 
   // Shared ConsoleRouter — the single patcher for console.*. Both Console
   // (tap) and Output (sink) register against it so activation order no
