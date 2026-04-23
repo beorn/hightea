@@ -104,14 +104,22 @@ export interface Console extends Disposable {
   readonly capturing: ReadSignal<boolean>
 
   /**
-   * Reactive list of captured entries. Returns a frozen array reference that
-   * changes each time a new entry arrives (so alien-signals / React identity
-   * checks fire). Empty frozen array when `capture=false` was passed.
-   *
-   * Read synchronously with `entries()` or subscribe with
-   * `effect(() => entries())`. React: `useSignal(console.entries)`.
+   * Notification signal — increments by 1 per captured entry (stats.total).
+   * Cheap: no array copy, no object allocation. Consumers subscribe via
+   * `effect(() => console.count())` and pull the full list lazily (via
+   * `entriesSnapshot()`) only when they need it — typically on a debounce
+   * flush in a React hook. Replaces the per-entry frozen-slice publish that
+   * degraded to O(n²) for long sessions (Pro review 2026-04-22 P1-9).
    */
-  readonly entries: ReadSignal<readonly ConsoleEntry[]>
+  readonly count: ReadSignal<number>
+
+  /**
+   * Return a frozen snapshot of captured entries at this moment. Slices on
+   * demand — callers pay O(n) only when they actually need the list, not
+   * on every log. Returns an empty frozen array when `capture=false` was
+   * passed.
+   */
+  entriesSnapshot(): readonly ConsoleEntry[]
 
   /** Aggregate counts. Tracked even when `capture=false`. */
   getStats(): ConsoleStats
@@ -151,12 +159,14 @@ export function createConsole(
   const _capturing = signal<boolean>(false)
   let captureEntries = true
 
-  // Buffer the authoritative ConsoleEntry[] for replay(). The reactive
-  // `entries` signal holds the SAME data wrapped in a frozen array with a
-  // fresh reference on every push — so alien-signals/React identity checks
-  // fire and subscribers re-render.
+  // Authoritative ConsoleEntry[] — kept mutable; snapshots are frozen on
+  // demand via entriesSnapshot(). Replaces the per-log frozen-slice publish
+  // that degraded to O(n²) over long sessions (Pro review P1-9).
   const buffer: ConsoleEntry[] = []
-  const _entries = signal<readonly ConsoleEntry[]>(EMPTY_ENTRIES)
+  // Notification signal — increments on every captured entry. Cheap: no
+  // array copy. Consumers subscribe via effect(() => console.count()),
+  // then pull the buffer lazily with entriesSnapshot().
+  const _count = signal<number>(0)
   const stats: ConsoleStats = { total: 0, errors: 0, warnings: 0 }
 
   const ownsRouter = !router
@@ -176,16 +186,15 @@ export function createConsole(
       if (call.method === "error") stats.errors++
       else if (call.method === "warn") stats.warnings++
       if (captureEntries) {
-        const entry: ConsoleEntry = {
+        buffer.push({
           method: call.method,
           args: call.args,
           stream: STDERR_METHODS.has(call.method) ? "stderr" : "stdout",
-        }
-        buffer.push(entry)
-        // Fresh reference so alien-signals equality check fires; Object.freeze
-        // so subscribers can't mutate the array they read.
-        _entries(Object.freeze(buffer.slice()))
+        })
       }
+      // Always advance count so non-capturing consumers (count-only mode)
+      // still get a reactive heartbeat for badges / activity indicators.
+      _count(stats.total)
     })
     // `suppress: true` asks the router to drop forwarding entirely.
     // Without it, the router forwards to the active sink (Output's redirect)
@@ -232,7 +241,11 @@ export function createConsole(
     capture,
     restore,
     capturing: _capturing as ReadSignal<boolean>,
-    entries: _entries as ReadSignal<readonly ConsoleEntry[]>,
+    count: _count as ReadSignal<number>,
+    entriesSnapshot(): readonly ConsoleEntry[] {
+      if (!captureEntries) return EMPTY_ENTRIES
+      return Object.freeze(buffer.slice())
+    },
     getStats() {
       return { ...stats }
     },

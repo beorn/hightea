@@ -55,8 +55,8 @@ describe("Console tap + Output sink coexistence (ConsoleRouter)", () => {
     stub.log("hello")
 
     // Tap recorded the call.
-    expect(consoleOwner.entries()).toHaveLength(1)
-    expect(consoleOwner.entries()[0]).toMatchObject({ method: "log", args: ["hello"] })
+    expect(consoleOwner.entriesSnapshot()).toHaveLength(1)
+    expect(consoleOwner.entriesSnapshot()[0]).toMatchObject({ method: "log", args: ["hello"] })
 
     consoleOwner.restore()
     output.deactivate()
@@ -73,8 +73,8 @@ describe("Console tap + Output sink coexistence (ConsoleRouter)", () => {
 
     stub.log("world")
 
-    expect(consoleOwner.entries()).toHaveLength(1)
-    expect(consoleOwner.entries()[0]).toMatchObject({ method: "log", args: ["world"] })
+    expect(consoleOwner.entriesSnapshot()).toHaveLength(1)
+    expect(consoleOwner.entriesSnapshot()[0]).toMatchObject({ method: "log", args: ["world"] })
 
     consoleOwner.restore()
     output.deactivate()
@@ -92,7 +92,7 @@ describe("Console tap + Output sink coexistence (ConsoleRouter)", () => {
     stub.log("hushed")
 
     // Tap saw it.
-    expect(consoleOwner.entries()).toHaveLength(1)
+    expect(consoleOwner.entriesSnapshot()).toHaveLength(1)
     // Original forward did not fire (suppressed).
     expect(calls).toEqual([])
 
