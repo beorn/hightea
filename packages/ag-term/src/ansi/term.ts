@@ -21,7 +21,13 @@
  * ```
  */
 
-import { createMixedStyle, createStyle, type Style } from "@silvery/ansi"
+import {
+  createMixedStyle,
+  createStyle,
+  createTerminalProfile,
+  type Style,
+  type TerminalProfile,
+} from "@silvery/ansi"
 import type {
   ColorTier,
   CreateTermOptions,
@@ -266,8 +272,34 @@ export interface Term extends Disposable, StyleChain {
    *
    * Post km-silvery.terminal-profile-plateau Phase 2 this is non-optional —
    * callers no longer need `term.caps ?? detectTerminalCaps()` guards.
+   *
+   * Equivalent to `term.profile.caps`. The two views are guaranteed identical
+   * — every Term constructor seeds `profile` from `caps` (or vice versa) via
+   * `createTerminalProfile({ caps })` so there's only one source of truth.
    */
   readonly caps: TerminalCaps
+
+  /**
+   * Fully-resolved {@link TerminalProfile} for this Term — `caps`, `colorTier`,
+   * and `source` bundled into the single value downstream consumers should
+   * pass through the pipeline.
+   *
+   * Every Term variant owns its profile. Node-backed Terms build it from the
+   * TTY/env detection that populated `caps`; headless and emulator-backed
+   * Terms build it from their deterministic caps. The profile's `source` is
+   * always `"caller-caps"` when the Term constructed it from `caps` — Term
+   * construction is not an opportunity for env precedence (that happens at
+   * `run()` / `createApp()` where `colorLevel` / `NO_COLOR` are applied).
+   *
+   * Prefer this over `term.caps` when calling downstream pipeline entry
+   * points that accept a profile. run.tsx's Term branch reads it directly
+   * instead of rebuilding via `createTerminalProfile({ caps: term.caps })`
+   * — one detection, one profile, no double-pass.
+   *
+   * Post km-silvery.plateau-term-owns-profile (H15 of the /big review
+   * 2026-04-23).
+   */
+  readonly profile: TerminalProfile
 
   // -------------------------------------------------------------------------
   // Dimensions
@@ -703,6 +735,14 @@ function createNodeTerm(options: CreateTermOptions): Term {
       ? detectTerminalCaps()
       : defaultCaps()
 
+  // Fully-resolved TerminalProfile — the single value that flows through
+  // run() / createApp() for this Term's lifetime. Built from the caps we
+  // just committed to, so `profile.caps === detectedCaps` shape-wise and
+  // `profile.source === "caller-caps"`. Entry points no longer need to
+  // rebuild via `createTerminalProfile({ caps: term.caps })`.
+  // See km-silvery.plateau-term-owns-profile (H15 / /big review 2026-04-23).
+  const profile: TerminalProfile = createTerminalProfile({ caps: detectedCaps })
+
   // Create style instance with appropriate color level
   const styleInstance = createStyle({ level: cachedColor })
 
@@ -798,6 +838,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
     hasColor: () => cachedColor,
     hasUnicode: () => cachedUnicode,
     caps: detectedCaps,
+    profile,
     size,
     modes,
     signals,
@@ -908,12 +949,17 @@ function createHeadlessTerm(
     ...capsOverride,
   }
 
+  // Fully-resolved profile — identical caps, `source: "caller-caps"`. See the
+  // Node-backed path for the H15 rationale.
+  const profile: TerminalProfile = createTerminalProfile({ caps: headlessCaps })
+
   const termBase = {
     hasCursor: () => false,
     hasInput: () => false,
     hasColor: () => "mono" as ColorTier,
     hasUnicode: () => false,
     caps: headlessCaps,
+    profile,
     size,
     modes,
     signals,
@@ -999,12 +1045,18 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     ...capsOverride,
   }
 
+  // Fully-resolved profile — same reasoning as the Node-backed path. Source
+  // is always `"caller-caps"` because Term construction commits to the caps
+  // before env-level overrides get a say.
+  const profile: TerminalProfile = createTerminalProfile({ caps: emulatorCaps })
+
   const termBase = {
     hasCursor: () => true,
     hasInput: () => true,
     hasColor: () => "truecolor" as ColorTier,
     hasUnicode: () => true,
     caps: emulatorCaps,
+    profile,
     size,
     modes,
     signals,

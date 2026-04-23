@@ -118,6 +118,66 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
 })
 
 // ============================================================================
+// term.profile — H15 contract (Term owns its resolved TerminalProfile)
+// ============================================================================
+//
+// Post km-silvery.plateau-term-owns-profile: every Term constructor commits to
+// a full {@link TerminalProfile} at creation and exposes it as `term.profile`.
+// Entry points (run.tsx, create-app.tsx) consume this profile directly instead
+// of rebuilding via `createTerminalProfile({ caps: term.caps })` — one Term,
+// one detection pass, one profile flowing end-to-end.
+//
+// The two invariants pinned below are what callers depend on:
+//
+//   1. `term.profile.caps` mirrors the caps that constructed the Term — there
+//      is no drift window where `term.caps !== term.profile.caps`.
+//   2. `term.profile.source === "caller-caps"` whenever the Term was built
+//      from an explicit caps object (every emulator/headless Term, plus Node
+//      Terms once their caps are populated). Env-level precedence (NO_COLOR /
+//      FORCE_COLOR / colorOverride) is applied at `run()` / `createApp()`,
+//      NOT during Term construction.
+
+describe("contract: Term owns its TerminalProfile (H15)", () => {
+  test("contract: headless term.profile.caps matches term.caps", () => {
+    const term = createTerm({ cols: 80, rows: 24 })
+    // Identity across the two views — no second detection pass is allowed to
+    // produce a slightly different caps object.
+    expect(term.profile.caps.colorLevel).toBe(term.caps.colorLevel)
+    expect(term.profile.caps.unicode).toBe(term.caps.unicode)
+    expect(term.profile.caps.mouse).toBe(term.caps.mouse)
+    expect(term.profile.caps.bracketedPaste).toBe(term.caps.bracketedPaste)
+    // The convenience alias on the profile mirrors the tier directly.
+    expect(term.profile.colorTier).toBe(term.caps.colorLevel)
+  })
+
+  test('contract: headless term.profile.source === "caller-caps"', () => {
+    // Term construction is not an opportunity for env precedence — the profile
+    // records "caller-caps" because the Term committed to a caps object before
+    // any env override could apply. That attribution keeps `run()`'s pre-
+    // quantize gate (which triggers only on `source === "env"` / `"override"`)
+    // correct when it consumes `term.profile` directly.
+    const term = createTerm({ cols: 80, rows: 24 })
+    expect(term.profile.source).toBe("caller-caps")
+  })
+
+  test("contract: headless term with caps override reflects override in term.profile", () => {
+    // Profile seeds from the committed caps — if the caller passed a caps
+    // override, both `term.caps` and `term.profile.caps` must show it. Any
+    // drift here means the Node-backed Term path has a subtle bug where the
+    // TTY detector ran on top of the override.
+    const term = createTerm({
+      cols: 80,
+      rows: 24,
+      caps: { colorLevel: "truecolor", kittyKeyboard: true },
+    })
+    expect(term.profile.caps.colorLevel).toBe("truecolor")
+    expect(term.profile.caps.kittyKeyboard).toBe(true)
+    expect(term.profile.colorTier).toBe("truecolor")
+    expect(term.profile.source).toBe("caller-caps")
+  })
+})
+
+// ============================================================================
 // Phase 2 backlog — defaults still to cover
 // ============================================================================
 //

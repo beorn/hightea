@@ -327,19 +327,23 @@ export async function run(
     }
 
     // Real terminal: full setup.
-    // `term.caps` is guaranteed populated (Phase 2 of
-    // km-silvery.terminal-profile-plateau made it non-optional). Phase 3
-    // routes env-var overrides (NO_COLOR / FORCE_COLOR) and the
-    // `termOptions.colorLevel` override through `createTerminalProfile` —
-    // one detection function, one precedence chain. Phase 4 lets callers
-    // bypass detection entirely by threading a `profile` through
-    // `termOptions`.
+    // Term owns its resolved TerminalProfile (H15 /big review 2026-04-23 —
+    // bead km-silvery.plateau-term-owns-profile). When there's neither a
+    // caller-supplied `profile` nor a `colorLevel` override, we consume
+    // `term.profile` directly — no second `createTerminalProfile` call.
+    //
+    // When `termOptions.colorLevel` is present, we still rebuild through
+    // `createTerminalProfile` so the override flows through the documented
+    // precedence chain (env > override > caller-caps > auto). The base caps
+    // come from `term.profile.caps` — still one Term, one caps source.
     const termProfile: TerminalProfile =
       termOptions?.profile ??
-      createTerminalProfile({
-        colorOverride: termOptions?.colorLevel,
-        caps: term.caps,
-      })
+      (termOptions?.colorLevel !== undefined
+        ? createTerminalProfile({
+            colorOverride: termOptions.colorLevel,
+            caps: term.profile.caps,
+          })
+        : term.profile)
     const caps: TerminalCaps = termProfile.caps
     // Pre-quantize the OSC-detected theme when the tier was *forced* — i.e.
     // env vars (NO_COLOR / FORCE_COLOR) or an explicit `colorLevel` override
