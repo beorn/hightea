@@ -545,17 +545,18 @@ export type {
   CreateTermOptions,
 } from "./ansi/index"
 
-// Detection — narrow-scope probes (the broader caps/profile detection
-// routes through `createTerminalProfile` exported above).
+// Detection — the broader caps/profile detection routes through
+// `createTerminalProfile` exported above. Narrow-scope probes that used to
+// live here were all absorbed across unicode-plateau Phases 1 → 4
+// (2026-04-23):
 //
-// Post unicode-plateau Phase 1 (2026-04-23): detectUnicode /
-// detectExtendedUnderline are gone; callers read caps.unicode /
-// caps.underlineStyles / caps.underlineColor directly.
+// - detectUnicode / detectExtendedUnderline → caps.unicode /
+//   caps.underlineStyles / caps.underlineColor
+// - detectCursor                            → caps.cursor
+// - detectInput                             → caps.input
 //
-// Post unicode-plateau Phase 3 (2026-04-23): detectCursor is gone too;
-// callers read caps.cursor. detectInput survives — it inspects the stdin
-// stream (setRawMode availability) rather than env.
-export { detectInput } from "./ansi/index"
+// `@silvery/ag-term` no longer re-exports any bare detector — everything
+// reads `term.caps.*` or `createTerminalProfile({stdin, stdout}).caps.*`.
 
 // Utilities
 export { ANSI_REGEX, displayLength } from "./ansi/index"

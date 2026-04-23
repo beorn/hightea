@@ -589,6 +589,67 @@ describe("createTerminalProfile — caps.textSizingSupported (Kitty ≥ 0.40)", 
   })
 })
 
+describe("createTerminalProfile — caps.input (absorbed from detectInput)", () => {
+  test("TTY stdin with setRawMode: input true", () => {
+    const ttyStdin = {
+      isTTY: true as const,
+      setRawMode: () => void 0,
+    }
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: tty,
+      stdin: ttyStdin,
+    })
+    expect(profile.caps.input).toBe(true)
+  })
+
+  test("TTY stdin without setRawMode: input false", () => {
+    // This is the pattern inside a child process that has stdin as TTY but
+    // somehow lacks setRawMode (rare but possible in wrapper libs).
+    const partialStdin = { isTTY: true as const }
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: tty,
+      stdin: partialStdin,
+    })
+    expect(profile.caps.input).toBe(false)
+  })
+
+  test("non-TTY stdin: input false (piped input)", () => {
+    const pipedStdin = {
+      isTTY: false as const,
+      setRawMode: () => void 0,
+    }
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: tty,
+      stdin: pipedStdin,
+    })
+    expect(profile.caps.input).toBe(false)
+  })
+
+  test("explicit stdin: undefined: input false (browser/canvas target)", () => {
+    // Passing `stdin: undefined` explicitly neutralizes the process.stdin
+    // default — useful for non-Node targets.
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: tty,
+      stdin: undefined,
+    })
+    expect(profile.caps.input).toBe(false)
+  })
+
+  test("caps.input can be forced via options.caps", () => {
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: nonTty,
+      stdin: undefined,
+      caps: { input: true },
+    })
+    expect(profile.caps.input).toBe(true)
+  })
+})
+
 describe("createTerminalProfile — caps.cursor (absorbed from detectCursor)", () => {
   test("TTY + regular TERM: cursor true", () => {
     const profile = createTerminalProfile({

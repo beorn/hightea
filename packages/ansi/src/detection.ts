@@ -34,20 +34,14 @@ import type { ColorTier } from "./types"
 // =============================================================================
 
 // =============================================================================
-// Input Detection
+// Input Detection — removed unicode-plateau Phase 4.
+//
+// `detectInput(stdin)` used to live here. Its "stdin.isTTY +
+// setRawMode-available" signal now lives on `TerminalCaps.input`, derived
+// from the optional `stdin` argument accepted by `createTerminalProfile`.
+// Callers with a Term in scope read `term.caps.input`; one-shot callers
+// pass `{stdin: process.stdin}` to the profile factory.
 // =============================================================================
-
-/**
- * Detect if terminal can read raw keystrokes.
- * Requires stdin to be a TTY with raw mode support.
- */
-export function detectInput(stdin: NodeJS.ReadStream): boolean {
-  // Not a TTY - no raw input
-  if (!stdin.isTTY) return false
-
-  // Check if setRawMode is available
-  return typeof stdin.setRawMode === "function"
-}
 
 // =============================================================================
 // Color Detection — removed H6 of /big review 2026-04-23.
@@ -85,6 +79,10 @@ export interface TerminalCaps {
    * TTY and `TERM` is not `"dumb"`. Absorbed from the standalone
    * `detectCursor()` helper in unicode-plateau Phase 3. */
   cursor: boolean
+  /** Can the host read raw keystrokes? True when the input stream is a TTY
+   * and supports `setRawMode`. Absorbed from the standalone
+   * `detectInput()` helper in unicode-plateau Phase 4. */
+  input: boolean
   /** Color support tier. See {@link ColorTier}. */
   colorLevel: ColorTier
   /** Kitty keyboard protocol supported */
@@ -132,6 +130,7 @@ export function defaultCaps(): TerminalCaps {
     version: "",
     term: "",
     cursor: false,
+    input: false,
     colorLevel: "truecolor",
     kittyKeyboard: false,
     kittyGraphics: false,

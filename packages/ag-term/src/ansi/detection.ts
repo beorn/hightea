@@ -10,14 +10,14 @@
 //
 // Post km-silvery.unicode-plateau Phase 3 (2026-04-23): `detectCursor` is
 // also gone — its "stdout.isTTY + TERM !== 'dumb'" gate lives on
-// `caps.cursor`. The only narrowly-scoped probe that survives is
-// `detectInput`, which inspects `stdin.setRawMode` rather than env.
-export {
-  detectInput,
-  defaultCaps,
-  createTerminalProfile,
-  probeTerminalProfile,
-} from "@silvery/ansi"
+// `caps.cursor`.
+//
+// Post km-silvery.unicode-plateau Phase 4 (2026-04-23): `detectInput` is
+// also absorbed — its "stdin.isTTY + setRawMode" gate lives on
+// `caps.input`, derived from the optional `stdin` argument on
+// `createTerminalProfile`. The profile factory is now the single
+// detection entry point for every TerminalCaps field.
+export { defaultCaps, createTerminalProfile, probeTerminalProfile } from "@silvery/ansi"
 export type {
   TerminalCaps,
   TerminalProfile,

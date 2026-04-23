@@ -110,7 +110,7 @@ nearestAnsi16([255, 0, 0]) // → nearest 16-color index
 | Category             | Exports                                                                                     |
 | -------------------- | ------------------------------------------------------------------------------------------- |
 | **Style**            | `style`, `createStyle`, `createPlainStyle`, `createMixedStyle`                              |
-| **Detection**        | `createTerminalProfile`, `probeTerminalProfile`, `detectInput`, `defaultCaps`               |
+| **Detection**        | `createTerminalProfile`, `probeTerminalProfile`, `defaultCaps`                              |
 | **Terminal control** | `enterAltScreen`, `cursorTo`, `enableMouse`, `enableKittyKeyboard`, ...                     |
 | **SGR codes**        | `fgColorCode`, `bgColorCode`, `fgFromRgb`, `bgFromRgb`                                      |
 | **Color maps**       | `nearestAnsi16`, `rgbToAnsi256`, `ANSI_16_COLORS`                                           |

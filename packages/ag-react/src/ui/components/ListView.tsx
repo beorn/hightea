@@ -104,7 +104,11 @@ export interface ListViewProps<T> {
   /** Render function for each item. Third arg provides cursor metadata. */
   renderItem: (item: T, index: number, meta: ListItemMeta) => React.ReactNode
 
-  /** Index to scroll to (declarative). When undefined, scroll state freezes. Ignored when nav=true. */
+  /** Index to scroll to (declarative). When undefined, scroll state freezes.
+   * When nav=true and scrollTo is set, it wins over cursor-derived scroll —
+   * lets the consumer decouple viewport from cursor (e.g. wheel-scrolls-
+   * viewport while cursor stays put). Undefined in nav mode means
+   * "follow cursor", the default. */
   scrollTo?: number
 
   /** Extra items to render beyond viewport for smooth scrolling. Default: 5 */
@@ -131,7 +135,10 @@ export interface ListViewProps<T> {
   /** Render separator between items (alternative to gap) */
   renderSeparator?: () => React.ReactNode
 
-  /** Mouse wheel handler for scrolling (passive mode only, nav handles its own) */
+  /** Mouse wheel handler for scrolling. When provided, wins over nav mode's
+   * default cursor-moving behavior — lets the consumer implement
+   * wheel-scrolls-viewport (the natural "mouse follows hover, not focus"
+   * behavior) while keyboard still moves the cursor. */
   onWheel?: (event: { deltaY: number }) => void
 
   /** Called when the visible range reaches near the end of the list (infinite scroll). */
@@ -334,8 +341,10 @@ function ListViewInner<T>(
     { isActive: nav && active !== false },
   )
 
-  // In nav mode, scrollTo is derived from cursor
-  const scrollTo = nav ? activeCursor : scrollToProp
+  // In nav mode, scrollTo defaults to cursor but an explicit scrollToProp wins
+  // — this lets consumers decouple viewport scroll from cursor position
+  // (e.g. wheel-scrolls-viewport while keyboard moves the cursor).
+  const scrollTo = scrollToProp !== undefined ? scrollToProp : nav ? activeCursor : undefined
 
   // ── Resolve cache config ─────────────────────────────────────────
   // When cache=true, use "auto" mode which reads CacheBackendContext.
@@ -683,14 +692,18 @@ function ListViewInner<T>(
   )
 
   // ── Mouse wheel handler ─────────────────────────────────────────
+  // Precedence: consumer-provided onWheel wins, because mouse follows hover
+  // (the wheel target), not focus. Nav mode's default (cursor-moving) kicks
+  // in only when the consumer hasn't opinionated about wheel behavior.
   const onWheel = useMemo(() => {
+    if (onWheelProp) return onWheelProp
     if (nav && active !== false) {
       return (e: { deltaY: number }) => {
         const delta = e.deltaY > 0 ? WHEEL_STEP : -WHEEL_STEP
         moveTo(activeCursor + delta)
       }
     }
-    return onWheelProp
+    return undefined
   }, [nav, active, activeCursor, moveTo, onWheelProp])
 
   // ── Empty state ─────────────────────────────────────────────────

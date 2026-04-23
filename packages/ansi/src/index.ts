@@ -55,7 +55,7 @@ export {
 // routes through the profile factory instead.
 // =============================================================================
 
-export { detectInput, defaultCaps } from "./detection"
+export { defaultCaps } from "./detection"
 
 // =============================================================================
 // Terminal Profile — single source of truth for terminal detection.
@@ -72,6 +72,7 @@ export type {
   ColorProvenance,
   TerminalProfileSource,
   TerminalProfileStdout,
+  TerminalProfileStdin,
   CreateTerminalProfileOptions,
   ProbeTerminalProfileOptions,
 } from "./profile"

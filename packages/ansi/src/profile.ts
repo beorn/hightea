@@ -120,6 +120,19 @@ export interface TerminalProfileStdout {
 }
 
 /**
+ * Minimal stdin shape needed for input capability detection.
+ *
+ * Structural like {@link TerminalProfileStdout} — browser/canvas backends
+ * that have no stdin pass `undefined` and `caps.input` resolves to `false`
+ * via the default. Absorbed from the retired `detectInput(stdin)` helper
+ * in unicode-plateau Phase 4.
+ */
+export interface TerminalProfileStdin {
+  isTTY?: boolean
+  setRawMode?: (mode: boolean) => unknown
+}
+
+/**
  * Options for {@link createTerminalProfile}.
  */
 export interface CreateTerminalProfileOptions {
@@ -127,6 +140,12 @@ export interface CreateTerminalProfileOptions {
   env?: Record<string, string | undefined>
   /** Output stream (default: `process.stdout`). */
   stdout?: TerminalProfileStdout
+  /**
+   * Input stream (default: `process.stdin`). Used to derive `caps.input` —
+   * whether the host can read raw keystrokes. Pass `undefined` explicitly
+   * (or omit on non-Node targets) to force `caps.input = false`.
+   */
+  stdin?: TerminalProfileStdin
   /**
    * Explicit color tier override. Wins over `caps.colorLevel` but NOT over
    * NO_COLOR / FORCE_COLOR env vars. `null` is accepted as an alias for
@@ -197,6 +216,11 @@ export function createTerminalProfile(
   const env = options.env ?? (process.env as Record<string, string | undefined>)
   const stdout: TerminalProfileStdout =
     options.stdout ?? (process.stdout as unknown as TerminalProfileStdout)
+  // stdin defaults to `process.stdin` — same ambient-node pattern as stdout.
+  // Callers on non-Node targets (browser, canvas) pass `stdin: undefined`
+  // explicitly and `caps.input` resolves to false via the check below.
+  const stdin: TerminalProfileStdin | undefined =
+    "stdin" in options ? options.stdin : (process.stdin as unknown as TerminalProfileStdin)
 
   // Env vars always win — even over an explicit caller override. This mirrors
   // `detectColor()` and is observable via FORCE_COLOR=0 forcing mono regardless
@@ -238,7 +262,19 @@ export function createTerminalProfile(
     ? { ...defaultCaps(), ...options.caps }
     : detectTerminalCapsFromEnv(env, stdout)
 
-  const caps: TerminalCaps = { ...baseCaps, colorLevel: resolvedTier }
+  // caps.input is orthogonal to env — it depends on stdin's TTY + raw-mode
+  // availability. When a caller passed pre-computed `options.caps`, honor
+  // their `input` flag (if set); otherwise derive from stdin. Keeping this
+  // as a separate overlay avoids confusing the env-probe path.
+  const inputResolved =
+    options.caps?.input ??
+    (stdin?.isTTY === true && typeof stdin.setRawMode === "function")
+
+  const caps: TerminalCaps = {
+    ...baseCaps,
+    colorLevel: resolvedTier,
+    input: inputResolved,
+  }
 
   const profile: TerminalProfile = {
     caps,
