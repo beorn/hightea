@@ -1,13 +1,14 @@
 /**
  * createApp() - Layer 3 entry point for silvery-loop
  *
- * Provides signal-backed store integration with unified providers.
- * Providers are stores (getState/subscribe) + event sources (events()).
+ * Provides signal-backed store integration with a Term-driven event loop.
+ * The event loop subscribes directly to the Term's `input` + `size`
+ * sub-owners — no async-iterator `events()` pipeline.
  *
  * @example
  * ```tsx
  * import { createApp, useApp } from '@silvery/create/create-app'
- * import { createTermProvider } from '@silvery/ag-term/runtime'
+ * import { createTerm } from '@silvery/ag-term/ansi'
  *
  * const app = createApp(
  *   // Store factory
@@ -15,7 +16,7 @@
  *     count: 0,
  *     increment: () => set(s => ({ count: s.count + 1 })),
  *   }),
- *   // Event handlers - namespaced as 'provider:event'
+ *   // Event handlers — namespaced as 'provider:event'
  *   {
  *     'term:key': ({ input, key }, { set }) => {
  *       if (input === 'j') set(s => ({ count: s.count + 1 }))
@@ -32,7 +33,7 @@
  *   return <Text>Count: {count}</Text>
  * }
  *
- * const term = createTermProvider(process.stdin, process.stdout)
+ * using term = createTerm()
  * await app.run(<Counter />, { term })
  *
  * // Frame iteration:

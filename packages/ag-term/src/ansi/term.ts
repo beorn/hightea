@@ -3,9 +3,9 @@
  *
  * Term is the central abstraction for terminal interaction:
  * - Detection: hasCursor(), hasInput(), hasColor(), hasUnicode()
- * - Dimensions: cols, rows
- * - I/O: stdout, stdin, write(), writeLine()
- * - Provider: getState(), subscribe(), events() — typed key/mouse/resize
+ * - Dimensions: cols, rows (shorthand for term.size.cols() / .rows())
+ * - I/O: write(), writeLine()
+ * - Sub-owners: input, output, modes, size, signals, console
  * - Styling: Chainable styles via Proxy (term.bold.red('text'))
  * - Lifecycle: Disposable pattern via Symbol.dispose
  *
@@ -202,14 +202,17 @@ export type StyleChain = {
 /**
  * Term — the central abstraction for terminal interaction.
  *
- * Term is both a styling helper (chainable ANSI via Proxy) and a
- * Provider (state + typed events). Pass it to `run()` or `createApp()`.
+ * Term is both a styling helper (chainable ANSI via Proxy) and the umbrella
+ * for typed sub-owners (input / output / modes / size / signals / console).
+ * Pass it to `run()` or `createApp()`.
  *
  * Provides:
  * - Capability detection (cached on creation)
- * - Dimensions (live from stream)
- * - I/O (stdout, stdin, write, writeLine)
- * - Provider (getState, subscribe, events — key/mouse/resize)
+ * - Dimensions (shorthand getters over `term.size`)
+ * - I/O (write, writeLine + the per-resource sub-owners)
+ * - Sub-owners: input (stdin/probes/events), output (stdout guard),
+ *   modes (raw/alt-screen/paste/kitty/mouse/focus), size (dims + resize),
+ *   signals (process signal scope), console (console.* capture)
  * - Styling (chainable via Proxy)
  * - Disposable lifecycle
  *
