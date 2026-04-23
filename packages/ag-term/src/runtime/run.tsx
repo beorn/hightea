@@ -567,23 +567,39 @@ function wrapHandle(handle: {
 }
 
 /**
- * Runtime XOR enforcement for {@link RunOptions}. The TS type already makes
- * mixing `profile` with `caps` / `colorLevel` a compile error; this back-stop
- * fires when JS callers (or `as any` test setups) smuggle both through.
+ * Runtime enforcement for {@link RunOptions}.
  *
- * The warning documents the migration path rather than silently picking one —
- * silent precedence is exactly the bug class the plateau was supposed to kill.
- * Warning, not throw, because pre-1.0 callers in the ecosystem still need the
- * grace period before the 1.1 deletion (see
- * km-silvery.runoptions-caps-colorlevel-removal).
+ * Two concerns, one helper (Phase 5 of `km-silvery.terminal-profile-plateau`,
+ * per /pro review 2026-04-23):
+ *
+ * 1. **XOR back-stop** — TS already makes `{ profile, caps }` / `{ profile,
+ *    colorLevel }` a compile error; this fires when a JS caller (or an
+ *    `as any` test setup) smuggles both through. Profile still wins at
+ *    runtime, matching the pre-Phase-5 behaviour, but the caller is on
+ *    notice that mixing is against the contract.
+ *
+ * 2. **Deprecation warning** — `caps` and `colorLevel` are `@deprecated` on
+ *    {@link RunOptionsProfileBranch} and scheduled for deletion in 1.1 (see
+ *    km-silvery.runoptions-caps-colorlevel-removal). A one-time warning
+ *    fires on any use of either option, even without `profile`, so callers
+ *    can migrate before the delete lands.
+ *
+ * Warnings fire once per process per category — a long-running TUI shouldn't
+ * spam stderr on every render, but a script that calls `run()` once under a
+ * hostile linter has a clear path to fix its options.
  */
 let mixedRunOptionsWarned = false
+let deprecatedCapsWarned = false
+let deprecatedColorLevelWarned = false
+
 function warnIfMixedRunOptions(options: unknown): void {
   if (options == null || typeof options !== "object") return
   const o = options as { profile?: unknown; caps?: unknown; colorLevel?: unknown }
   const hasProfile = o.profile != null
-  const hasLegacy = o.caps != null || o.colorLevel != null
-  if (hasProfile && hasLegacy && !mixedRunOptionsWarned) {
+  const hasCaps = o.caps != null
+  const hasColorLevel = o.colorLevel != null
+
+  if (hasProfile && (hasCaps || hasColorLevel) && !mixedRunOptionsWarned) {
     mixedRunOptionsWarned = true
     // eslint-disable-next-line no-console
     console.warn(
@@ -592,13 +608,36 @@ function warnIfMixedRunOptions(options: unknown): void {
         "Migrate to run({ profile: createTerminalProfile({ caps, colorLevel }) }) " +
         "— caps/colorLevel will be removed in 1.1.",
     )
+    // When mixed, the deprecated-use warning is redundant with the mixed
+    // warning (the mixed message already names the fields and migration).
+    return
+  }
+
+  if (hasCaps && !deprecatedCapsWarned) {
+    deprecatedCapsWarned = true
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[silvery] run({ caps }) is deprecated and will be removed in 1.1. " +
+        "Migrate to run({ profile: createTerminalProfile({ caps }) }) so the " +
+        "profile carries color provenance end-to-end.",
+    )
+  }
+  if (hasColorLevel && !deprecatedColorLevelWarned) {
+    deprecatedColorLevelWarned = true
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[silvery] run({ colorLevel }) is deprecated and will be removed in 1.1. " +
+        "Migrate to run({ profile: createTerminalProfile({ colorOverride: colorLevel }) }).",
+    )
   }
 }
 
 /**
- * Test-only hook to reset the once-per-process mixed-options warning flag.
+ * Test-only hook to reset the once-per-process warning latches.
  * @internal
  */
 export function _resetRunOptionsWarningForTesting(): void {
   mixedRunOptionsWarned = false
+  deprecatedCapsWarned = false
+  deprecatedColorLevelWarned = false
 }

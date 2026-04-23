@@ -20,10 +20,14 @@
  */
 
 import React from "react"
-import { afterEach, describe, expect, test, beforeEach } from "vitest"
+import { afterEach, describe, expect, test, beforeEach, vi } from "vitest"
 
 import { Box, Text } from "../../src/index.js"
-import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
+import {
+  run,
+  type RunHandle,
+  _resetRunOptionsWarningForTesting,
+} from "../../packages/ag-term/src/runtime/run"
 
 // ============================================================================
 // Env-var scaffolding — isolate each test from the ambient environment.
@@ -70,6 +74,12 @@ async function runCapturing(
 ): Promise<string> {
   const sink = makeSink()
   let handle: RunHandle | undefined
+  // Exercising the `caps` / `colorLevel` legacy branch on purpose — this
+  // test suite pins the deprecated option's runtime behaviour until it's
+  // deleted in 1.1. Swallow the once-per-process deprecation warning so the
+  // vitest console-spy setup doesn't fail the test.
+  _resetRunOptionsWarningForTesting()
+  const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
   try {
     handle = await run(element, {
       writable: sink.writable,
@@ -102,6 +112,7 @@ async function runCapturing(
       ...opts,
     })
   } finally {
+    warnSpy.mockRestore()
     // One more tick so the async render completes and the writable flushes.
     await new Promise((r) => setImmediate(r))
     handle?.unmount()

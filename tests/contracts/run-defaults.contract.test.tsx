@@ -357,6 +357,76 @@ describe("contract: RunOptions.profile", () => {
     warnSpy.mockRestore()
     handle.unmount()
   })
+
+  test("contract: run({ caps }) alone emits the deprecation warning (no profile)", async () => {
+    // Phase 5 (/pro review 2026-04-23). `caps` is deprecated on the legacy
+    // branch of the RunOptions XOR; pass it alone (no `profile`) and the
+    // one-time deprecation warning fires. Migration path is in the message.
+    using term = createTermless({ cols: 20, rows: 3 })
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    _resetRunOptionsWarningForTesting()
+    // Exercising the deprecated `caps` legacy branch on purpose. The TS
+    // type wants a full TerminalCaps object; `as any` documents this is a
+    // minimal-fixture JS-style call targeting the deprecation warning.
+    const handle = await run(<Text>hi</Text>, term, {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      caps: { colorLevel: "256" } as any,
+    })
+    await settle(80)
+    expect(warnSpy).toHaveBeenCalled()
+    const messages = warnSpy.mock.calls.map((c) => c[0] as string)
+    expect(messages.some((m) => m.includes("run({ caps })") && m.includes("deprecated"))).toBe(
+      true,
+    )
+    expect(messages.some((m) => m.includes("createTerminalProfile"))).toBe(true)
+    warnSpy.mockRestore()
+    handle.unmount()
+  })
+
+  test("contract: run({ colorLevel }) alone emits the deprecation warning", async () => {
+    using term = createTermless({ cols: 20, rows: 3 })
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    _resetRunOptionsWarningForTesting()
+    const handle = await run(<Text>hi</Text>, term, { colorLevel: "mono" })
+    await settle(80)
+    expect(warnSpy).toHaveBeenCalled()
+    const messages = warnSpy.mock.calls.map((c) => c[0] as string)
+    expect(
+      messages.some((m) => m.includes("run({ colorLevel })") && m.includes("deprecated")),
+    ).toBe(true)
+    expect(messages.some((m) => m.includes("colorOverride"))).toBe(true)
+    warnSpy.mockRestore()
+    handle.unmount()
+  })
+
+  test("contract: profile-only path emits no deprecation warning", async () => {
+    // Callers on the migrated path must not see any warning — that's the
+    // whole point of adopting the profile argument.
+    using term = createTermless({ cols: 20, rows: 3 })
+    const profile = createTerminalProfile({
+      env: {},
+      stdout: { isTTY: false },
+      colorOverride: "256",
+    })
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    _resetRunOptionsWarningForTesting()
+    const handle = await run(<Text>hi</Text>, term, { profile })
+    await settle(80)
+    // Filter out unrelated warnings that other layers might emit — we only
+    // care about the three Phase 5 messages staying silent.
+    const phase5Warns = warnSpy.mock.calls
+      .map((c) => c[0] as string)
+      .filter(
+        (m) =>
+          typeof m === "string" &&
+          (m.includes("mutually exclusive") ||
+            m.includes("run({ caps })") ||
+            m.includes("run({ colorLevel })")),
+      )
+    expect(phase5Warns).toEqual([])
+    warnSpy.mockRestore()
+    handle.unmount()
+  })
 })
 
 // ============================================================================
