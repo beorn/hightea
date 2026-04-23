@@ -1425,8 +1425,32 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // rather than process.stdout dimensions (which may differ in test/emulator contexts).
   // Also override subscribe to notify listeners on resize so useSyncExternalStore
   // (used by useTerm/useWindowSize) triggers re-renders when dimensions change.
-  const baseMockTerm = createTerm({ color: "truecolor" })
+  //
+  // CRITICAL: we seed the mock term with `{ cols, rows }` so it routes through
+  // `createHeadlessTerm`, which uses `createFixedSize(dims)` — the resulting
+  // `term.size.cols()` / `.rows()` reflect the app's *actual* viewport. If we
+  // called `createTerm({ color: "truecolor" })` here, it would route through
+  // `createNodeTerm` and read `process.stdout.columns/rows`, which in
+  // termless/emulator/test contexts is the host's stdout (often 80×24) —
+  // NOT the caller's emulator dims. That mismatch cascades into
+  // `useWindowSize()` consumers: apps laying out `height={termRows}` above
+  // an overflow-scroll container (e.g. ListView) would oversize the column,
+  // pushing siblings below the viewport — the Composer-off-screen bug
+  // (km-silvery.listview-flex-sibling).
+  //
+  // We still override `.size.cols()` / `.rows()` / `.snapshot()` to read
+  // `currentDims` so resizes propagate through the same subscriber fanout.
+  const baseMockTerm = createTerm({ cols: currentDims.cols, rows: currentDims.rows })
   const mockTermSubscribers = new Set<(state: { cols: number; rows: number }) => void>()
+  // Bridge resize notifications into the baseMockTerm.size signal, so any
+  // `useTerm(t => t.size.cols())` consumer re-renders on resize. The headless
+  // Term's size is a `createFixedSize` with an `update(cols, rows)` method.
+  const mockSizeUpdate = (baseMockTerm.size as unknown as {
+    update?: (cols: number, rows: number) => void
+  }).update
+  if (mockSizeUpdate) {
+    mockTermSubscribers.add((next) => mockSizeUpdate(next.cols, next.rows))
+  }
   const mockTerm = Object.create(baseMockTerm, {
     getState: { value: (): { cols: number; rows: number } => currentDims },
     subscribe: {
