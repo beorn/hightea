@@ -266,7 +266,7 @@ describe("contract: createTerminalProfile env precedence", () => {
 // Phase 4 of km-silvery.terminal-profile-plateau adds `profile?: TerminalProfile`
 // to RunOptions so callers that already built a profile (bootstrap, tests,
 // upstream adapters) can pass it through. `run()` must use the profile's caps
-// end-to-end and honour `profile.source` for the pre-quantize gate — no
+// end-to-end and honour `profile.colorForced` for the pre-quantize gate — no
 // double-detection, no env re-read.
 
 describe("contract: RunOptions.profile", () => {
@@ -287,26 +287,28 @@ describe("contract: RunOptions.profile", () => {
     handle.unmount()
   })
 
-  test("contract: profile with source='override' triggers pre-quantize gate (options path)", () => {
+  test("contract: profile with colorProvenance='override' triggers pre-quantize gate (options path)", () => {
     // This test pins the gate behaviour at the unit level — building the
-    // profile directly and asserting `source` / `colorTier` lets us prove
-    // that run.tsx's `optsProfile.source === "override"` branch will fire
+    // profile directly and asserting `colorForced` / `colorTier` lets us prove
+    // that probeTerminalProfile's `profile.colorForced` branch will fire
     // without spinning up a full Termless harness.
     const profile = createTerminalProfile({
       env: {},
       stdout: { isTTY: false },
       colorOverride: "256",
     })
-    expect(profile.source).toBe("override")
+    expect(profile.colorProvenance).toBe("override")
+    expect(profile.colorForced).toBe(true)
     expect(profile.colorTier).toBe("256")
   })
 
-  test("contract: profile with source='auto' does NOT trigger pre-quantize gate", () => {
+  test("contract: profile with colorProvenance='auto' does NOT trigger pre-quantize gate", () => {
     const profile = createTerminalProfile({
       env: { TERM: "xterm-ghostty" },
       stdout: { isTTY: true },
     })
-    expect(profile.source).toBe("auto")
+    expect(profile.colorProvenance).toBe("auto")
+    expect(profile.colorForced).toBe(false)
     expect(profile.colorTier).toBe("truecolor")
   })
 

@@ -107,6 +107,7 @@ export {
 export type {
   TerminalCaps,
   TerminalProfile,
+  ColorProvenance,
   TerminalProfileSource,
   TerminalProfileStdout,
   CreateTerminalProfileOptions,

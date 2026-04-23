@@ -279,15 +279,16 @@ export interface Term extends Disposable, StyleChain {
 
   /**
    * Fully-resolved {@link TerminalProfile} for this Term — `caps`, `colorTier`,
-   * and `source` bundled into the single value downstream consumers should
-   * pass through the pipeline.
+   * `colorForced`, and `colorProvenance` bundled into the single value
+   * downstream consumers should pass through the pipeline.
    *
    * Every Term variant owns its profile. Node-backed Terms build it from the
    * TTY/env detection that populated `caps`; headless and emulator-backed
-   * Terms build it from their deterministic caps. The profile's `source` is
-   * always `"caller-caps"` when the Term constructed it from `caps` — Term
-   * construction is not an opportunity for env precedence (that happens at
-   * `run()` / `createApp()` where `colorLevel` / `NO_COLOR` are applied).
+   * Terms build it from their deterministic caps. The profile's
+   * `colorProvenance` is always `"caller-caps"` (and `colorForced` is `false`)
+   * when the Term constructed it from `caps` — Term construction is not an
+   * opportunity for env precedence (that happens at `run()` / `createApp()`
+   * where `colorLevel` / `NO_COLOR` are applied).
    *
    * Prefer this over `term.caps` when calling downstream pipeline entry
    * points that accept a profile. run.tsx's Term branch reads it directly

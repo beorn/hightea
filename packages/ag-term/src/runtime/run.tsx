@@ -144,7 +144,7 @@ export interface RunOptions {
    * Pre-built {@link TerminalProfile}. When supplied, `run()` skips its own
    * `createTerminalProfile()` call and uses this profile end-to-end — the
    * profile's `caps` feed the pipeline, and the pre-quantize gate reads
-   * `profile.source` to decide whether the OSC-detected theme should be
+   * `profile.colorForced` to decide whether the OSC-detected theme should be
    * re-quantized. This is the Phase 4 single-source-of-truth entry point:
    * callers that already built a profile (e.g. via a top-level bootstrap,
    * a test harness, or a Term adapter) can pass it through without each
@@ -328,7 +328,7 @@ export async function run(
     // Real terminal: full setup.
     //
     // One async call drives the whole detection pass: probeTerminalProfile
-    // bundles caps + colorTier + source + theme into a single TerminalProfile,
+    // bundles caps + colorTier + colorForced + theme into a single TerminalProfile,
     // applies the pre-quantize gate on its own, and lets the probe window be
     // a structural concern instead of a copy-pasted try/finally block.
     //
@@ -365,7 +365,7 @@ export async function run(
     }
     const caps: TerminalCaps = termProfile.caps
     // `profile.theme` is populated by probeTerminalProfile (already
-    // pre-quantized when `source === "env" | "override"`). When a caller
+    // pre-quantized when `profile.colorForced === true`). When a caller
     // supplied a pre-built profile without a theme, no ThemeProvider wrap
     // happens — the app uses whatever ThemeProvider higher up the tree or
     // the framework default.

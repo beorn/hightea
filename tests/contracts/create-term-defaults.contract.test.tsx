@@ -131,11 +131,12 @@ describe("contract: createTerm({ caps }) overrides detection", () => {
 //
 //   1. `term.profile.caps` mirrors the caps that constructed the Term — there
 //      is no drift window where `term.caps !== term.profile.caps`.
-//   2. `term.profile.source === "caller-caps"` whenever the Term was built
-//      from an explicit caps object (every emulator/headless Term, plus Node
-//      Terms once their caps are populated). Env-level precedence (NO_COLOR /
-//      FORCE_COLOR / colorOverride) is applied at `run()` / `createApp()`,
-//      NOT during Term construction.
+//   2. `term.profile.colorProvenance === "caller-caps"` (and `colorForced` is
+//      `false`) whenever the Term was built from an explicit caps object
+//      (every emulator/headless Term, plus Node Terms once their caps are
+//      populated). Env-level precedence (NO_COLOR / FORCE_COLOR /
+//      colorOverride) is applied at `run()` / `createApp()`, NOT during Term
+//      construction.
 
 describe("contract: Term owns its TerminalProfile (H15)", () => {
   test("contract: headless term.profile.caps matches term.caps", () => {
@@ -150,14 +151,15 @@ describe("contract: Term owns its TerminalProfile (H15)", () => {
     expect(term.profile.colorTier).toBe(term.caps.colorLevel)
   })
 
-  test('contract: headless term.profile.source === "caller-caps"', () => {
+  test('contract: headless term.profile.colorProvenance === "caller-caps"', () => {
     // Term construction is not an opportunity for env precedence — the profile
     // records "caller-caps" because the Term committed to a caps object before
     // any env override could apply. That attribution keeps `run()`'s pre-
-    // quantize gate (which triggers only on `source === "env"` / `"override"`)
+    // quantize gate (which triggers only on `profile.colorForced === true`)
     // correct when it consumes `term.profile` directly.
     const term = createTerm({ cols: 80, rows: 24 })
-    expect(term.profile.source).toBe("caller-caps")
+    expect(term.profile.colorProvenance).toBe("caller-caps")
+    expect(term.profile.colorForced).toBe(false)
   })
 
   test("contract: headless term with caps override reflects override in term.profile", () => {
@@ -173,7 +175,8 @@ describe("contract: Term owns its TerminalProfile (H15)", () => {
     expect(term.profile.caps.colorLevel).toBe("truecolor")
     expect(term.profile.caps.kittyKeyboard).toBe(true)
     expect(term.profile.colorTier).toBe("truecolor")
-    expect(term.profile.source).toBe("caller-caps")
+    expect(term.profile.colorProvenance).toBe("caller-caps")
+    expect(term.profile.colorForced).toBe(false)
   })
 })
 

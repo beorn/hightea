@@ -75,6 +75,7 @@ export {
 } from "./profile"
 export type {
   TerminalProfile,
+  ColorProvenance,
   TerminalProfileSource,
   TerminalProfileStdout,
   CreateTerminalProfileOptions,

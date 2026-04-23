@@ -774,6 +774,7 @@ export {
   probeTerminalProfile,
   defaultCaps,
   type TerminalProfile,
+  type ColorProvenance,
   type TerminalProfileSource,
   type ProbeTerminalProfileOptions,
   type CreateTerminalProfileOptions,

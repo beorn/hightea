@@ -21,17 +21,33 @@ import { pickColorLevel } from "./color-maps"
 /**
  * Which rung of the precedence chain resolved the profile's color tier.
  *
+ * Scoped specifically to **color tier** — not whole-profile provenance. Other
+ * caps fields (unicode, kittyKeyboard, …) come from `detectTerminalCapsFromEnv`
+ * or a caller-supplied caps object; their provenance is not tracked here.
+ *
  * - `"env"` — `NO_COLOR` or `FORCE_COLOR` env var won.
  * - `"override"` — caller-supplied `colorOverride` won.
- * - `"caller-caps"` — `options.caps.colorLevel` fallback won.
+ * - `"caller-caps"` — `options.caps.colorLevel` fallback won. Note this
+ *   conflates "pre-detected real caps the Term committed to" with
+ *   "synthetically forced caps from a test fixture / user config"; callers
+ *   that need to tell those apart pass `colorOverride` explicitly instead.
  * - `"auto"` — env-based auto-detection (TERM/COLORTERM/TERM_PROGRAM) won.
  *
- * Exposed so downstream callers (run.tsx, create-app.tsx) can ask "was this
- * tier forced?" without re-comparing against the base caps. Phase 4 of
- * km-silvery.terminal-profile-plateau uses it to decide whether the OSC-detected
- * theme needs pre-quantization via {@link pickColorLevel}.
+ * Consumers that only need "was the tier forced?" should read
+ * {@link TerminalProfile.colorForced} instead of comparing against this enum.
+ * Phase 5 of `km-silvery.terminal-profile-plateau` (per /pro review 2026-04-23):
+ * the flat `source` field was retired because it read like whole-profile
+ * provenance but only described color tier.
  */
-export type TerminalProfileSource = "env" | "override" | "caller-caps" | "auto"
+export type ColorProvenance = "env" | "override" | "caller-caps" | "auto"
+
+/**
+ * @deprecated Renamed to {@link ColorProvenance} (Phase 5 — /pro review
+ * 2026-04-23). The old name claimed to describe the whole profile but only
+ * covered color. This alias is kept so external consumers of `@silvery/ansi`
+ * that imported the name directly don't break on upgrade; remove in 1.1.
+ */
+export type TerminalProfileSource = ColorProvenance
 
 /**
  * A fully-resolved view of the current terminal.
@@ -49,16 +65,30 @@ export interface TerminalProfile {
   /** Convenience alias for `caps.colorLevel`. */
   colorTier: ColorTier
   /**
-   * Which rung of the precedence chain resolved {@link colorTier}. Callers use
-   * this to decide whether the tier was forced (env/override) or derived from
-   * the terminal's natural capabilities (caller-caps/auto).
+   * Was the color tier forced by env vars or a caller-supplied
+   * {@link CreateTerminalProfileOptions.colorOverride}? Equivalent to
+   * `colorProvenance === "env" || colorProvenance === "override"` — exposed
+   * as a precomputed boolean because that's the question every pre-quantize
+   * gate in run.tsx / create-app.tsx actually asks.
+   *
+   * "Forced" here specifically means forced *color tier* — other caps fields
+   * (unicode, kittyGraphics, …) can still come from any source regardless of
+   * this flag's value.
    */
-  source: TerminalProfileSource
+  colorForced: boolean
+  /**
+   * Which rung of the precedence chain resolved {@link colorTier}. Use
+   * {@link colorForced} for the common "was the tier forced?" check; use this
+   * enum only when the specific rung matters (e.g. diagnostics, theme
+   * detection, debug output). See {@link ColorProvenance} for the scope
+   * caveat — this describes color tier, not whole-profile provenance.
+   */
+  colorProvenance: ColorProvenance
   /**
    * OSC-detected terminal theme, populated only when the profile was built via
    * {@link probeTerminalProfile}. Pre-quantized to {@link colorTier} when the
-   * tier was forced (`source === "env"` or `"override"`) so token hex values
-   * match what the pipeline will actually emit.
+   * tier was {@link colorForced} so token hex values match what the pipeline
+   * will actually emit.
    *
    * Absent on sync {@link createTerminalProfile} — theme detection is an async
    * OSC probe and can't run inside a sync call. Entry points that need a
@@ -176,21 +206,22 @@ export function createTerminalProfile(
 
   // Precedence chain: env > override > base caps > env-based auto-detect.
   // Walk the rungs explicitly so we can record which one won — callers use
-  // `profile.source` to tell "forced tier" from "natural tier".
+  // `profile.colorForced` to tell "forced tier" from "natural tier" and
+  // `profile.colorProvenance` when the specific rung matters.
   let resolvedTier: ColorTier
-  let source: TerminalProfileSource
+  let colorProvenance: ColorProvenance
   if (envTier !== undefined) {
     resolvedTier = envTier
-    source = "env"
+    colorProvenance = "env"
   } else if (overrideTier !== undefined) {
     resolvedTier = overrideTier
-    source = "override"
+    colorProvenance = "override"
   } else if (baseCapsTier !== undefined) {
     resolvedTier = baseCapsTier
-    source = "caller-caps"
+    colorProvenance = "caller-caps"
   } else {
     resolvedTier = detectColorFromEnv(env, stdout)
-    source = "auto"
+    colorProvenance = "auto"
   }
 
   // When the caller supplied a caps base, use it as-is — don't re-detect every
@@ -205,7 +236,8 @@ export function createTerminalProfile(
   return {
     caps,
     colorTier: resolvedTier,
-    source,
+    colorForced: colorProvenance === "env" || colorProvenance === "override",
+    colorProvenance,
   }
 }
 
@@ -255,8 +287,8 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  *
  * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
  * 2. Pre-quantize the resulting theme via {@link pickColorLevel} when the
- *    tier was forced (`source === "env"` or `"override"`) so token hex
- *    values match what the pipeline will actually emit.
+ *    tier was forced ({@link TerminalProfile.colorForced} is `true`) so
+ *    token hex values match what the pipeline will actually emit.
  * 3. Return the profile with `theme` populated — one detection, one profile
  *    flowing end-to-end through run() / createApp().
  *
@@ -280,7 +312,7 @@ export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOption
  *   fallbackLight: catppuccinLatte,
  *   input: probeOwner, // structural InputOwner from @silvery/ag-term
  * })
- * // profile.caps, profile.colorTier, profile.source, profile.theme
+ * // profile.caps, profile.colorTier, profile.colorForced, profile.theme
  * ```
  *
  * @see createTerminalProfile — sync variant, no theme probe
@@ -311,9 +343,7 @@ export async function probeTerminalProfile(
   // Pre-quantize when the tier was forced — same gate run.tsx applied
   // inline. With the gate co-located with the profile factory, entry-point
   // branches collapse to one `await probeTerminalProfile(...)` call.
-  const forced =
-    profile.source === "env" || profile.source === "override" ? profile.colorTier : undefined
-  const resolvedTheme = forced ? pickColorLevel(theme, forced) : theme
+  const resolvedTheme = profile.colorForced ? pickColorLevel(theme, profile.colorTier) : theme
 
   return { ...profile, theme: resolvedTheme }
 }

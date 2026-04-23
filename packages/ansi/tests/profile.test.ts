@@ -400,72 +400,80 @@ describe("createTerminalProfile — caps shape", () => {
 // ============================================================================
 
 // ============================================================================
-// profile.source — which precedence rung won
+// profile.colorProvenance + profile.colorForced — color-scoped provenance
 // ============================================================================
 //
-// Phase 4 of km-silvery.terminal-profile-plateau. The `source` field lets
-// entry-point callers tell "forced tier" from "natural tier" without comparing
-// the profile's tier against the base caps. Pin every rung so the
-// comparison-based gate in run.tsx stays behaviourally equivalent after
-// migrating to `profile.source === "env" || profile.source === "override"`.
+// Phase 5 of km-silvery.terminal-profile-plateau (/pro review 2026-04-23).
+// The prior flat `source` field was renamed to `colorProvenance` (narrower
+// name matches what the field actually describes — color tier resolution,
+// not whole-profile provenance) and a precomputed `colorForced` boolean was
+// added because `source === "env" || source === "override"` was the only
+// read pattern in run.tsx / create-app.tsx. Pin every rung plus the forced
+// gate so the two new fields stay aligned with the old `source` behaviour.
 
-describe("createTerminalProfile — source attribution", () => {
-  test('NO_COLOR → source = "env"', () => {
+describe("createTerminalProfile — color provenance attribution", () => {
+  test('NO_COLOR → colorProvenance = "env", colorForced = true', () => {
     const profile = createTerminalProfile({
       env: { NO_COLOR: "1" },
       stdout: tty,
       colorOverride: "truecolor",
       caps: { colorLevel: "truecolor" },
     })
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
   })
 
-  test('FORCE_COLOR=3 → source = "env"', () => {
+  test('FORCE_COLOR=3 → colorProvenance = "env", colorForced = true', () => {
     const profile = createTerminalProfile({
       env: { FORCE_COLOR: "3" },
       stdout: nonTty,
     })
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
   })
 
-  test('FORCE_COLOR=0 with caller override → source = "env" (env still wins)', () => {
+  test('FORCE_COLOR=0 with caller override → colorProvenance = "env" (env still wins)', () => {
     const profile = createTerminalProfile({
       env: { FORCE_COLOR: "0" },
       stdout: tty,
       colorOverride: "truecolor",
     })
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
   })
 
-  test('colorOverride with no env → source = "override"', () => {
+  test('colorOverride with no env → colorProvenance = "override", colorForced = true', () => {
     const profile = createTerminalProfile({
       env: {},
       stdout: nonTty,
       colorOverride: "truecolor",
       caps: { colorLevel: "ansi16" },
     })
-    expect(profile.source).toBe("override")
+    expect(profile.colorProvenance).toBe("override")
+    expect(profile.colorForced).toBe(true)
   })
 
-  test('null colorOverride (legacy mono alias) → source = "override"', () => {
+  test('null colorOverride (legacy mono alias) → colorProvenance = "override"', () => {
     const profile = createTerminalProfile({
       env: {},
       stdout: tty,
       colorOverride: null,
     })
-    expect(profile.source).toBe("override")
+    expect(profile.colorProvenance).toBe("override")
+    expect(profile.colorForced).toBe(true)
   })
 
-  test('caps.colorLevel fallback with no env / override → source = "caller-caps"', () => {
+  test('caps.colorLevel fallback → colorProvenance = "caller-caps", colorForced = false', () => {
     const profile = createTerminalProfile({
       env: {},
       stdout: nonTty,
       caps: { colorLevel: "256" },
     })
-    expect(profile.source).toBe("caller-caps")
+    expect(profile.colorProvenance).toBe("caller-caps")
+    expect(profile.colorForced).toBe(false)
   })
 
-  test('full caps passed without override → source = "caller-caps"', () => {
+  test('full caps passed without override → colorProvenance = "caller-caps"', () => {
     const caps = {
       ...defaultCaps(),
       program: "Ghostty",
@@ -477,36 +485,64 @@ describe("createTerminalProfile — source attribution", () => {
       stdout: nonTty,
       caps,
     })
-    expect(profile.source).toBe("caller-caps")
+    expect(profile.colorProvenance).toBe("caller-caps")
+    expect(profile.colorForced).toBe(false)
   })
 
-  test('no env, no override, no caps → source = "auto"', () => {
+  test('no env, no override, no caps → colorProvenance = "auto", colorForced = false', () => {
     const profile = createTerminalProfile({
       env: { TERM: "xterm-ghostty" },
       stdout: tty,
     })
-    expect(profile.source).toBe("auto")
+    expect(profile.colorProvenance).toBe("auto")
+    expect(profile.colorForced).toBe(false)
     expect(profile.colorTier).toBe("truecolor")
   })
 
-  test('non-TTY with no overrides → source = "auto" (mono)', () => {
+  test('non-TTY with no overrides → colorProvenance = "auto" (mono)', () => {
     const profile = createTerminalProfile({
       env: {},
       stdout: nonTty,
     })
-    expect(profile.source).toBe("auto")
+    expect(profile.colorProvenance).toBe("auto")
+    expect(profile.colorForced).toBe(false)
     expect(profile.colorTier).toBe("mono")
   })
 
-  test('source attribution matches precedence chain (env wins over override + caps)', () => {
+  test("precedence chain: env wins over override + caps", () => {
     const profile = createTerminalProfile({
       env: { FORCE_COLOR: "1" },
       stdout: tty,
       colorOverride: "truecolor",
       caps: { colorLevel: "256" },
     })
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
     expect(profile.colorTier).toBe("ansi16") // FORCE_COLOR=1
+  })
+
+  test("colorForced is the single-field read pattern callers use", () => {
+    // The whole point of colorForced: entry points previously wrote
+    // `source === "env" || source === "override"` in two places. That chain
+    // is exactly the forced-tier predicate — pin it here so the two fields
+    // stay synchronised if a new rung is ever added to colorProvenance.
+    const envForced = createTerminalProfile({ env: { NO_COLOR: "1" }, stdout: tty })
+    const overrideForced = createTerminalProfile({
+      env: {},
+      stdout: tty,
+      colorOverride: "256",
+    })
+    const callerCaps = createTerminalProfile({
+      env: {},
+      stdout: nonTty,
+      caps: { colorLevel: "256" },
+    })
+    const auto = createTerminalProfile({ env: {}, stdout: nonTty })
+
+    expect(envForced.colorForced).toBe(true)
+    expect(overrideForced.colorForced).toBe(true)
+    expect(callerCaps.colorForced).toBe(false)
+    expect(auto.colorForced).toBe(false)
   })
 })
 
@@ -680,7 +716,7 @@ describe("createTerminalProfile — contract", () => {
         stdout: tty,
         colorOverride: "mono",
         caps: { colorLevel: "truecolor" },
-      }).source,
+      }).colorProvenance,
     ).toBe("env")
 
     // Override wins over caller-caps
@@ -690,7 +726,7 @@ describe("createTerminalProfile — contract", () => {
         stdout: nonTty,
         colorOverride: "mono",
         caps: { colorLevel: "truecolor" },
-      }).source,
+      }).colorProvenance,
     ).toBe("override")
 
     // Caller-caps wins over auto
@@ -699,7 +735,7 @@ describe("createTerminalProfile — contract", () => {
         env: {},
         stdout: nonTty,
         caps: { colorLevel: "256" },
-      }).source,
+      }).colorProvenance,
     ).toBe("caller-caps")
 
     // Nothing supplied → auto (from env-based detection)
@@ -707,7 +743,7 @@ describe("createTerminalProfile — contract", () => {
       createTerminalProfile({
         env: { TERM: "xterm-ghostty" },
         stdout: tty,
-      }).source,
+      }).colorProvenance,
     ).toBe("auto")
   })
 })
@@ -723,21 +759,22 @@ describe("createTerminalProfile — contract", () => {
 //   1. probeTheme: false behaves like createTerminalProfile (no theme).
 //   2. probeTheme: true (default) populates profile.theme on mono/ansi16
 //      tiers using the ANSI-16 canned themes — no OSC roundtrip needed.
-//   3. The precedence chain + source attribution match the sync factory.
+//   3. The precedence chain + color provenance match the sync factory.
 
 describe("probeTerminalProfile — contract", () => {
   test('contract: probeTheme: false returns a profile without theme (sync-equivalent)', async () => {
     // When probeTheme is explicitly disabled, the async variant must produce
     // exactly what createTerminalProfile would have — same caps, same tier,
-    // same source, no theme field. This lets callers unify on one async
-    // entry point even when they don't want a probe.
+    // same colorProvenance, no theme field. This lets callers unify on one
+    // async entry point even when they don't want a probe.
     const profile = await probeTerminalProfile({
       env: { FORCE_COLOR: "3" },
       stdout: tty,
       probeTheme: false,
     })
     expect(profile.colorTier).toBe("truecolor")
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
     expect(profile.theme).toBeUndefined()
   })
 
@@ -753,7 +790,7 @@ describe("probeTerminalProfile — contract", () => {
       fallbackLight: undefined,
     })
     expect(profile.colorTier).toBe("mono")
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
     expect(profile.theme).toBeDefined()
     // Sanity: the theme has the required top-level fields (not a test of
     // theme shape, just that we returned *a* theme).
@@ -766,7 +803,7 @@ describe("probeTerminalProfile — contract", () => {
       stdout: tty,
     })
     expect(profile.colorTier).toBe("ansi16")
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
     expect(profile.theme).toBeDefined()
   })
 
@@ -782,6 +819,7 @@ describe("probeTerminalProfile — contract", () => {
       probeTheme: false, // isolate the precedence assertion from theme probing
     })
     expect(profile.colorTier).toBe("mono")
-    expect(profile.source).toBe("env")
+    expect(profile.colorProvenance).toBe("env")
+    expect(profile.colorForced).toBe(true)
   })
 })
