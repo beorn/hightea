@@ -116,18 +116,22 @@ export interface InputOwnerOptions {
    */
   writeStdout?: (data: string) => boolean | void
   /**
-   * When true, `dispose()` does NOT call `stdin.setRawMode(false)`. The
-   * listener is still removed and pending probes still resolve with null,
-   * but raw mode stays set so the next owner (typically the term-provider's
-   * events() generator) can take over seamlessly.
+   * When true, `dispose()` does NOT drop raw mode. The listener is still
+   * removed and pending probes still resolve with null, but raw mode stays
+   * set so the next owner (typically the term-provider's events() generator)
+   * can take over seamlessly.
    *
    * Use this when the owner is the pre-session probe window AND a follow-up
-   * stdin consumer will re-set raw=true immediately — the off/on toggle is
-   * wasteful and surfaces extra termios transitions in tests that assert
-   * event ordering on teardown. In Phase 2, when the InputOwner becomes the
-   * session-long owner, this option is not needed.
+   * stdin consumer will re-set raw=true immediately.
    */
   retainRawModeOnDispose?: boolean
+  /**
+   * Shared Modes owner (from Term). When provided, the input owner drives
+   * `stdin.setRawMode` through `modes.rawMode(true/false)` so there is
+   * exactly one writer. Fallback to direct stdin calls when absent keeps
+   * the standalone/tests path working without a full Term.
+   */
+  modes?: import("./devices/modes").Modes
 }
 
 interface ProbeEntry {
@@ -149,6 +153,7 @@ export function createInputOwner(
   // untouched. Exit early from termios setup but still install listeners
   // against a memory-only buffer so callers don't need to branch.
   const isTTY = Boolean(stdin.isTTY)
+  const injectedModes = options.modes
   let rawWasSet = false
   if (isTTY) {
     try {
@@ -160,7 +165,11 @@ export function createInputOwner(
       // outer owner's input.
       const wasRaw = stdin.isRaw
       if (!wasRaw) {
-        stdin.setRawMode(true)
+        // Single writer: drive through Modes when provided. Fallback to
+        // direct stdin call when constructed without a Modes owner
+        // (standalone / test path).
+        if (injectedModes) injectedModes.rawMode(true)
+        else stdin.setRawMode(true)
         rawWasSet = true
       }
       stdin.resume()
@@ -348,7 +357,10 @@ export function createInputOwner(
       // us to retain it for a follow-up owner (see retainRawModeOnDispose).
       if (!options.retainRawModeOnDispose) {
         try {
-          if (rawWasSet) stdin.setRawMode(false)
+          if (rawWasSet) {
+            if (injectedModes) injectedModes.rawMode(false)
+            else stdin.setRawMode(false)
+          }
         } catch {
           // stdin may already be closed
         }

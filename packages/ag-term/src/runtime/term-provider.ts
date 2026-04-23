@@ -31,6 +31,7 @@ import {
 import { enableFocusReporting, disableFocusReporting, parseFocusEvent } from "../focus-reporting"
 import type { Dims, Provider, ProviderEvent } from "./types"
 import { createSize, type Size } from "./devices/size"
+import type { Modes } from "./devices/modes"
 import { watch } from "@silvery/signals"
 
 // ============================================================================
@@ -180,6 +181,19 @@ export interface TermProviderOptions {
    * standalone use).
    */
   size?: Size
+  /**
+   * Shared Modes owner (from Term). When provided, the provider drives
+   * raw mode and bracketed paste via `modes.rawMode(true)` /
+   * `modes.bracketedPaste(true)` — the single-writer pattern.
+   *
+   * When omitted (legacy / standalone use), the provider falls back to
+   * calling `stdin.setRawMode(...)` + `enableBracketedPaste(stdout)` /
+   * `disableBracketedPaste(stdout)` directly. The fallback exists so the
+   * provider can be exercised from tests that don't construct a full
+   * Term; production Term factories must pass a Modes owner so there's
+   * only one writer of raw mode + protocol ANSI.
+   */
+  modes?: Modes
 }
 
 // ============================================================================
@@ -260,9 +274,17 @@ export function createTermProvider(
     async *events(): AsyncGenerator<ProviderEvent<TermEvents>, void, undefined> {
       if (disposed) return
 
-      // Set up stdin for raw mode if TTY
+      const injectedModes = options.modes
+      // Set up stdin for raw mode if TTY. When a Modes owner is provided
+      // (production Term factories always do), route through it so there's
+      // exactly one writer of raw mode + protocol ANSI. Fallback to direct
+      // stdin calls for standalone/test use without a Modes owner.
       if (stdin.isTTY) {
-        stdin.setRawMode(true)
+        if (injectedModes) {
+          injectedModes.rawMode(true)
+        } else {
+          stdin.setRawMode(true)
+        }
         stdin.resume()
         stdin.setEncoding("utf8")
       }
@@ -347,24 +369,37 @@ export function createTermProvider(
         },
       )
 
-      // Enable bracketed paste for TTY input.
-      // Note: focus reporting is NOT enabled here — it's controlled by the
-      // focusReporting option in create-app.tsx and run.tsx. Unconditionally
-      // enabling it causes CSI I/O sequences to leak to screen in inline mode.
+      // Enable bracketed paste for TTY input via the Modes owner (single
+      // writer). Note: focus reporting is NOT enabled here — it's controlled
+      // by the focusReporting option in create-app.tsx and run.tsx.
+      // Unconditionally enabling it causes CSI I/O sequences to leak to
+      // screen in inline mode.
       if (stdin.isTTY) {
-        enableBracketedPaste(stdout)
+        if (injectedModes) {
+          injectedModes.bracketedPaste(true)
+        } else {
+          enableBracketedPaste(stdout)
+        }
       }
 
       // Subscribe — track the cleanup function for use by both finally and dispose
       stdin.on("data", onChunk)
       stdinCleanup = () => {
         if (stdin.isTTY) {
-          disableBracketedPaste(stdout)
+          if (injectedModes) {
+            injectedModes.bracketedPaste(false)
+          } else {
+            disableBracketedPaste(stdout)
+          }
         }
         stdin.off("data", onChunk)
         unsubscribeResizeEvent()
         if (stdin.isTTY) {
-          stdin.setRawMode(false)
+          if (injectedModes) {
+            injectedModes.rawMode(false)
+          } else {
+            stdin.setRawMode(false)
+          }
         }
         // Always pause stdin — on("data") unconditionally sets readableFlowing=true,
         // so we must unconditionally pause to release the event loop reference.

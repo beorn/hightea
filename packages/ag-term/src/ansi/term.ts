@@ -765,7 +765,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   let provider: ReturnType<typeof createTermProvider> | null = null
   const getProvider = () => {
     if (!provider) {
-      provider = createTermProvider(stdin, stdout, { size })
+      provider = createTermProvider(stdin, stdout, { size, modes })
     }
     return provider
   }
@@ -798,7 +798,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   const getInput = (): Input | undefined => {
     if (!stdin.isTTY) return undefined
     if (!_input) {
-      _input = createInputOwner(stdin, stdout, { writeStdout: ownedWrite })
+      _input = createInputOwner(stdin, stdout, { writeStdout: ownedWrite, modes })
     }
     return _input
   }
