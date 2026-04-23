@@ -33,6 +33,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useImperativeHandle,
   useLayoutEffect,
   useMemo,
@@ -574,8 +575,16 @@ function ListViewInner<T>(
   // Register as Searchable in SearchProvider when `search` prop is set.
   // The search function scans all items' text for query matches.
   // The reveal function scrolls the matching item into view.
+  //
+  // Uses the explicit `surfaceId` when provided (multi-pane routing), and
+  // falls back to an auto-generated id from useId so that single-pane
+  // apps get a working searchable without boilerplate. The provider's
+  // getActiveSearchable() handles both — explicit focusedId wins,
+  // otherwise the only registered searchable is selected.
+  const autoSearchableId = useId()
+  const searchableId = surfaceId ?? autoSearchableId
   useEffect(() => {
-    if (!searchConfig || !searchCtx || !surfaceId) return
+    if (!searchConfig || !searchCtx) return
 
     const searchable = {
       search(query: string): SearchMatch[] {
@@ -623,8 +632,8 @@ function ListViewInner<T>(
       },
     }
 
-    return searchCtx.registerSearchable(surfaceId, searchable)
-  }, [searchConfig, searchCtx, surfaceId])
+    return searchCtx.registerSearchable(searchableId, searchable)
+  }, [searchConfig, searchCtx, searchableId])
 
   // Compute composed viewport when history is active
   if (cacheMode === "virtual" && cacheBuffer) {

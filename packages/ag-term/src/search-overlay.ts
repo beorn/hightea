@@ -61,7 +61,14 @@ export function searchUpdate(
       ]
 
     case "close":
-      return [createSearchState(), [{ type: "render" }]]
+      // Close the bar but KEEP the results. `n` / `N` (next/prev) must
+      // still cycle through matches after the bar closes — that's the
+      // whole point of 'search then step through' (less / vim idiom).
+      // A subsequent `open` starts a fresh query and wipes matches.
+      return [
+        { ...state, active: false, query: "", cursorPosition: 0 },
+        [{ type: "render" }],
+      ]
 
     case "input": {
       const query =
