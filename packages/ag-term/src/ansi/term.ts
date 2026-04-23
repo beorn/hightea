@@ -1118,7 +1118,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // `false` (safe for headless / non-TTY). Emulator-backed terms are the
   // exception — they simulate a full TTY, so we override both to `true` to
   // match the hardcoded `hasCursor()` / `hasInput()` methods below. Without
-  // this override, `term.caps.cursor !== term.hasCursor()` — a subtle
+  // this override, `term.caps.cursor not matching the hard-coded hasCursor=true on emulator Term (historic API — removed in Phase 7)` — a subtle
   // divergence any caps consumer would hit.
   const emulatorCaps: TerminalCaps = {
     ...defaultCaps(),

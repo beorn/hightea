@@ -231,18 +231,27 @@ const DEFAULT_SCROLL_PADDING = 2
 
 /** Base items per wheel event at the slow end — 1 click = 1 row. */
 const WHEEL_BASE_STEP = 1
-/** Max wheel acceleration multiplier at short inter-event dt. */
-const WHEEL_ACCEL_MAX = 5
+/** Max wheel acceleration multiplier at short inter-event dt.
+ * Kept modest (3, not 5+): higher multipliers make fast scrolling jump by
+ * large chunks per event, which reads as erratic motion in a discrete-row
+ * TUI even when the arithmetic is correct. */
+const WHEEL_ACCEL_MAX = 3
 /** The dt (ms) at which accel factor = 1. Shorter dt → accel up to MAX. */
 const WHEEL_ACCEL_REFERENCE_DT_MS = 180
 /** Inter-event dt (ms) beyond which we treat events as isolated single-clicks
  * (no velocity accumulation). Matches macOS system behavior. */
 const WHEEL_ISOLATED_DT_MS = 500
+/** Smoothing factor for velocity samples (exponential moving average).
+ * 0 = ignore new samples, 1 = replace entirely. 0.3 balances responsiveness
+ * against single-event jitter (trackpads occasionally report a tiny
+ * opposite-direction event mid-stream; unsmoothed sampling flips the sign
+ * of velocity which then overshoots in momentum phase). */
+const WHEEL_VELOCITY_SMOOTHING = 0.3
 
 /** Max absolute velocity (items/sec). Capped so momentum distance stays
  * trackable in row-space. amplitude_max = MAX_VELOCITY × τ / 1000 in seconds
- * scale — here 60 items/sec × 0.26s ≈ 15 items of max coast. */
-const KINETIC_MAX_VELOCITY = 60
+ * scale — here 40 items/sec × 0.26s ≈ 10 items of max coast. */
+const KINETIC_MAX_VELOCITY = 40
 /** Momentum time constant (ms). See derivation above. */
 const KINETIC_TIME_CONSTANT_MS = 260
 /** Stop the momentum animation after this many τ (6τ → within 0.25% of target). */
@@ -553,14 +562,27 @@ function ListViewInner<T>(
       scrollRowFloatRef.current = nextFloat
       const rendered = Math.round(nextFloat)
       setScrollRow((prev) => (prev === rendered ? prev : rendered))
-      // Velocity estimate: rows/sec implied by this single step, capped.
-      // An isolated slow click (long dt) yields tiny velocity → negligible
-      // momentum after release. A dense trackpad stream (short dt) sustains
-      // high velocity → long coast.
+      // Velocity estimate: rows/sec implied by this single step. An isolated
+      // slow click (dt ≥ ISOLATED) yields zero → negligible momentum after
+      // release. A dense trackpad stream (short dt) sustains high velocity.
+      //
+      // Pure exponential moving average, NOT sign-aware reset. Trackpads
+      // emit a tail of tiny opposite-direction events as the physical flick
+      // decelerates — those are OS inertia, NOT the user reversing. A
+      // sign-reset interprets them as intentional reversal and flips the
+      // stored velocity right before release, sending momentum in the wrong
+      // direction ("scrolls up then drifts slowly back down"). Smoothing
+      // with α=0.3 naturally absorbs those tail events; when a user
+      // genuinely reverses direction it takes ~3-5 events to rebuild
+      // velocity the other way, which feels right (trackpads need a real
+      // gesture, not an instant hairtrigger flip).
       const vSample = dt >= WHEEL_ISOLATED_DT_MS ? 0 : (dir * stepRows) / (dt / 1000)
+      const smoothed =
+        WHEEL_VELOCITY_SMOOTHING * vSample +
+        (1 - WHEEL_VELOCITY_SMOOTHING) * velocityRef.current
       velocityRef.current = Math.max(
         -KINETIC_MAX_VELOCITY,
-        Math.min(KINETIC_MAX_VELOCITY, vSample),
+        Math.min(KINETIC_MAX_VELOCITY, smoothed),
       )
       // Scrollbar on — auto-hide refreshes on each event.
       setIsScrolling(true)

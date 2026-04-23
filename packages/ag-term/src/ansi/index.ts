@@ -38,7 +38,7 @@ import type { Term } from "./term"
  * import { term } from '@silvery/ag-term'
  *
  * console.log(term.green('success'))
- * if (term.hasColor()) { ... }
+ * if (term.caps.colorTier) { ... }
  * ```
  */
 let _lazyTerm: Term | undefined

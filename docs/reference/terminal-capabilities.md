@@ -8,7 +8,7 @@ This document explains terminal capabilities, the `ansi` and `silvery` packages,
 
 Terminal output boils down to **two independent capabilities**:
 
-### 1. Cursor Control (`term.hasCursor()`)
+### 1. Cursor Control (`term.caps.cursor`)
 
 Can the terminal interpret ANSI CSI (Control Sequence Introducer) escape sequences?
 
@@ -28,10 +28,10 @@ If **no**, only append-only output works (use `renderString()`).
 **Detection:**
 
 ```ts
-term.hasCursor() // stdout.isTTY && TERM !== 'dumb'
+term.caps.cursor // stdout.isTTY && TERM !== 'dumb'
 ```
 
-### 2. Color Level (`term.hasColor()`)
+### 2. Color Level (`term.caps.colorTier`)
 
 What color codes does the terminal support?
 
@@ -45,15 +45,15 @@ What color codes does the terminal support?
 **Detection:**
 
 ```ts
-term.hasColor() // null | 'basic' | '256' | 'truecolor'
+term.caps.colorTier // null | 'basic' | '256' | 'truecolor'
 ```
 
-### 3. Input Capability (`term.hasInput()`)
+### 3. Input Capability (`term.caps.input`)
 
 Can the app read individual keystrokes (raw mode)?
 
 ```ts
-term.hasInput() // stdin.isTTY && setRawMode available
+term.caps.input // stdin.isTTY && setRawMode available
 ```
 
 Required for: `useInput`, keyboard navigation, interactive TUIs.
@@ -102,7 +102,7 @@ using app = await render(<App />, term, { fullscreen: true })
 
 - Default: **inline mode** (updates in place from current cursor)
 - Optional: `fullscreen: true` for alternate screen buffer
-- Requires: cursor control (`term.hasCursor()`)
+- Requires: cursor control (`term.caps.cursor`)
 - Returns a Disposable
 
 **Options:**
@@ -195,9 +195,9 @@ using term = createTerm({
 
 ```ts
 // Detection
-term.hasCursor() // boolean - can use cursor control?
-term.hasInput() // boolean - can read keystrokes (raw mode)?
-term.hasColor() // null | 'basic' | '256' | 'truecolor'
+term.caps.cursor // boolean - can use cursor control?
+term.caps.input // boolean - can read keystrokes (raw mode)?
+term.caps.colorTier // null | 'basic' | '256' | 'truecolor'
 
 // Dimensions
 term.cols // number | undefined
@@ -225,11 +225,11 @@ import { render, renderString } from '@silvery/ag-term'
 
 using term = createTerm()
 
-if (term.hasCursor() && term.hasInput()) {
+if (term.caps.cursor && term.caps.input) {
   // Full interactive TUI
   using app = await render(<InteractiveApp />, { fullscreen: true })
   await app.waitUntilExit()
-} else if (term.hasCursor()) {
+} else if (term.caps.cursor) {
   // Output-only live updates
   using app = await render(<ProgressDisplay />)
 } else {
@@ -247,7 +247,7 @@ function StatusLine({ status }: { status: string }) {
   const term = useTerm()
 
   // Same component, adapts to capabilities
-  const color = term.hasColor() ? "green" : undefined
+  const color = term.caps.colorTier ? "green" : undefined
 
   return (
     <Box>
@@ -287,7 +287,7 @@ class Reporter {
   private app: RenderInstance | null = null
 
   async onTestRunStart() {
-    if (this.term.hasCursor()) {
+    if (this.term.caps.cursor) {
       this.app = await render(
         this.term,
         <Box flexDirection="column">

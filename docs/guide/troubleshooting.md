@@ -23,7 +23,7 @@
 ### useInput not receiving keys
 
 - Ensure `InputLayerProvider` wraps your app if using `useInputLayer`.
-- Check that stdin is in raw mode (`term.hasInput()` returns `true`).
+- Check that stdin is in raw mode (`term.caps.input` returns `true`).
 - Verify no other input layer is consuming the key before yours (layers are LIFO).
 
 ### Layout oscillation / infinite loops
@@ -39,7 +39,7 @@
 
 ### Colors not appearing
 
-- Check `term.hasColor()` — returns `null` if `NO_COLOR` is set or `TERM=dumb`.
+- Check `term.caps.colorTier` — returns `"mono"` if `NO_COLOR` is set or `TERM=dumb`.
 - Verify `COLORTERM=truecolor` is set for true color support.
 - Some CI environments strip ANSI codes. Use `renderString(<App />, { plain: true })` for those.
 
