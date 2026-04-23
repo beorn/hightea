@@ -1,4 +1,5 @@
 import type { Term } from "@silvery/ag-term/ansi"
+import { effect } from "@silvery/signals"
 import { useCallback, useContext, useRef, useSyncExternalStore } from "react"
 import { TermContext } from "../context"
 
@@ -28,6 +29,7 @@ export function shallow<T>(a: T, b: T): boolean {
  *
  * Without a selector, returns the Term object (not reactive to state changes).
  * With a selector, returns the selected value reactively via useSyncExternalStore.
+ * Reactivity is powered by `term.size` — resize events re-run the selector.
  *
  * @example
  * ```tsx
@@ -36,10 +38,10 @@ export function shallow<T>(a: T, b: T): boolean {
  * term.green('Success!')
  *
  * // Reactive: re-renders only when cols changes
- * const cols = useTerm(t => t.cols)
+ * const cols = useTerm(t => t.size.cols())
  *
  * // Reactive with shallow comparison for object selectors
- * const { cols, rows } = useTerm(t => ({ cols: t.cols, rows: t.rows }), shallow)
+ * const { cols, rows } = useTerm(t => ({ cols: t.size.cols(), rows: t.size.rows() }), shallow)
  * ```
  */
 export function useTerm(): Term
@@ -68,7 +70,19 @@ function useTermSelector<T>(
   const prevRef = useRef<T | undefined>(undefined)
   const isEqual = equalityFn ?? Object.is
 
-  const subscribe = useCallback((listener: () => void) => term.subscribe(listener), [term])
+  // Subscribe via an alien-signals `effect` over `term.size.snapshot()`. Any
+  // resize fires the effect, which notifies React. The effect is disposed on
+  // unsubscribe.
+  const subscribe = useCallback(
+    (listener: () => void) => {
+      const stop = effect(() => {
+        term.size.snapshot() // read to establish subscription
+        listener()
+      })
+      return stop
+    },
+    [term],
+  )
 
   const getSnapshot = useCallback((): T => {
     const next = selector(term)

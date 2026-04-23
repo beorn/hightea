@@ -54,8 +54,7 @@ export function withTest() {
     app.render()
 
     const getFrame = (): TextFrame => {
-      const state = app.term.getState()
-      app.ag.layout({ cols: state.cols, rows: state.rows })
+      app.ag.layout({ cols: app.term.size.cols(), rows: app.term.size.rows() })
       const result = app.ag.render({ fresh: true })
       return result.frame
     }
@@ -84,11 +83,11 @@ export function withTest() {
       },
 
       get width() {
-        return app.term.getState().cols
+        return app.term.size.cols()
       },
 
       get height() {
-        return app.term.getState().rows
+        return app.term.size.rows()
       },
     }
 

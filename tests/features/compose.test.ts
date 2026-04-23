@@ -69,11 +69,12 @@ describe("plugin composition", () => {
       expect(typeof app.render).toBe("function")
     })
 
-    test("headless term has run() (events generator blocks until dispose)", () => {
+    test("withTerm() does not auto-run — callers drive render() themselves", () => {
       const term = createTerm({ cols: 80, rows: 24 })
       const app = pipe(create(), withAg(), withTerm(term))
-      // Headless term has events() (blocks until disposed), so run exists
-      expect(typeof app.run).toBe("function")
+      // compose's withTerm is a low-level primitive: no built-in event loop
+      // since term.events() was retired. For self-running apps use createApp().
+      expect(app.run).toBeUndefined()
     })
   })
 

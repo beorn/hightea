@@ -476,13 +476,19 @@ function resolveColorTier(
 // bridge the two spellings (ColorTier ⇄ caps.colorLevel).
 export { tierToCapsLevel, capsLevelToTier }
 
-/** Duck-type check: Term has getState and events as functions.
+/** Duck-type check: Term has the sub-owner umbrella (size + modes + signals).
  *  Note: Term is a Proxy wrapping chalk, so typeof is "function" not "object". */
 function isTerm(obj: unknown): obj is Term {
   if (obj == null) return false
   if (typeof obj !== "object" && typeof obj !== "function") return false
   const o = obj as Record<string, unknown>
-  return typeof o.getState === "function" && typeof o.events === "function"
+  return (
+    typeof o.size === "object" &&
+    o.size !== null &&
+    typeof (o.size as Record<string, unknown>).cols === "function" &&
+    typeof o.modes === "object" &&
+    o.modes !== null
+  )
 }
 
 /** Wrap AppHandle as RunHandle (subset of the full handle). */

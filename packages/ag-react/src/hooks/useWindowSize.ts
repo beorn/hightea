@@ -4,8 +4,8 @@ import { shallow, useTerm } from "./useTerm"
  * Hook to get the current terminal window size.
  * Re-renders when the terminal is resized.
  *
- * Uses term.getState() which always returns defined values (defaults to 80x24),
- * unlike term.cols/rows which may be undefined for non-TTY streams.
+ * Reads from `term.size` (the Size sub-owner) — always returns defined values
+ * via the Size owner's default (80x24 for non-TTY streams).
  *
  * @example
  * ```tsx
@@ -18,8 +18,5 @@ import { shallow, useTerm } from "./useTerm"
  * ```
  */
 export function useWindowSize(): { columns: number; rows: number } {
-  return useTerm((t) => {
-    const s = t.getState()
-    return { columns: s.cols, rows: s.rows }
-  }, shallow)
+  return useTerm((t) => ({ columns: t.size.cols(), rows: t.size.rows() }), shallow)
 }

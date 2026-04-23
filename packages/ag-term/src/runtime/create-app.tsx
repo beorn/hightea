@@ -111,7 +111,6 @@ import {
 import { enableFocusReporting } from "../focus-reporting"
 import { detectKittyFromStdio } from "../kitty-detect"
 import { captureTerminalState, performSuspend } from "./terminal-lifecycle"
-import { type TermProvider, createTermProvider } from "./term-provider"
 import type { Buffer, Dims, Provider, RenderTarget } from "./types"
 import {
   createTerminalSelectionState,
@@ -691,12 +690,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const plainValues: Record<string, unknown> = {}
   const providerCleanups: (() => void)[] = []
 
-  // Create term provider if not provided
-  let termProvider: TermProvider | null = null
+  // Create Term if not provided. In headless mode we pass mock streams so the
+  // Term doesn't touch real stdin/stdout; `onResize` drives the mock stdout's
+  // resize listeners so `term.size` observes dim changes.
+  let autoTerm: Term | null = null
   if (!("term" in injectValues) || !isFullProvider(injectValues.term)) {
-    // In headless mode, provide mock streams so termProvider doesn't touch real stdin/stdout.
-    // When onResize is provided, the mock supports resize events so the term provider
-    // picks up dimension changes and triggers re-renders through the event loop.
     const resizeListeners = new Set<() => void>()
     const termStdout = headless
       ? ({
@@ -725,16 +723,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           setEncoding: () => {},
         } as unknown as NodeJS.ReadStream)
       : stdin
-    termProvider = createTermProvider(termStdin, termStdout, { cols, rows })
-    providers.term = termProvider as unknown as Provider<unknown, Record<string, unknown>>
-    providerCleanups.push(() => termProvider![Symbol.dispose]())
+    autoTerm = createTerm({ stdin: termStdin, stdout: termStdout })
+    providers.term = autoTerm as unknown as Provider<unknown, Record<string, unknown>>
+    providerCleanups.push(() => autoTerm![Symbol.dispose]())
 
-    // Wire onResize to the mock termStdout so the term provider sees resize events.
-    // This updates:
-    // 1. currentDims — so getDims() returns correct values for doRender()
-    // 2. mock termStdout columns/rows — so the term provider reads correct dimensions
-    // 3. mock termStdout resize listeners — triggers term:resize through the provider's
-    //    event stream → event loop → doRender()
     if (headless && explicitOnResize) {
       const unsub = explicitOnResize((dims) => {
         currentDims = dims
@@ -2366,32 +2358,90 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let eventQueueResolve: (() => void) | null = null
 
   const eventLoop = async () => {
-    // Merge all provider event streams
-    const providerEventStreams = Object.entries(providers).map(([name, provider]) =>
+    // Direct subscriptions for providers that are Terms (have .input + .size).
+    // These skip the async-iterator pipeline and push straight into the shared
+    // queue — the canonical path since `term.events()` was retired.
+    const streamProviders: [string, Provider<unknown, Record<string, unknown>>][] = []
+
+    const nudge = () => {
+      if (eventQueueResolve) {
+        const resolve = eventQueueResolve
+        eventQueueResolve = null
+        resolve()
+      }
+    }
+
+    for (const [name, provider] of Object.entries(providers)) {
+      const maybeTerm = provider as unknown as { input?: Term["input"]; size?: Term["size"] }
+      // Any Term-like provider (has `.size`) drives events through direct
+      // subscriptions. Input is optional — headless Terms have `.size` but
+      // no `.input`; they still need the resize subscription for re-renders.
+      if (maybeTerm.size) {
+        const size = maybeTerm.size
+        const input = maybeTerm.input
+        if (input) {
+          providerCleanups.push(
+            input.onKey((e) => {
+              eventQueue.push({ type: `${name}:key`, provider: name, event: "key", data: e })
+              nudge()
+            }),
+          )
+          providerCleanups.push(
+            input.onMouse((e) => {
+              eventQueue.push({ type: `${name}:mouse`, provider: name, event: "mouse", data: e })
+              nudge()
+            }),
+          )
+          providerCleanups.push(
+            input.onPaste((e) => {
+              eventQueue.push({ type: `${name}:paste`, provider: name, event: "paste", data: e })
+              nudge()
+            }),
+          )
+          providerCleanups.push(
+            input.onFocus((e) => {
+              eventQueue.push({ type: `${name}:focus`, provider: name, event: "focus", data: e })
+              nudge()
+            }),
+          )
+        }
+        providerCleanups.push(
+          watch(
+            () => size.snapshot(),
+            (next) => {
+              eventQueue.push({
+                type: `${name}:resize`,
+                provider: name,
+                event: "resize",
+                data: { cols: next.cols, rows: next.rows },
+              })
+              nudge()
+            },
+          ),
+        )
+      } else {
+        streamProviders.push([name, provider])
+      }
+    }
+
+    // Merge non-Term provider event streams (user-injected custom providers).
+    const providerEventStreams = streamProviders.map(([name, provider]) =>
       createProviderEventStream(name, provider),
     )
 
     const allEvents = merge(...providerEventStreams)
 
-    // Pump events from async iterable into the shared queue
+    // Pump events from async iterables (empty stream when no non-Term
+    // providers exist) into the shared queue.
     const pumpEvents = async () => {
       try {
         for await (const event of takeUntil(allEvents, signal)) {
           eventQueue.push(event)
-          if (eventQueueResolve) {
-            const resolve = eventQueueResolve
-            eventQueueResolve = null
-            resolve()
-          }
+          nudge()
           if (shouldExit) break
         }
       } finally {
-        // Signal end of events
-        if (eventQueueResolve) {
-          const resolve = eventQueueResolve
-          eventQueueResolve = null
-          resolve()
-        }
+        nudge()
       }
     }
 

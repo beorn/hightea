@@ -32,15 +32,6 @@ export type {
   EventData,
 } from "./types"
 
-// Terminal provider
-export {
-  createTermProvider,
-  type TermProvider,
-  type TermState,
-  type TermEvents,
-  type TermProviderOptions,
-} from "./term-provider"
-
 // Input owner — single-owner stdin mediator (mirrors Output for stdout).
 // See ./input-owner.ts for the wasRaw anti-pattern it replaces.
 export { createInputOwner, type InputOwner, type InputOwnerOptions } from "./input-owner"

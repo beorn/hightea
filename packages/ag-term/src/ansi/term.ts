@@ -42,8 +42,6 @@ import {
   detectTerminalCaps,
   detectUnicode,
 } from "./detection"
-import type { ProviderEvent } from "../runtime/types"
-import { createTermProvider, type TermState, type TermEvents } from "../runtime/term-provider"
 import { createInputOwner, type InputOwner as Input } from "../runtime/input-owner"
 export type { Input }
 import { createOutput, type Output } from "../runtime/devices/output"
@@ -73,8 +71,6 @@ import { parseFocusEvent } from "../focus-reporting"
 import { parseBracketedPaste } from "../bracketed-paste"
 import { STDIN_SYMBOL, STDOUT_SYMBOL } from "../runtime/term-internal"
 
-// Re-export Provider-related types for convenience
-export type { TermState, TermEvents } from "../runtime/term-provider"
 export type { OutputOptions } from "../runtime/devices/output"
 
 // =============================================================================
@@ -419,28 +415,6 @@ export interface Term extends Disposable, StyleChain {
   writeLine(str: string): void
 
   // -------------------------------------------------------------------------
-  // Provider (state + events)
-  // -------------------------------------------------------------------------
-
-  /**
-   * Get current terminal state (dimensions).
-   * Always returns defined values (falls back to 80x24).
-   */
-  getState(): TermState
-
-  /**
-   * Subscribe to terminal state changes (resize).
-   * Returns unsubscribe function.
-   */
-  subscribe(listener: (state: TermState) => void): () => void
-
-  /**
-   * Event stream — yields typed key, mouse, and resize events.
-   * Enables raw mode on stdin when iterated. Cleans up on return.
-   */
-  events(): AsyncIterable<ProviderEvent<TermEvents>>
-
-  // -------------------------------------------------------------------------
   // Utilities
   // -------------------------------------------------------------------------
 
@@ -514,69 +488,6 @@ export interface Term extends Disposable, StyleChain {
 // =============================================================================
 // Shared Helpers
 // =============================================================================
-
-/** Parse raw terminal input into typed events (key, mouse, paste, focus). */
-function parseInputEvents(data: string): ProviderEvent<TermEvents>[] {
-  const events: ProviderEvent<TermEvents>[] = []
-  const pasteResult = parseBracketedPaste(data)
-  if (pasteResult) {
-    events.push({ type: "paste", data: { text: pasteResult.content } })
-  } else {
-    for (const raw of splitRawInput(data)) {
-      const focusEvent = parseFocusEvent(raw)
-      if (focusEvent) {
-        events.push({ type: "focus", data: { focused: focusEvent.type === "focus-in" } })
-        continue
-      }
-      if (isMouseSequence(raw)) {
-        const parsed = parseMouseSequence(raw)
-        if (parsed) events.push({ type: "mouse", data: parsed })
-        continue
-      }
-      const [input, key] = parseKey(raw)
-      events.push({ type: "key", data: { input, key } })
-    }
-  }
-  return events
-}
-
-/** Event queue with async generator for term providers. */
-function createEventQueue(controller: AbortController) {
-  const queue: ProviderEvent<TermEvents>[] = []
-  let resolve: (() => void) | null = null
-  let disposed = false
-
-  function push(...events: ProviderEvent<TermEvents>[]) {
-    queue.push(...events)
-    if (resolve) {
-      const r = resolve
-      resolve = null
-      r()
-    }
-  }
-
-  async function* events(): AsyncIterable<ProviderEvent<TermEvents>> {
-    if (disposed) return
-    while (!disposed && !controller.signal.aborted) {
-      if (queue.length === 0) {
-        await new Promise<void>((r) => {
-          resolve = r
-          controller.signal.addEventListener("abort", () => r(), { once: true })
-        })
-      }
-      if (disposed || controller.signal.aborted) break
-      while (queue.length > 0) yield queue.shift()!
-    }
-  }
-
-  return {
-    push,
-    events,
-    dispose() {
-      disposed = true
-    },
-  }
-}
 
 /** Mock stdout that feeds a terminal emulator and supports resize events. */
 function createEmulatorStdout(feed: (data: string) => void, cols: number, rows: number) {
@@ -757,24 +668,9 @@ function createNodeTerm(options: CreateTermOptions): Term {
   // Size owner — single source of truth for cols/rows. Subscribes to stdout's
   // `resize` event with 16ms coalescing so burst SIGWINCH from tmux/cmux/
   // Ghostty tab switches collapses to one notification. Constructed eagerly
-  // so term.size and term.cols/rows are valid even before events()/subscribe()
-  // is called. See km-silvery.term-sub-owners Phase 5.
+  // so term.size and term.cols/rows are valid for any consumer.
+  // See km-silvery.term-sub-owners Phase 5.
   const size = createSize(stdout)
-
-  // Lazy Provider — only created when getState/subscribe/events is called.
-  // Shares the Term's Size + Input so resize events match term.size and
-  // key/mouse/paste/focus events match term.input.
-  let provider: ReturnType<typeof createTermProvider> | null = null
-  const getProvider = () => {
-    if (!provider) {
-      provider = createTermProvider(stdin, stdout, {
-        size,
-        modes,
-        input: _input ?? undefined,
-      })
-    }
-    return provider
-  }
 
   let _frame: TextFrame | undefined
 
@@ -864,10 +760,6 @@ function createNodeTerm(options: CreateTermOptions): Term {
     writeLine: (str: string) => {
       ownedWrite(str + "\n")
     },
-    getState: (): TermState => getProvider().getState(),
-    subscribe: (listener: (state: TermState) => void): (() => void) =>
-      getProvider().subscribe(listener),
-    events: (): AsyncIterable<ProviderEvent<TermEvents>> => getProvider().events(),
     stripAnsi,
     paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
       const output = outputPhase(prev, buffer)
@@ -881,7 +773,6 @@ function createNodeTerm(options: CreateTermOptions): Term {
       signals.dispose()
       if (_input) _input[Symbol.dispose]()
       if (_output) _output[Symbol.dispose]()
-      if (provider) provider[Symbol.dispose]()
       consoleOwner[Symbol.dispose]()
       // Dispose the shared router AFTER both Console and Output have been
       // torn down (above) so no latent taps/sinks reference a disposed
@@ -941,7 +832,6 @@ const HEADLESS_STDIN: NodeJS.ReadStream = {
 /** Create a headless terminal for testing — no I/O, fixed dimensions. */
 function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
   let disposed = false
-  const controller = new AbortController()
   let _frame: TextFrame | undefined
   const size = createFixedSize(dims)
   // Modes owner for the headless term: writes go to a sink, stdin is
@@ -965,14 +855,6 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     console: undefined as DeviceConsole | undefined,
     write: () => {},
     writeLine: () => {},
-    getState: (): TermState => dims,
-    subscribe: (): (() => void) => () => {},
-    async *events(): AsyncIterable<ProviderEvent<TermEvents>> {
-      if (disposed) return
-      await new Promise<void>((r) =>
-        controller.signal.addEventListener("abort", () => r(), { once: true }),
-      )
-    },
     stripAnsi,
     paint: (_buffer: TerminalBuffer, _prev: TerminalBuffer | null): string => {
       _frame = createTextFrame(_buffer)
@@ -981,7 +863,6 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
     [Symbol.dispose]: () => {
       if (disposed) return
       disposed = true
-      controller.abort()
       signals[Symbol.dispose]()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
@@ -1021,14 +902,11 @@ function createHeadlessTerm(dims: { cols: number; rows: number }): Term {
 
 /** Create a terminal backed by a termless emulator — real ANSI processing, screen/scrollback. */
 function createBackendTerm(emulator: TermEmulator): Term {
-  const controller = new AbortController()
-  const eq = createEventQueue(controller)
   const { stdout, resizeListeners, updateDims } = createEmulatorStdout(
     (s) => emulator.feed(s),
     emulator.cols,
     emulator.rows,
   )
-  const subscribers = new Set<(state: TermState) => void>()
   let _frame: TextFrame | undefined
   const size = createFixedSize({ cols: emulator.cols, rows: emulator.rows })
   // Modes owner for emulator-backed terms: ANSI mode sequences would be
@@ -1036,6 +914,10 @@ function createBackendTerm(emulator: TermEmulator): Term {
   // sink. The owner still tracks state (`modes.mouse()`, etc.) for parity
   // with Node terms, but the emulator itself decides what to accept.
   const modes = createModes({ write: () => {}, stdin: HEADLESS_STDIN })
+  // Input sub-owner — non-TTY, pure event-bus mode. `sendInput(data)` parses
+  // ANSI bytes and fans out to onKey/onMouse/onPaste/onFocus subscribers so
+  // emulator-backed Terms share the same consumer shape as Node-backed.
+  const input = createInputOwner(HEADLESS_STDIN, stdout, { enableBracketedPaste: false })
   // Signals owner — emulator-backed terms share the host process so exit /
   // SIGINT handlers remain meaningful. Construction is free (no process
   // listeners until first on()), and the contract promises signals on every
@@ -1054,21 +936,34 @@ function createBackendTerm(emulator: TermEmulator): Term {
     console: undefined as DeviceConsole | undefined,
     write: (str: string) => emulator.feed(str),
     writeLine: (str: string) => emulator.feed(str + "\n"),
-    getState: (): TermState => ({ cols: emulator.cols, rows: emulator.rows }),
-    subscribe: (listener: (state: TermState) => void): (() => void) => {
-      subscribers.add(listener)
-      return () => subscribers.delete(listener)
-    },
-    events: () => eq.events(),
     resize: (cols: number, rows: number) => {
       emulator.resize(cols, rows)
-      subscribers.forEach((l) => l({ cols, rows }))
-      eq.push({ type: "resize", data: { cols, rows } })
       updateDims(cols, rows)
       size.update(cols, rows)
       resizeListeners.forEach((l) => l())
     },
-    sendInput: (data: string) => eq.push(...parseInputEvents(data)),
+    sendInput: (data: string) => {
+      // Parse the data into typed events and fan out via the input owner.
+      const pasteResult = parseBracketedPaste(data)
+      if (pasteResult) {
+        input.sendPaste({ text: pasteResult.content })
+        return
+      }
+      for (const raw of splitRawInput(data)) {
+        const focusEvent = parseFocusEvent(raw)
+        if (focusEvent) {
+          input.sendFocus({ focused: focusEvent.type === "focus-in" })
+          continue
+        }
+        if (isMouseSequence(raw)) {
+          const parsed = parseMouseSequence(raw)
+          if (parsed) input.sendMouse(parsed)
+          continue
+        }
+        const [parsedInput, key] = parseKey(raw)
+        input.sendKey({ input: parsedInput, key })
+      }
+    },
     stripAnsi,
     paint: (buffer: TerminalBuffer, prev: TerminalBuffer | null): string => {
       const output = outputPhase(prev, buffer)
@@ -1078,9 +973,7 @@ function createBackendTerm(emulator: TermEmulator): Term {
     },
     _emulator: emulator,
     [Symbol.dispose]: () => {
-      eq.dispose()
-      controller.abort()
-      subscribers.clear()
+      input[Symbol.dispose]()
       signals.dispose()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
@@ -1113,9 +1006,10 @@ function createBackendTerm(emulator: TermEmulator): Term {
         rows: { get: () => size.rows(), enumerable: true },
         screen: { get: () => emulator.screen, enumerable: true },
         scrollback: { get: () => emulator.scrollback, enumerable: true },
-        // Termless-backed Terms drive the emulator's input via emulator.feed,
-        // not via a real stdin — no InputOwner needed.
-        input: { get: () => undefined, enumerable: true },
+        // Emulator-backed Terms expose a non-TTY InputOwner as a pure event
+        // bus: consumers subscribe via input.on*, and `term.sendInput(data)`
+        // parses bytes into sendKey/sendMouse/sendPaste/sendFocus calls.
+        input: { get: () => input, enumerable: true },
         // Termless-backed Terms write through emulator.feed, not process.stdout —
         // no Output guard needed.
         output: { get: () => undefined, enumerable: true },

@@ -23,7 +23,7 @@
 // =============================================================================
 
 export { createTerm } from "./term"
-export type { Term, StyleChain, TermState, TermEvents } from "./term"
+export type { Term, StyleChain } from "./term"
 
 import { createTerm as _createTerm } from "./term"
 import type { Term } from "./term"

@@ -202,8 +202,7 @@ export function withTerm(term: Term) {
     let currentAg: Ag = app.ag
 
     const render = () => {
-      const state = term.getState()
-      currentAg.layout({ cols: state.cols, rows: state.rows })
+      currentAg.layout({ cols: term.size.cols(), rows: term.size.rows() })
       const result = currentAg.render()
 
       // Paint: diff and write output
@@ -219,27 +218,9 @@ export function withTerm(term: Term) {
       prev = result.frame
     }
 
-    // Event loop (if term has events)
-    let runFn: (() => Promise<void>) | undefined
-    if (term.events) {
-      runFn = async () => {
-        render() // Initial render
-        for await (const event of term.events()) {
-          if (event.type === "resize") {
-            prevBuffer = null // Reset diffing
-            prev = undefined
-            currentAg.resetBuffer()
-          }
-          app.dispatch({
-            type: `input:${event.type}`,
-            ...(event.data as Record<string, unknown>),
-          } as any)
-          if (event.type === "resize") {
-            render() // Resize always re-renders
-          }
-        }
-      }
-    }
+    // compose.withTerm is a low-level primitive — callers drive render() from
+    // their own event loop. For a self-running app use createApp() + run().
+    const runFn = undefined
 
     // Create the result object with a setter that updates the mutable ag ref.
     // This allows withReact to do `result.ag = newAg` and have the render()
