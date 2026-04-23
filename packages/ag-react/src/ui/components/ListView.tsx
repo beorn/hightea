@@ -58,7 +58,8 @@ import type { ComposedViewport } from "@silvery/ag-term/viewport-compositor"
 import { stripAnsi } from "@silvery/ag-term/unicode"
 import { isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 import { useSearchOptional } from "../../providers/SearchProvider"
-import type { SearchMatch } from "@silvery/ag-term/search-overlay"
+import type { MatchRange, SearchMatch } from "@silvery/ag-term/search-overlay"
+import { computeMatchRanges } from "@silvery/ag-term/search-overlay"
 import { createLogger } from "loggily"
 
 const wheelLog = createLogger("silvery:wheel")
@@ -71,6 +72,35 @@ const wheelLog = createLogger("silvery:wheel")
 export interface ListItemMeta {
   /** Whether this item is at the cursor position (nav mode only) */
   isCursor: boolean
+  /**
+   * Active search query at the time of render. Empty string when no search
+   * is in progress (no `SearchProvider` in the tree, or `search` prop not
+   * set, or the query is empty).
+   *
+   * Useful for items rendered as multiple separate Text nodes, where
+   * `matchRanges` (offsets into the single `getText(item)` output) can't be
+   * projected back onto individual sub-strings without duplicating the
+   * splitter logic. Pass `searchQuery` to `computeMatchRanges(segment, q)`
+   * per segment — same algorithm, same semantics, per-segment offsets.
+   */
+  searchQuery: string
+  /**
+   * Character ranges matched by the active search query within the item's
+   * searchable text (the output of `search.getText(item)`). Empty when there
+   * is no active query, when `getText` is not configured, or when this
+   * item's text contains no matches.
+   *
+   * Offsets are 0-based, `start` inclusive, `end` exclusive — same as
+   * `String.prototype.slice`. Overlapping matches are preserved (e.g. "aa"
+   * in "aaaa" produces three ranges). Case-insensitive.
+   *
+   * Consumers rendering the full `getText` string verbatim can use these
+   * ranges directly; consumers rendering the item as multiple segments
+   * should use `searchQuery` + `computeMatchRanges(segment, searchQuery)`
+   * instead, since whole-item ranges can't be projected across segment
+   * boundaries.
+   */
+  matchRanges: readonly MatchRange[]
 }
 
 /** Cache configuration for ListView */
@@ -212,6 +242,11 @@ const DEFAULT_ESTIMATE_HEIGHT = 1
 const DEFAULT_OVERSCAN = 5
 const DEFAULT_MAX_RENDERED = 100
 const DEFAULT_SCROLL_PADDING = 2
+
+/** Shared no-match sentinel — every renderItem call with no search activity
+ * gets the same identity-stable reference so consumers that memoise on
+ * `meta.matchRanges` don't see phantom changes each frame. */
+const EMPTY_MATCH_RANGES: readonly MatchRange[] = Object.freeze([])
 
 // ── Scroll physics: windowed event buffer + iOS momentum ───────────────
 //
@@ -819,6 +854,16 @@ function ListViewInner<T>(
   const searchConfig = typeof searchProp === "object" ? searchProp : searchProp ? {} : undefined
   const getText = searchConfig?.getText ?? (searchConfig ? (item: T) => String(item) : undefined)
 
+  // ── Active search query (for renderItem meta) ─────────────────────
+  //
+  // Read from the optional SearchProvider context. When there is no
+  // provider, no `search` prop, or the query is empty, this is "" — meta
+  // carries the empty string and callers render plainly. A non-empty
+  // query flows through to every visible item's `meta.matchRanges`
+  // computation below, so highlighting stays in lock-step with the
+  // provider's own match cycling.
+  const activeSearchQuery = searchConfig && searchCtx ? searchCtx.query : ""
+
   // Compute cached prefix from isCacheable
   let cachedCount = 0
   if ((cacheMode === "virtual" || cacheMode === "terminal") && cacheConfig?.isCacheable) {
@@ -842,9 +887,16 @@ function ListViewInner<T>(
       let ansi: string
       if (canCapture) {
         // Render the item's element through the pipeline to get real ANSI
-        // (borders, padding, colors — everything the user saw)
+        // (borders, padding, colors — everything the user saw). Cache
+        // capture runs for items that have scrolled out of view and
+        // become immutable scrollback; search highlights belong to the
+        // live viewport only, so the meta passed here is "no search".
         try {
-          const element = renderItem(item, i, { isCursor: false })
+          const element = renderItem(item, i, {
+            isCursor: false,
+            searchQuery: "",
+            matchRanges: EMPTY_MATCH_RANGES,
+          })
           ansi = renderStringSync(element as React.ReactElement, {
             width: captureWidth,
             plain: false,
@@ -1338,7 +1390,21 @@ function ListViewInner<T>(
         const originalIndex = startIndex + i + unmountedCount
         const key = getKey ? getKey(item, originalIndex) : startIndex + i
         const isLast = i === visibleItems.length - 1
-        const meta: ListItemMeta = { isCursor: originalIndex === activeCursor }
+        // Search-match metadata — computed per visible item (bounded by
+        // maxRendered, typically < 100) so centralising the algorithm here
+        // costs nothing vs the consumer re-scanning in renderItem. When
+        // search is not configured (`getText` unset) or there's no active
+        // query, both fields collapse to empty and the consumer renders
+        // plainly. See ListItemMeta docstring for per-segment usage.
+        const itemMatchRanges: readonly MatchRange[] =
+          activeSearchQuery !== "" && getText
+            ? computeMatchRanges(getText(item), activeSearchQuery)
+            : EMPTY_MATCH_RANGES
+        const meta: ListItemMeta = {
+          isCursor: originalIndex === activeCursor,
+          searchQuery: activeSearchQuery,
+          matchRanges: itemMatchRanges,
+        }
         // Use wrappedGetKey (index within activeItems) for measurement cache
         const measureKey = wrappedGetKey ? wrappedGetKey(startIndex + i) : startIndex + i
 
@@ -1476,20 +1542,26 @@ function ListViewInner<T>(
             {rows}
           </Box>
           {/* Overscroll indicator — spans the entire ListView width: a
-            * transparent SGR underline overlay on the first line (top) or
-            * the last visible line (bottom). Transient: the flash timer
-            * auto-hides after EDGE_BUMP_SHOW_MS, BUT we also gate on the
-            * scroll position still being at the corresponding edge. If the
-            * user scrolls away from the edge before the timer fires, the
-            * indicator vanishes immediately — it's meaningless when the
-            * edge line isn't on screen anymore.
+            * transparent SGR overlay on the first line (top) or the last
+            * visible line (bottom). Transient: the flash timer auto-hides
+            * after EDGE_BUMP_SHOW_MS, BUT we also gate on the scroll position
+            * still being at the corresponding edge. If the user scrolls away
+            * from the edge before the timer fires, the indicator vanishes
+            * immediately — it's meaningless when the edge line isn't on
+            * screen anymore.
             *
-            * Rendering: the Box has no `backgroundColor`, only the `underline`
-            * attr prop, so mergeAttrsInRect (km-silvery.text-box-attr-props)
-            * layers an SGR underline on every cell in the row WITHOUT
-            * overwriting the text glyph / fg / bg underneath. The previous
-            * implementation used `backgroundColor="$muted"` which effectively
-            * overwrote the entire line's characters. */}
+            * Edge asymmetry (top = overline, bottom = underline):
+            * SGR 53 (overline) draws the line ABOVE the character cell; SGR 4
+            * (underline) draws BELOW. The top indicator uses overline so the
+            * line sits against the very top of the first row — "you're bumped
+            * against the top" — instead of reading as "this row's content is
+            * underlined". The bottom indicator uses underline for the mirror
+            * reason. Bead: km-silvery.overline-attr.
+            *
+            * Rendering: the Box has no `backgroundColor`, only the attr prop,
+            * so mergeAttrsInRect (km-silvery.text-box-attr-props) layers the
+            * SGR on every cell in the row WITHOUT overwriting the text glyph /
+            * fg / bg underneath. */}
           {bumpedEdge === "top" && effectiveRowsAbove === 0 && (
             <Box
               position="absolute"
@@ -1497,8 +1569,7 @@ function ListViewInner<T>(
               left={0}
               right={0}
               height={1}
-              underline="single"
-              underlineColor="$muted"
+              overline
             />
           )}
           {bumpedEdge === "bottom" && effectiveRowsAbove === scrollableRows && (
