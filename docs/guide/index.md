@@ -48,3 +48,7 @@ In-depth guides for building terminal applications with Silvery -- from first pr
 ## Compatibility
 
 - [React 19](/guide/react-19) -- React 19 compatibility notes
+
+## Recipes
+
+- [Content-width bubbles](/guide/recipes/flex-content-width-bubbles) -- chat-bubble sizing with `alignItems` + `maxWidth`
