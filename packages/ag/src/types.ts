@@ -255,6 +255,27 @@ export interface StyleProps {
    * Uses SGR 58 (underline color). Falls back to text color if not specified.
    */
   underlineColor?: string
+  /**
+   * Overline the cell — SGR 53/55. Independent of underline.
+   *
+   * SGR 53 places a line ABOVE the character cell; SGR 55 removes it.
+   * Use this for top-edge indicators (e.g. overscroll-at-top), where an
+   * underline on the first row would read as "this row is underlined" rather
+   * than "you're bumped against the top". Overline on the top row and
+   * underline on the bottom row are the semantically correct pair.
+   *
+   * Supported by most modern terminals (Ghostty, iTerm2, xterm with
+   * `allowExtendedUnderlines` equivalent). The output phase skips SGR 53/55
+   * when {@link TerminalCaps#overline} is false.
+   */
+  overline?: boolean
+  /**
+   * Overline color — reserved. Currently not plumbed through the pipeline;
+   * see bead `km-silvery.overline-color` for the follow-up that mirrors
+   * {@link underlineColor}'s SGR 58 wiring for overline. Setting this today
+   * is a no-op.
+   */
+  overlineColor?: string
   strikethrough?: boolean
   inverse?: boolean
 

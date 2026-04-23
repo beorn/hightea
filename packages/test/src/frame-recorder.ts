@@ -120,6 +120,7 @@ const BLANK_CELL: FrameCell = Object.freeze({
   italic: false,
   underline: false as UnderlineStyle,
   underlineColor: null,
+  overline: false,
   strikethrough: false,
   inverse: false,
   blink: false,
@@ -157,6 +158,7 @@ interface TermlessCellView {
   readonly italic: boolean
   readonly underline: UnderlineStyle
   readonly underlineColor: RGB | null
+  readonly overline?: boolean
   readonly strikethrough: boolean
   readonly inverse: boolean
   readonly blink: boolean
@@ -211,6 +213,7 @@ function snapshotEmulator(emu: TermlessLike): TextFrame {
         italic: view.italic,
         underline: view.underline,
         underlineColor: view.underlineColor,
+        overline: view.overline ?? false,
         strikethrough: view.strikethrough,
         inverse: view.inverse,
         blink: view.blink,
@@ -242,6 +245,7 @@ function cellsEqual(a: FrameCell, b: FrameCell): boolean {
   if (a.italic !== b.italic) return false
   if (a.underline !== b.underline) return false
   if (!rgbEqual(a.underlineColor, b.underlineColor)) return false
+  if (a.overline !== b.overline) return false
   if (a.strikethrough !== b.strikethrough) return false
   if (a.inverse !== b.inverse) return false
   if (a.blink !== b.blink) return false

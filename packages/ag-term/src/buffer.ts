@@ -37,6 +37,12 @@ export interface CellAttrs {
    * When set, takes precedence over the underline boolean.
    */
   underlineStyle?: UnderlineStyle
+  /**
+   * Overline (SGR 53/55). A line ABOVE the character cell, independent of
+   * underline. Used for top-edge indicators where underline would read as
+   * "this row is underlined content" instead of "you're at the top".
+   */
+  overline?: boolean
   blink?: boolean
   inverse?: boolean
   hidden?: boolean
@@ -118,7 +124,7 @@ export interface Style {
 // Bit packing layout for cell metadata in Uint32Array:
 // [0-7]:   foreground color index (8 bits)
 // [8-15]:  background color index (8 bits)
-// [16-23]: attributes (8 bits): bold, dim, italic, blink, inverse, hidden, strikethrough + 1 spare
+// [16-23]: attributes (8 bits): bold, dim, italic, blink, inverse, hidden, strikethrough, overline
 // [24-26]: underline style (3 bits): 0=none, 1=single, 2=double, 3=curly, 4=dotted, 5=dashed
 // [27-31]: flags (5 bits): wide, continuation, true_color_fg, true_color_bg + 1 spare
 
@@ -130,7 +136,7 @@ const ATTR_BLINK = 1 << 19
 const ATTR_INVERSE = 1 << 20
 const ATTR_HIDDEN = 1 << 21
 const ATTR_STRIKETHROUGH = 1 << 22
-// bit 23 spare
+const ATTR_OVERLINE = 1 << 23
 
 // Underline style (3 bits in positions 24-26)
 // 0 = no underline, 1 = single, 2 = double, 3 = curly, 4 = dotted, 5 = dashed
@@ -175,10 +181,11 @@ export function clearSelectableFlag(packed: number): number {
 /**
  * Packed attribute bits that make a space character visually meaningful.
  * Inverse makes spaces visible (block of color), underline draws a line under spaces,
- * strikethrough draws a line through spaces. Other attrs (bold, dim, italic) don't
- * visually affect space characters.
+ * strikethrough draws a line through spaces, overline draws a line above spaces.
+ * Other attrs (bold, dim, italic) don't visually affect space characters.
  */
-export const VISIBLE_SPACE_ATTR_MASK = ATTR_INVERSE | ATTR_STRIKETHROUGH | UNDERLINE_STYLE_MASK
+export const VISIBLE_SPACE_ATTR_MASK =
+  ATTR_INVERSE | ATTR_STRIKETHROUGH | ATTR_OVERLINE | UNDERLINE_STYLE_MASK
 
 // Default empty cell
 const EMPTY_CELL: Cell = {
@@ -271,6 +278,7 @@ export function attrsToNumber(attrs: CellAttrs): number {
   if (attrs.inverse) n |= ATTR_INVERSE
   if (attrs.hidden) n |= ATTR_HIDDEN
   if (attrs.strikethrough) n |= ATTR_STRIKETHROUGH
+  if (attrs.overline) n |= ATTR_OVERLINE
 
   // Pack underline style (3 bits)
   // If underlineStyle is set, use it. Otherwise, check underline boolean.
@@ -292,6 +300,7 @@ export function numberToAttrs(n: number): CellAttrs {
   if (n & ATTR_INVERSE) attrs.inverse = true
   if (n & ATTR_HIDDEN) attrs.hidden = true
   if (n & ATTR_STRIKETHROUGH) attrs.strikethrough = true
+  if (n & ATTR_OVERLINE) attrs.overline = true
 
   // Unpack underline style
   const ulStyleNum = (n & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT
@@ -727,6 +736,7 @@ export class TerminalBuffer {
     attrs.inverse = (packed & ATTR_INVERSE) !== 0 ? true : undefined
     attrs.hidden = (packed & ATTR_HIDDEN) !== 0 ? true : undefined
     attrs.strikethrough = (packed & ATTR_STRIKETHROUGH) !== 0 ? true : undefined
+    attrs.overline = (packed & ATTR_OVERLINE) !== 0 ? true : undefined
 
     const ulStyleNum = (packed & UNDERLINE_STYLE_MASK) >> UNDERLINE_STYLE_SHIFT
     const ulStyle = numberToUnderlineStyle(ulStyleNum)
@@ -1624,6 +1634,7 @@ export function attrsEquals(a: CellAttrs, b: CellAttrs): boolean {
     Boolean(a.italic) === Boolean(b.italic) &&
     Boolean(a.underline) === Boolean(b.underline) &&
     (a.underlineStyle ?? false) === (b.underlineStyle ?? false) &&
+    Boolean(a.overline) === Boolean(b.overline) &&
     Boolean(a.blink) === Boolean(b.blink) &&
     Boolean(a.inverse) === Boolean(b.inverse) &&
     Boolean(a.hidden) === Boolean(b.hidden) &&
@@ -2174,6 +2185,7 @@ export function hasActiveAttrs(attrs: CellAttrs): boolean {
     attrs.italic ||
     attrs.underline ||
     attrs.underlineStyle ||
+    attrs.overline ||
     attrs.blink ||
     attrs.inverse ||
     attrs.hidden ||
@@ -2504,6 +2516,7 @@ export function cellToFrameCell(c: Cell): FrameCell {
     italic: c.attrs.italic ?? false,
     underline: ulStyle,
     underlineColor: resolveColor(c.underlineColor ?? null),
+    overline: c.attrs.overline ?? false,
     strikethrough: c.attrs.strikethrough ?? false,
     inverse: c.attrs.inverse ?? false,
     blink: c.attrs.blink ?? false,
@@ -2524,6 +2537,7 @@ export const EMPTY_FRAME_CELL: FrameCell = Object.freeze({
   italic: false,
   underline: false as const,
   underlineColor: null,
+  overline: false,
   strikethrough: false,
   inverse: false,
   blink: false,

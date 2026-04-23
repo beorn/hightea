@@ -73,6 +73,7 @@ export function createPipeline(
           // array here (not a boolean).
           underlineStyles: caps.underlineStyles,
           underlineColor: caps.underlineColor,
+          overline: caps.overline,
           colorLevel: caps.colorLevel,
         }
       : {},

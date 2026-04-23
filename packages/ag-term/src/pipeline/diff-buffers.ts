@@ -85,6 +85,7 @@ function writeEmptyCellChange(change: CellChange, x: number, y: number): void {
   attrs.inverse = undefined
   attrs.hidden = undefined
   attrs.strikethrough = undefined
+  attrs.overline = undefined
   cell.wide = false
   cell.continuation = false
   cell.hyperlink = undefined

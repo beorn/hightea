@@ -49,6 +49,8 @@ export interface RenderStyle {
     underline?: boolean
     underlineStyle?: "single" | "double" | "curly" | "dotted" | "dashed"
     underlineColor?: string
+    /** Overline — SGR 53/55. Independent of underline. */
+    overline?: boolean
     strikethrough?: boolean
     inverse?: boolean
   }

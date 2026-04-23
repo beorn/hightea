@@ -319,6 +319,7 @@ export function getTextStyle(props: TextProps): Style {
   let underline = !!props.underline || !!underlineStyle
   let strikethrough = props.strikethrough
   let inverse = props.inverse
+  const overline = !!props.overline
 
   // Monochrome tier: inject per-token SGR attrs from DEFAULT_MONO_ATTRS. Colors
   // are stripped by parseColor (returns null for $tokens at mono tier). The
@@ -349,6 +350,7 @@ export function getTextStyle(props: TextProps): Style {
       italic,
       underline,
       underlineStyle,
+      overline,
       strikethrough,
       inverse,
     },

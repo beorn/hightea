@@ -121,6 +121,14 @@ export interface TerminalCaps {
   readonly underlineStyles: readonly UnderlineStyle[]
   /** SGR 58 underline color */
   readonly underlineColor: boolean
+  /**
+   * SGR 53/55 overline support. SGR 53 draws a line ABOVE the character cell,
+   * complementing the underline (SGR 4) below. Most modern terminals support
+   * it (Ghostty, iTerm2, xterm with extended attrs); the output phase skips
+   * emit when this is false so older terminals don't render the literal
+   * escape as text. See {@link BoxProps#overline} for the UI-facing prop.
+   */
+  readonly overline: boolean
   /** OSC 66 text sizing protocol likely supported (Kitty 0.40+, Ghostty).
    * Phase 7 rename: dropped the verbose `Supported` suffix. */
   readonly textSizing: boolean
@@ -200,6 +208,7 @@ export function defaultCaps(): TerminalCaps {
     unicode: true,
     underlineStyles: ["double", "curly", "dotted", "dashed"],
     underlineColor: true,
+    overline: true,
     textSizing: false,
     kittyKeyboard: false,
     bracketedPaste: true,

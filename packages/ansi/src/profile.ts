@@ -612,6 +612,11 @@ export function detectTerminalProfileFromEnv(
     unicode,
     underlineStyles,
     underlineColor: underlineExtensions,
+    // Overline (SGR 53) piggybacks on the same "extended SGR" family as
+    // SGR 58 underline color. Terminals advertising extended underline
+    // attrs have always also rendered overline in practice (Ghostty,
+    // iTerm2, xterm extended). Per-terminal overrides can flip this off.
+    overline: underlineExtensions,
     textSizing: isKittyWithTextSizing,
     kittyKeyboard: isKitty || isGhostty || isWezTerm || isFoot,
     bracketedPaste: true,

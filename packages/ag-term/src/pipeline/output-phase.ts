@@ -136,6 +136,13 @@ export interface OutputCaps {
    */
   readonly underlineStyles: readonly UnderlineStyle[]
   readonly underlineColor: boolean
+  /**
+   * SGR 53 (overline) support. When false, the output phase skips
+   * emitting SGR 53/55 — the cell attr is still packed/diffed, but no
+   * escape sequence reaches the terminal. Defaults to true for modern
+   * terminals (Ghostty, iTerm2, xterm with extended attrs enabled).
+   */
+  readonly overline: boolean
   readonly colorLevel: TerminalCaps["colorLevel"]
 }
 
@@ -170,6 +177,7 @@ const defaultContext: OutputContext = {
   caps: {
     underlineStyles: ALL_EXTENDED_UNDERLINE_STYLES,
     underlineColor: true,
+    overline: true,
     colorLevel: "truecolor",
   },
   measurer: null,
@@ -235,6 +243,7 @@ export function createOutputPhase(
   caps: {
     underlineStyles?: OutputUnderlineStylesCap
     underlineColor?: boolean
+    overline?: boolean
     colorLevel?: TerminalCaps["colorLevel"]
   },
   measurer?: OutputMeasurer,
@@ -246,6 +255,7 @@ export function createOutputPhase(
     caps: {
       underlineStyles: resolveUnderlineStylesCap(caps.underlineStyles),
       underlineColor: caps.underlineColor ?? true,
+      overline: caps.overline ?? true,
       colorLevel: caps.colorLevel ?? "truecolor",
     },
     measurer: measurer ?? null,
@@ -569,6 +579,7 @@ function styleToKey(style: Style): string {
   if (attrs.strikethrough) attrBits |= 32
   if (attrs.blink) attrBits |= 64
   if (attrs.hidden) attrBits |= 128
+  if (attrs.overline) attrBits |= 256
 
   key += `|${attrBits}`
 
@@ -694,6 +705,12 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
   }
   if (Boolean(oa.strikethrough) !== Boolean(na.strikethrough)) {
     codes.push(na.strikethrough ? "9" : "29")
+  }
+  // Overline (SGR 53/55). Skip emit when terminal doesn't advertise support —
+  // the cell attr is still packed and diffed, but we suppress the escape bytes
+  // so older terminals don't render the literal `[53m` sequence as text.
+  if (ctx.caps.overline && Boolean(oa.overline) !== Boolean(na.overline)) {
+    codes.push(na.overline ? "53" : "55")
   }
   if (Boolean(oa.blink) !== Boolean(na.blink)) {
     codes.push(na.blink ? "5" : "25")
@@ -2212,6 +2229,7 @@ function styleToAnsi(style: Style, ctx: OutputContext = defaultContext): string 
   if (style.attrs.inverse) codes.push("7")
   if (style.attrs.hidden) codes.push("8")
   if (style.attrs.strikethrough) codes.push("9")
+  if (style.attrs.overline && ctx.caps.overline) codes.push("53")
 
   // Append underline color if specified (SGR 58) — skip for limited terminals
   if (

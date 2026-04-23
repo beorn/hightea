@@ -1148,6 +1148,7 @@ function mayHaveBoxAttrOverlay(props: BoxProps): boolean {
     props.underline ||
     props.underlineStyle ||
     props.underlineColor ||
+    props.overline ||
     props.bold ||
     props.dim ||
     props.dimColor ||
@@ -1193,8 +1194,9 @@ function computeBoxAttrOverlay(
   const italic = !!props.italic
   const inverse = !!props.inverse
   const strikethrough = !!props.strikethrough
+  const overline = !!props.overline
 
-  if (!hasUnderline && !bold && !dim && !italic && !inverse && !strikethrough) {
+  if (!hasUnderline && !bold && !dim && !italic && !inverse && !strikethrough && !overline) {
     // No overlay attrs — skip.
     return null
   }
@@ -1205,6 +1207,7 @@ function computeBoxAttrOverlay(
     italic: italic || undefined,
     inverse: inverse || undefined,
     strikethrough: strikethrough || undefined,
+    overline: overline || undefined,
     underline: hasUnderline || undefined,
     underlineStyle: hasUnderline ? underlineStyle : undefined,
   }

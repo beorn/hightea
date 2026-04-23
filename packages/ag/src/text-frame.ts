@@ -48,6 +48,8 @@ export interface FrameCell {
   readonly underline: UnderlineStyle
   /** Underline color (independent of fg), or null to use fg */
   readonly underlineColor: RGB | null
+  /** Overline attribute — SGR 53. Independent of underline. */
+  readonly overline: boolean
   /** Strikethrough attribute */
   readonly strikethrough: boolean
   /** Inverse/reverse video attribute */

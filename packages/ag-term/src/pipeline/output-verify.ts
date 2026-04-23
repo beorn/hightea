@@ -674,6 +674,7 @@ const _defaultCtxForReplay: OutputContext = {
     // available. Narrower caps are exercised via createOutputPhase({...}).
     underlineStyles: ["single", "double", "curly", "dotted", "dashed"],
     underlineColor: true,
+    overline: true,
     colorLevel: "truecolor",
   },
   measurer: null,

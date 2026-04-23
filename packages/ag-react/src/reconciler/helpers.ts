@@ -83,6 +83,7 @@ const STYLE_PROPS = new Set([
   "underline",
   "underlineStyle",
   "underlineColor",
+  "overline",
   "strikethrough",
   "inverse",
   "borderColor",

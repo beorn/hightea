@@ -486,6 +486,8 @@ interface AdapterStyleContext {
   underline?: boolean
   underlineStyle?: "single" | "double" | "curly" | "dotted" | "dashed"
   underlineColor?: string
+  /** Overline — SGR 53/55. Independent of underline. */
+  overline?: boolean
   inverse?: boolean
   strikethrough?: boolean
 }
@@ -532,6 +534,7 @@ function mergeAdapterStyleContext(
     underline: childUnderline.underline ?? parent.underline,
     underlineStyle: childUnderline.underlineStyle ?? parent.underlineStyle,
     underlineColor: childProps.underlineColor ?? parent.underlineColor,
+    overline: childProps.overline ?? parent.overline,
     inverse: childProps.inverse ?? parent.inverse,
     strikethrough: childProps.strikethrough ?? parent.strikethrough,
   }
@@ -549,6 +552,7 @@ function contextToRenderStyle(ctx: AdapterStyleContext, bg?: string): RenderStyl
       underline: ctx.underline,
       underlineStyle: ctx.underlineStyle,
       underlineColor: ctx.underlineColor,
+      overline: ctx.overline,
       strikethrough: ctx.strikethrough,
       inverse: ctx.inverse,
     },
