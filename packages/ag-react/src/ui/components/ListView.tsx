@@ -211,27 +211,42 @@ const DEFAULT_SCROLL_PADDING = 2
 
 // ── Kinetic scroll physics (iOS UIScrollView "normal" deceleration) ────────
 //
-// Wheel events add to `velocity` (items/sec). A 60Hz loop advances the
-// float anchor by `velocity · dt` and decays velocity exponentially. The
-// sub-item accumulator (anchorFloat) is what gives low-speed momentum a
-// smooth feel even though the rendered anchor is integer (`Math.round`).
+// Two things happen on each wheel event:
 //
-// The decay constant `KINETIC_DECAY_PER_FRAME = 0.95` at 60fps is
-// equivalent to ~0.9969 per ms — very close to UIScrollView's 0.998/ms
-// "normal" rate; slightly more aggressive to suit a discrete list where
-// one-item overshoot reads as sloppier than on iOS's pixel-smooth scroll.
+//   1. An immediate displacement (`WHEEL_STEP_IMMEDIATE`) nudges the
+//      viewport one item — responsiveness, so a single mouse-wheel click
+//      visibly moves something even when velocity is still negligible.
+//
+//   2. An impulse is added to `velocity` (items/sec). A 60Hz loop then
+//      advances the float anchor by `velocity · dt` and decays velocity
+//      exponentially — this is what gives the "flick and coast" feel when
+//      the user stops interacting but the list keeps scrolling.
+//
+// `KINETIC_DECAY_PER_FRAME = 0.95` at 60fps is equivalent to ~0.9969/ms —
+// very close to UIScrollView's 0.998/ms "normal" rate; slightly more
+// aggressive to suit a discrete list where one-item overshoot reads as
+// sloppier than on iOS's pixel-smooth scroll.
 
-/** Each wheel click's contribution to velocity, in items per second.
- * Tuned so one notch feels like ~3 items of travel before decay. */
+/** Immediate items moved per wheel notch, before momentum takes over.
+ * Sized to match a notched mouse-wheel click (~3 rows, a common default).
+ * Trackpad sends dense event streams so each event still feels smooth. */
+const WHEEL_STEP_IMMEDIATE = 3
+/** Each wheel notch's contribution to velocity, in items per second.
+ * Keep modest — large impulses at the cap produce rapid motion that's
+ * hard to track visually in a discrete-row TUI. */
 const KINETIC_IMPULSE = 18
-/** Max absolute velocity (items/sec). Prevents runaway from spammy trackpads. */
-const KINETIC_MAX_VELOCITY = 120
-/** Multiplicative decay per 60Hz frame. 0.95^60 ≈ 0.046 (~95% gone in 1s). */
-const KINETIC_DECAY_PER_FRAME = 0.95
+/** Max absolute velocity (items/sec). Capped low enough that the eye can
+ * follow the scroll during a long fast-flick (~30 rows/sec peak). */
+const KINETIC_MAX_VELOCITY = 50
+/** Multiplicative decay per 60Hz frame. 0.82^60 ≈ 5×10⁻⁶ (~all gone in 1s).
+ * Half-life ~53ms → tight, snappy stop after the user releases. */
+const KINETIC_DECAY_PER_FRAME = 0.82
 /** Stop the loop once velocity drops below this (items/sec). */
-const KINETIC_STOP_THRESHOLD = 0.8
+const KINETIC_STOP_THRESHOLD = 0.5
 /** Animation loop period in ms — 60Hz. */
 const KINETIC_FRAME_MS = 16
+/** How long (ms) the scrollbar stays visible after the last scroll activity. */
+const SCROLLBAR_FADE_AFTER_MS = 800
 
 // =============================================================================
 // Measurement
@@ -330,11 +345,20 @@ function ListViewInner<T>(
   // (mouse follows hover, keyboard moves focus). `viewportAnchor` pins the
   // viewport to a specific item index; null means "follow cursor".
   // `anchorFloatRef` is the sub-item accumulator used by the kinetic loop
-  // for smooth momentum; the rendered anchor is always an integer.
+  // for smooth momentum; the rendered viewportAnchor is always an integer.
+  //
+  // `scrollbarFloat` is the 0..1 position of the scrollbar thumb top — it
+  // tracks `anchorFloatRef` in fractional item space and updates every
+  // kinetic frame so the thumb slides smoothly even when the integer
+  // viewportAnchor hasn't changed. `isScrolling` controls thumb visibility;
+  // a setTimeout hides it SCROLLBAR_FADE_AFTER_MS after the last activity.
   const [viewportAnchor, setViewportAnchor] = useState<number | null>(null)
+  const [scrollbarFloat, setScrollbarFloat] = useState(0)
+  const [isScrolling, setIsScrolling] = useState(false)
   const anchorFloatRef = useRef<number | null>(null)
   const velocityRef = useRef(0)
   const kineticLoopRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const scrollbarHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Latest item count — the wheel/kinetic paths close over a stale items.length
   // on each frame otherwise.
   const itemCountRef = useRef(items.length)
@@ -347,8 +371,21 @@ function ListViewInner<T>(
     }
   }, [])
 
+  const scheduleScrollbarHide = useCallback(() => {
+    if (scrollbarHideTimerRef.current !== null) {
+      clearTimeout(scrollbarHideTimerRef.current)
+    }
+    scrollbarHideTimerRef.current = setTimeout(() => {
+      setIsScrolling(false)
+      scrollbarHideTimerRef.current = null
+    }, SCROLLBAR_FADE_AFTER_MS)
+  }, [])
+
   // Cleanup on unmount.
-  useEffect(() => () => stopKinetic(), [stopKinetic])
+  useEffect(() => () => {
+    stopKinetic()
+    if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
+  }, [stopKinetic])
 
   const moveTo = useCallback(
     (next: number) => {
@@ -368,6 +405,12 @@ function ListViewInner<T>(
   // One frame of kinetic integration — shared by the inline wheel path (so
   // the first frame happens at event time, feels instant) and the setInterval
   // loop (continuation). Returns true if the loop should keep running.
+  //
+  // Two pieces of state update per frame:
+  //   - anchorFloat → viewportAnchor (integer, drives content scrollTo)
+  //   - scrollbarFloat (0..1 fractional, drives scrollbar thumb position —
+  //     changes every frame so the thumb slides smoothly even when the
+  //     integer anchor is unchanged for several frames at low velocity).
   const kineticStep = useCallback((): boolean => {
     const float = anchorFloatRef.current
     if (float === null) return false
@@ -388,6 +431,7 @@ function ListViewInner<T>(
     anchorFloatRef.current = nextFloat
     const rendered = Math.round(nextFloat)
     setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
+    setScrollbarFloat(maxIdx > 0 ? nextFloat / maxIdx : 0)
     velocityRef.current *= KINETIC_DECAY_PER_FRAME
     if (Math.abs(velocityRef.current) < KINETIC_STOP_THRESHOLD) {
       velocityRef.current = 0
@@ -405,25 +449,38 @@ function ListViewInner<T>(
 
   const handleWheel = useCallback(
     ({ deltaY }: { deltaY: number }) => {
-      if (itemCountRef.current <= 0) return
+      const count = itemCountRef.current
+      if (count <= 0) return
+      const maxIdx = count - 1
       // First wheel event seeds the anchor from the current cursor (nav
       // mode) or 0 (passive mode — cursor is -1).
       if (anchorFloatRef.current === null) {
         anchorFloatRef.current = activeCursor >= 0 ? activeCursor : 0
       }
-      const next = velocityRef.current + deltaY * KINETIC_IMPULSE
+      // Immediate one-item displacement for responsiveness. Without this a
+      // single wheel notch produces only a sub-item velocity bump that
+      // rounds to no visible motion.
+      const dir = Math.sign(deltaY) || 0
+      let nextFloat = anchorFloatRef.current + dir * WHEEL_STEP_IMMEDIATE
+      if (nextFloat < 0) nextFloat = 0
+      else if (nextFloat > maxIdx) nextFloat = maxIdx
+      anchorFloatRef.current = nextFloat
+      const rendered = Math.round(nextFloat)
+      setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
+      setScrollbarFloat(maxIdx > 0 ? nextFloat / maxIdx : 0)
+      // Scrollbar on — auto-hide refreshes on each event.
+      setIsScrolling(true)
+      scheduleScrollbarHide()
+      // Kinetic impulse — rapid notches accumulate, stopping mid-gesture
+      // still coasts briefly.
+      const nextV = velocityRef.current + deltaY * KINETIC_IMPULSE
       velocityRef.current = Math.max(
         -KINETIC_MAX_VELOCITY,
-        Math.min(KINETIC_MAX_VELOCITY, next),
+        Math.min(KINETIC_MAX_VELOCITY, nextV),
       )
-      // Advance one frame immediately so each wheel event produces visible
-      // motion — the loop otherwise waits KINETIC_FRAME_MS before the first
-      // tick, making single notches feel unresponsive. Subsequent frames
-      // come from the setInterval.
-      kineticStep()
       startKinetic()
     },
-    [activeCursor, kineticStep, startKinetic],
+    [activeCursor, scheduleScrollbarHide, startKinetic],
   )
 
   // Observe search bar state — while the bar is open, the app-wide
@@ -878,7 +935,31 @@ function ListViewInner<T>(
   const scrollToIndex = hasTopPlaceholder ? selectedIndexInSlice + 1 : selectedIndexInSlice
   const boxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
 
+  // Scrollbar geometry — live-updated every kinetic frame. Only computed
+  // when the list overflows the viewport (thumbHeight < trackHeight).
+  const trackHeight = Math.max(1, height)
+  const totalItems = activeItems.length
+  // Approximate visible count from the slice the virtualizer is rendering.
+  // Fallback to trackHeight when visibleItems is empty (initial mount).
+  const approxVisible = Math.max(1, visibleItems.length || trackHeight)
+  const thumbHeight =
+    totalItems > approxVisible
+      ? Math.max(1, Math.floor((approxVisible / totalItems) * trackHeight))
+      : 0
+  const thumbTop =
+    thumbHeight > 0
+      ? Math.max(
+          0,
+          Math.min(
+            trackHeight - thumbHeight,
+            Math.round(scrollbarFloat * (trackHeight - thumbHeight)),
+          ),
+        )
+      : 0
+  const showScrollbar = isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
+
   return (
+    <Box position="relative" flexDirection="column" height={height} width={width}>
     <Box
       ref={boxHandleRef}
       flexDirection="column"
@@ -960,6 +1041,30 @@ function ListViewInner<T>(
       {trailingHeight > 0 && (
         <Box height={trailingHeight} flexShrink={0} representsItems={hiddenAfter} />
       )}
+    </Box>
+    {/* Scrollbar overlay — absolute-positioned on the right edge so it
+     * doesn't steal a column from content. Track is implicit (transparent);
+     * only the thumb draws. Position updates every kinetic frame so it
+     * slides smoothly even between integer-anchor content updates. */}
+    {showScrollbar && (
+      <>
+        <Box
+          position="absolute"
+          top={0}
+          right={0}
+          width={1}
+          height={trackHeight}
+        />
+        <Box
+          position="absolute"
+          top={thumbTop}
+          right={0}
+          width={1}
+          height={thumbHeight}
+          backgroundColor="$muted"
+        />
+      </>
+    )}
     </Box>
   )
 }

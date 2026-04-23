@@ -1063,8 +1063,18 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // deterministic (no env sniffing), which is exactly what tests want.
   // `defaultCaps()` already matches this shape — keep it as the base so any
   // future default changes propagate without a second source of truth.
+  //
+  // Post km-silvery.unicode-plateau Phase 3/4 (2026-04-23): caps.cursor and
+  // caps.input were added to TerminalCaps. `defaultCaps()` defaults them to
+  // `false` (safe for headless / non-TTY). Emulator-backed terms are the
+  // exception — they simulate a full TTY, so we override both to `true` to
+  // match the hardcoded `hasCursor()` / `hasInput()` methods below. Without
+  // this override, `term.caps.cursor !== term.hasCursor()` — a subtle
+  // divergence any caps consumer would hit.
   const emulatorCaps: TerminalCaps = {
     ...defaultCaps(),
+    cursor: true,
+    input: true,
     ...capsOverride,
   }
 
