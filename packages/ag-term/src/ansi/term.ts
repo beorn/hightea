@@ -192,6 +192,25 @@ export type StyleChain = {
    * Chainable style properties.
    */
   readonly [K in ChalkStyleName]: StyleChain
+} & {
+  // Extended underline terminators (Phase 6 of the unicode plateau,
+  // 2026-04-23). These replaced the bare `curlyUnderline()` /
+  // `styledUnderline()` etc. exports in `@silvery/ansi` — caps flow
+  // through `createStyle(caps)` at Term construction instead of per-call.
+  // Not chainable; take text as the final argument. Fall back to standard
+  // SGR 4 when `term.caps.underlineStyles` is false. Declared in a separate
+  // intersection member because TypeScript forbids mixing mapped types
+  // with method signatures in the same object.
+  curlyUnderline(text: string): string
+  dottedUnderline(text: string): string
+  dashedUnderline(text: string): string
+  doubleUnderline(text: string): string
+  underlineColor(r: number, g: number, b: number, text: string): string
+  styledUnderline(
+    name: import("./types.ts").UnderlineStyle,
+    rgb: import("./types.ts").RGB,
+    text: string,
+  ): string
 }
 
 // =============================================================================
@@ -766,8 +785,18 @@ function createNodeTerm(options: CreateTermOptions): Term {
   const cachedInput = profile.caps.input
   const cachedUnicode = options.unicode ?? profile.caps.unicode
 
-  // Create style instance with appropriate color level
-  const styleInstance = createStyle({ level: cachedColor })
+  // Create style instance with appropriate color level + caps. Caps drive
+  // the extended-underline methods on Style (Phase 6 of the unicode
+  // plateau, 2026-04-23) — `term.curlyUnderline("err")` respects the same
+  // `term.caps.underlineStyles` gate the retired bare `curlyUnderline()`
+  // export used.
+  const styleInstance = createStyle({
+    level: cachedColor,
+    caps: {
+      underlineStyles: profile.caps.underlineStyles,
+      underlineColor: profile.caps.underlineColor,
+    },
+  })
 
   // Size owner — single source of truth for cols/rows. Subscribes to stdout's
   // `resize` event with 16ms coalescing so burst SIGWINCH from tmux/cmux/
@@ -1018,7 +1047,9 @@ function createHeadlessTerm(
   })
 
   return finalizeTerm(
-    createStyle({ level: null }),
+    // Headless: no color, no extended underline (caps.underlineStyles
+    // defaults to false via headlessCaps → defaultCaps).
+    createStyle({ level: null, caps: { underlineStyles: false, underlineColor: false } }),
     termBase,
     { get: () => _frame },
     {
@@ -1157,7 +1188,9 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   })
 
   return finalizeTerm(
-    createStyle({ level: "truecolor" }),
+    // Emulator-backed (termless / xterm.js): full truecolor + extended
+    // underline — emulatorCaps sets both to true.
+    createStyle({ level: "truecolor", caps: { underlineStyles: true, underlineColor: true } }),
     termBase,
     { get: () => _frame },
     {

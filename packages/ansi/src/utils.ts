@@ -63,3 +63,70 @@ export function stripAnsi(text: string): string {
 export function displayLength(text: string): number {
   return stringWidth(stripAnsi(text))
 }
+
+// =============================================================================
+// warnOnce — shared dev-warning latch
+// =============================================================================
+
+/**
+ * Process-lifetime set of warning IDs that have already fired. Used by
+ * {@link warnOnce} to avoid console spam on every re-render / every paste /
+ * every parse. Shared across packages — one latch per warning ID, regardless
+ * of which module emits it.
+ *
+ * Intentionally process-global (not scoped per {@link Term}) because the
+ * warnings gated here describe developer-mistake conditions that are
+ * semantically "once per process": spam is worse than missed repeats.
+ */
+const _firedWarnings = new Set<string>()
+
+/**
+ * Emit a warning exactly once per process, keyed by `id`.
+ *
+ * The first call with a given `id` invokes `emit(message)`; subsequent calls
+ * with the same `id` are no-ops. Use for dev-mode checks that would otherwise
+ * spam the console on every render pass / every keystroke / every reconcile.
+ *
+ * Consolidates what used to be three parallel `let hasWarned*` latches
+ * scattered across silvery packages (`test/index.tsx`,
+ * `ag-react/reconciler/host-config.ts`, `ag/keys.ts`). See
+ * km-silvery.latch-consolidation.
+ *
+ * @param id - Unique warning identifier (stable across restarts). Convention:
+ *   `<package>:<short-slug>`, e.g. `"silvery/test:termless-leak"`,
+ *   `"silvery/ag-react:box-in-text"`.
+ * @param emit - Callback that actually produces the warning. Called once.
+ *   Omit to use `console.warn` with no message (rarely useful — prefer an
+ *   explicit emit).
+ *
+ * @example
+ * ```ts
+ * import { warnOnce } from "@silvery/ansi"
+ *
+ * function validateBoxInText() {
+ *   if (!isValid) {
+ *     warnOnce("silvery/ag-react:box-in-text", () =>
+ *       console.warn("<Box> cannot be nested inside <Text>.")
+ *     )
+ *   }
+ * }
+ * ```
+ */
+export function warnOnce(id: string, emit: () => void): void {
+  if (_firedWarnings.has(id)) return
+  _firedWarnings.add(id)
+  emit()
+}
+
+/**
+ * Reset the warn-once latch — test-only.
+ *
+ * With no argument, clears every warning ID. With an explicit ID, clears just
+ * that one (lets a test exercise its own warning without disturbing others).
+ * Export is prefixed `_` to signal "test infrastructure, do not call from
+ * production code."
+ */
+export function _resetWarnOnceForTesting(id?: string): void {
+  if (id === undefined) _firedWarnings.clear()
+  else _firedWarnings.delete(id)
+}

@@ -561,16 +561,12 @@ export type {
 // Utilities
 export { ANSI_REGEX, displayLength } from "./ansi/index"
 
-// Underline functions
-export {
-  underline as ansiUnderline,
-  curlyUnderline,
-  dottedUnderline,
-  dashedUnderline,
-  doubleUnderline,
-  underlineColor,
-  styledUnderline,
-} from "./ansi/index"
+// Underline — removed in Phase 6 of the unicode plateau (2026-04-23).
+// The bare functions (curlyUnderline / dottedUnderline / dashedUnderline /
+// doubleUnderline / underlineColor / styledUnderline / underline) were
+// folded into methods on `Style` and `Term`. Consumers with a Term in
+// scope write `term.curlyUnderline("x")`; headless consumers build a
+// style via `createStyle({ caps })` and call `style.curlyUnderline(x)`.
 
 // Hyperlinks
 export { hyperlink } from "./ansi/index"

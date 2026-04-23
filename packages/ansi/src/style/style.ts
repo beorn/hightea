@@ -16,6 +16,13 @@
  */
 
 import { createTerminalProfile } from "../profile.ts"
+import {
+  UNDERLINE_CODES,
+  UNDERLINE_STANDARD,
+  UNDERLINE_RESET_STANDARD,
+  UNDERLINE_COLOR_RESET,
+  buildUnderlineColorCode,
+} from "../constants.ts"
 
 import {
   BG_COLORS,
@@ -112,7 +119,22 @@ function resolveToken(name: string, theme: ThemeLike | undefined): string | unde
 // =============================================================================
 
 const ESC = "\x1b["
-const KNOWN_METHODS = new Set(["hex", "rgb", "bgHex", "bgRgb", "ansi256", "bgAnsi256", "resolve"])
+const KNOWN_METHODS = new Set([
+  "hex",
+  "rgb",
+  "bgHex",
+  "bgRgb",
+  "ansi256",
+  "bgAnsi256",
+  "resolve",
+  // Extended underline terminators (Phase 6, 2026-04-23).
+  "curlyUnderline",
+  "dottedUnderline",
+  "dashedUnderline",
+  "doubleUnderline",
+  "underlineColor",
+  "styledUnderline",
+])
 const THEME_TOKENS = new Set([
   "primary",
   "secondary",
@@ -171,23 +193,40 @@ export function createStyle(options?: StyleOptions): Style {
   // Mutable level ref — shared across all chains from this instance.
   // Post km-silvery.terminal-profile-plateau Phase 1: level is the canonical
   // {@link ColorTier}, where `"mono"` is the no-color state (previously `null`).
-  const ref = {
-    level: "mono" as import("../types.ts").ColorTier,
+  // Post km-silvery.underline-on-style (Phase 6, 2026-04-23): `caps` also
+  // lives on the ref — drives the extended-underline methods on the returned
+  // Style. When options.caps is absent, the single `createTerminalProfile()`
+  // call below populates both level and caps in one pass.
+  const ref: {
+    level: import("../types.ts").ColorTier
+    theme: ThemeLike | undefined
+    caps: { underlineStyles: boolean; underlineColor: boolean }
+  } = {
+    level: "mono",
     theme: options?.theme as ThemeLike | undefined,
+    caps: { underlineStyles: false, underlineColor: false },
   }
 
   if (options?.level !== undefined && options.level !== null) {
     ref.level = options.level
+    ref.caps = options.caps ?? ref.caps
   } else if (options?.level === null) {
     ref.level = "mono"
+    ref.caps = options.caps ?? ref.caps
   } else {
     try {
       // Post km-silvery.plateau-delete-legacy-shims (H6): profile factory
       // replaces the `detectColor` shim. Same semantics — env precedence
       // and TTY detection — but routed through the canonical entry point.
-      ref.level = createTerminalProfile({ stdout: process.stdout }).colorTier
+      const profile = createTerminalProfile({ stdout: process.stdout })
+      ref.level = profile.colorTier
+      ref.caps = options?.caps ?? {
+        underlineStyles: profile.caps.underlineStyles,
+        underlineColor: profile.caps.underlineColor,
+      }
     } catch {
       ref.level = "mono"
+      ref.caps = options?.caps ?? ref.caps
     }
   }
 
@@ -219,7 +258,11 @@ export const style: Style = createStyle()
  */
 function createChainWithRef(
   state: ChainState,
-  ref: { level: import("../types.ts").ColorTier; theme: ThemeLike | undefined },
+  ref: {
+    level: import("../types.ts").ColorTier
+    theme: ThemeLike | undefined
+    caps: { underlineStyles: boolean; underlineColor: boolean }
+  },
 ): Style {
   // proxyRef lets the handler reference its own proxy (needed for Function.prototype methods)
   const proxyRef: { proxy: Style | null } = { proxy: null }
@@ -345,6 +388,44 @@ function createChainWithRef(
         }
       }
 
+      // Extended underline methods (Phase 6 of the unicode plateau, 2026-04-23).
+      // These terminate the chain — they take `text` and return a finished
+      // string. Not composable with chain modifiers (that would require
+      // interleaving SGR 4:x with other opens, which the close-code dance
+      // gets wrong). Consumers who want bold + curly-underline wrap the
+      // terminator: `style.bold(style.curlyUnderline("err"))`.
+      //
+      // Emission gates:
+      //   - level === "mono" → return plain text (no ANSI)
+      //   - !caps.underlineStyles → fallback to standard SGR 4
+      //   - else → SGR 4:x (optionally with SGR 58 color when present)
+      if (
+        prop === "curlyUnderline" ||
+        prop === "dottedUnderline" ||
+        prop === "dashedUnderline" ||
+        prop === "doubleUnderline"
+      ) {
+        const styleName = prop.slice(0, prop.length - "Underline".length) as
+          | "curly"
+          | "dotted"
+          | "dashed"
+          | "double"
+        return (text: string) => applyExtendedUnderline(text, styleName, ref)
+      }
+
+      if (prop === "underlineColor") {
+        return (r: number, g: number, b: number, text: string) =>
+          applyUnderlineColor(text, r, g, b, ref)
+      }
+
+      if (prop === "styledUnderline") {
+        return (
+          styleName: import("../types.ts").UnderlineStyle,
+          rgb: import("../types.ts").RGB,
+          text: string,
+        ) => applyStyledUnderline(text, styleName, rgb, ref)
+      }
+
       // Modifiers
       if (prop in MODIFIERS) {
         if (level === "mono") return createChainWithRef(state, ref)
@@ -445,4 +526,78 @@ function createChainWithRef(
   const proxy = new Proxy(target, handler) as unknown as Style
   proxyRef.proxy = proxy
   return proxy
+}
+
+// =============================================================================
+// Extended underline helpers — internal to the Proxy, terminate chains
+// =============================================================================
+//
+// These are called by the get-trap handlers for .curlyUnderline /
+// .dottedUnderline / .dashedUnderline / .doubleUnderline / .underlineColor /
+// .styledUnderline. Moved here from the retired
+// packages/ansi/src/underline-ext.ts in Phase 6 of the unicode plateau so
+// the caps-dependency flows through createStyle's ref instead of being
+// threaded per-call.
+
+const UNDERLINE_OPEN = "\x1b[4m"
+const UNDERLINE_CLOSE = "\x1b[24m"
+
+/** `style.curlyUnderline(text)` / `.dotted` / `.dashed` / `.double`. */
+function applyExtendedUnderline(
+  text: string,
+  name: "curly" | "dotted" | "dashed" | "double",
+  ref: {
+    level: import("../types.ts").ColorTier
+    caps: { underlineStyles: boolean; underlineColor: boolean }
+  },
+): string {
+  if (ref.level === "mono") return text
+  if (!ref.caps.underlineStyles) {
+    return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
+  }
+  return `${UNDERLINE_CODES[name]}${text}${UNDERLINE_CODES.reset}`
+}
+
+/** `style.underlineColor(r, g, b, text)`. */
+function applyUnderlineColor(
+  text: string,
+  r: number,
+  g: number,
+  b: number,
+  ref: {
+    level: import("../types.ts").ColorTier
+    caps: { underlineStyles: boolean; underlineColor: boolean }
+  },
+): string {
+  if (ref.level === "mono") return text
+  if (!ref.caps.underlineColor) {
+    // Fallback: standard underline (no color)
+    return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
+  }
+  const colorCode = buildUnderlineColorCode(r, g, b)
+  return `${UNDERLINE_STANDARD}${colorCode}${text}${UNDERLINE_COLOR_RESET}${UNDERLINE_RESET_STANDARD}`
+}
+
+/** `style.styledUnderline(name, [r,g,b], text)`. */
+function applyStyledUnderline(
+  text: string,
+  name: import("../types.ts").UnderlineStyle,
+  rgb: import("../types.ts").RGB,
+  ref: {
+    level: import("../types.ts").ColorTier
+    caps: { underlineStyles: boolean; underlineColor: boolean }
+  },
+): string {
+  if (ref.level === "mono") return text
+  if (!ref.caps.underlineStyles) {
+    return `${UNDERLINE_OPEN}${text}${UNDERLINE_CLOSE}`
+  }
+  const [r, g, b] = rgb
+  const styleCode = UNDERLINE_CODES[name]
+  if (!ref.caps.underlineColor) {
+    // Style without color
+    return `${styleCode}${text}${UNDERLINE_CODES.reset}`
+  }
+  const colorCode = buildUnderlineColorCode(r, g, b)
+  return `${styleCode}${colorCode}${text}${UNDERLINE_CODES.reset}${UNDERLINE_COLOR_RESET}`
 }

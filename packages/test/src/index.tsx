@@ -135,6 +135,7 @@ await ensureDefaultLayoutEngine()
 // ============================================================================
 
 import { createTerm, type Term, type TerminalCaps } from "@silvery/ag-term"
+import { warnOnce } from "@silvery/ansi"
 
 /**
  * Live-termless tracker. Each `createTermless()` registers a WeakRef to the
@@ -151,8 +152,8 @@ const liveTermlessInstances = new Set<WeakRef<Term>>()
 /** Tunable guard threshold — print a warning when we exceed this many live Terms. */
 const TERMLESS_LEAK_WARN_THRESHOLD = 128
 
-/** True once we've emitted the warning; avoid spamming. */
-let hasWarnedAboutTermlessLeak = false
+/** Warning ID for the shared warnOnce latch. */
+const TERMLESS_LEAK_WARNING_ID = "silvery/test:termless-leak"
 
 /**
  * Prune GC'd entries from the tracker and return the count of still-live
@@ -320,17 +321,16 @@ export function createTermless(
 
   // Track this instance for leak detection
   liveTermlessInstances.add(new WeakRef(term))
-  if (!hasWarnedAboutTermlessLeak) {
-    const live = pruneLiveTermless()
-    if (live >= TERMLESS_LEAK_WARN_THRESHOLD) {
-      hasWarnedAboutTermlessLeak = true
+  const live = pruneLiveTermless()
+  if (live >= TERMLESS_LEAK_WARN_THRESHOLD) {
+    warnOnce(TERMLESS_LEAK_WARNING_ID, () => {
       // eslint-disable-next-line no-console
       console.warn(
         `[silvery/test] ${live} live termless Term instances detected — likely a test forgot ` +
           "to use `using term = createTermless(...)`. Each un-disposed Term retains an " +
           "xterm.js Terminal with ~1 MB scrollback. See bead km-silvery.termless-memleak.",
       )
-    }
+    })
   }
 
   // --- Mouse surface ---

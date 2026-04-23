@@ -34,6 +34,7 @@ import {
 import { classifyPropChanges } from "./helpers"
 import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
 import { createLogger } from "loggily"
+import { warnOnce, _resetWarnOnceForTesting } from "@silvery/ansi"
 
 const log = createLogger("silvery:reconciler")
 
@@ -120,16 +121,20 @@ function markLayoutAncestorDirty(node: AgNode): void {
 // ============================================================================
 // Dev Warnings
 // ============================================================================
+//
+// Box-inside-Text warning uses the shared `warnOnce` latch from @silvery/ansi
+// (see km-silvery.latch-consolidation). Tests reset via
+// `_resetWarnOnceForTesting("silvery/ag-react:box-in-text")`.
+
+const BOX_INSIDE_TEXT_WARNING_ID = "silvery/ag-react:box-in-text"
 
 /**
- * Track whether we've already warned about Box-inside-Text
- * to avoid spamming the console on every re-render.
+ * Reset the box-inside-text warning latch (for testing).
+ * Thin wrapper over `_resetWarnOnceForTesting` that pins the warning ID —
+ * call sites don't need to remember the exact key.
  */
-let hasWarnedBoxInsideText = false
-
-/** Reset the warning flag (for testing). */
 export function _resetBoxInsideTextWarning(): void {
-  hasWarnedBoxInsideText = false
+  _resetWarnOnceForTesting(BOX_INSIDE_TEXT_WARNING_ID)
 }
 
 /**
@@ -248,9 +253,12 @@ export const hostConfig = {
       if (inkStrictValidation) {
         throw new Error("<Box> can\u2019t be nested inside <Text> component")
       }
-      if (process.env.NODE_ENV !== "production" && !hasWarnedBoxInsideText) {
-        hasWarnedBoxInsideText = true
-        log.warn?.("<Box> cannot be nested inside <Text>. This produces undefined layout behavior.")
+      if (process.env.NODE_ENV !== "production") {
+        warnOnce(BOX_INSIDE_TEXT_WARNING_ID, () =>
+          log.warn?.(
+            "<Box> cannot be nested inside <Text>. This produces undefined layout behavior.",
+          ),
+        )
       }
     }
 

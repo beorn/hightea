@@ -491,14 +491,6 @@ const BASE_TO_SHIFTED_PUNCT: Record<string, string> = Object.fromEntries(
  */
 const KITTY_RE = /^\x1b\[(\d+)(?::(\d+))?(?::(\d+))?(?:;(\d+)(?::(\d+))?(?:;([\d:]+))?)?u$/
 
-/** Emit the missing-shifted-codepoint warning only once per process. */
-let _shiftWarningEmitted = false
-
-/** Reset warning state (for testing). */
-export function _resetShiftWarning(): void {
-  _shiftWarningEmitted = false
-}
-
 /** Matches xterm modifyOtherKeys format: CSI 27 ; modifier ; keycode ~ */
 const MODIFY_OTHER_KEYS_RE = /^\x1b\[27;(\d+);(\d+)~$/
 

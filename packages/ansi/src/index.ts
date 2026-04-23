@@ -87,7 +87,13 @@ export { fgColorCode, bgColorCode } from "./sgr-codes"
 // Utilities
 // =============================================================================
 
-export { ANSI_REGEX, stripAnsi, displayLength } from "./utils"
+export {
+  ANSI_REGEX,
+  stripAnsi,
+  displayLength,
+  warnOnce,
+  _resetWarnOnceForTesting,
+} from "./utils"
 
 // =============================================================================
 // Color Maps & Quantization
@@ -163,18 +169,22 @@ export {
 } from "./kitty-graphics"
 
 // =============================================================================
-// Extended Underline Functions
+// Extended Underline — removed in Phase 6 of the unicode plateau (2026-04-23).
+//
+// The bare `curlyUnderline()` / `dottedUnderline()` / `dashedUnderline()` /
+// `doubleUnderline()` / `underlineColor()` / `styledUnderline()` /
+// `underline()` exports were folded into methods on `Style` (the object
+// returned by `createStyle(caps)`). Caps now flow through the style
+// factory instead of being threaded per-call — one dependency injection
+// point per styling consumer.
+//
+// Migration:
+//   Before:  curlyUnderline("misspelled", caps)
+//   After:   style.curlyUnderline("misspelled")   // style = createStyle({ caps })
+//
+// `UnderlineCaps` (the structural pick of TerminalCaps both APIs use) is
+// re-exported alongside `StyleOptions` below.
 // =============================================================================
-
-export {
-  underline,
-  curlyUnderline,
-  dottedUnderline,
-  dashedUnderline,
-  doubleUnderline,
-  underlineColor,
-  styledUnderline,
-} from "./underline-ext"
 
 // =============================================================================
 // Hyperlink Functions
@@ -189,7 +199,7 @@ export { hyperlink } from "./hyperlink"
 export { createStyle, createPlainStyle, style, resolveThemeColor } from "./style/style"
 export { createMixedStyle } from "./style/mixed-proxy"
 export { THEME_TOKEN_DEFAULTS } from "./style/colors"
-export type { Style, StyleOptions, ThemeLike } from "./style/types"
+export type { Style, StyleOptions, ThemeLike, UnderlineCaps } from "./style/types"
 
 // =============================================================================
 // Theme Derivation

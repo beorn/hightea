@@ -120,18 +120,10 @@ export type {
 export { ANSI_REGEX, stripAnsi, displayLength } from "./utils"
 
 // =============================================================================
-// Underline Functions
+// Underline — moved to Style methods in Phase 6 of the unicode plateau
+// (2026-04-23). Consumers use `term.curlyUnderline(x)` etc., or build a
+// headless style: `createStyle({ caps }).curlyUnderline(x)`.
 // =============================================================================
-
-export {
-  underline,
-  curlyUnderline,
-  dottedUnderline,
-  dashedUnderline,
-  doubleUnderline,
-  underlineColor,
-  styledUnderline,
-} from "./underline"
 
 // =============================================================================
 // Hyperlink Functions

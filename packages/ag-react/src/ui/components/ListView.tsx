@@ -209,42 +209,51 @@ const DEFAULT_OVERSCAN = 5
 const DEFAULT_MAX_RENDERED = 100
 const DEFAULT_SCROLL_PADDING = 2
 
-// ── Kinetic scroll physics (iOS UIScrollView "normal" deceleration) ────────
+// ── Scroll physics: iOS-style momentum + wheel acceleration ────────────
 //
-// Two things happen on each wheel event:
+// Two phases:
 //
-//   1. An immediate displacement (`WHEEL_STEP_IMMEDIATE`) nudges the
-//      viewport one item — responsiveness, so a single mouse-wheel click
-//      visibly moves something even when velocity is still negligible.
+//   Wheel phase (user actively scrolling). Each wheel event:
+//     - dt since last event → acceleration factor (fast gesture → bigger step)
+//     - immediate step (items) for responsiveness
+//     - velocity (items/sec) updated via event-sampled estimate
 //
-//   2. An impulse is added to `velocity` (items/sec). A 60Hz loop then
-//      advances the float anchor by `velocity · dt` and decays velocity
-//      exponentially — this is what gives the "flick and coast" feel when
-//      the user stops interacting but the list keeps scrolling.
+//   Momentum phase (no wheel events for RELEASE_TIMEOUT_MS). Closed-form
+//   exponential decay, Ariya-Hidayat / UIScrollView shape:
+//     amplitude = velocity × τ     // total coast distance
+//     target    = pos + amplitude
+//     pos(t)    = target − amplitude · exp(−t / τ)
+//     stop when t > 6τ (within 0.25% of target — inaudible in row-space)
 //
-// `KINETIC_DECAY_PER_FRAME = 0.95` at 60fps is equivalent to ~0.9969/ms —
-// very close to UIScrollView's 0.998/ms "normal" rate; slightly more
-// aggressive to suit a discrete list where one-item overshoot reads as
-// sloppier than on iOS's pixel-smooth scroll.
+// τ = KINETIC_TIME_CONSTANT_MS. Apple's equivalent decay rate 0.95 per 16.7ms
+// frame ↔ τ ≈ 325ms. We use 260ms — a hair snappier for discrete TUI rows
+// where overshoot reads sloppier than on iOS's pixel-smooth scroll.
 
-/** Immediate items moved per wheel notch, before momentum takes over.
- * Sized to match a notched mouse-wheel click (~3 rows, a common default).
- * Trackpad sends dense event streams so each event still feels smooth. */
-const WHEEL_STEP_IMMEDIATE = 3
-/** Each wheel notch's contribution to velocity, in items per second.
- * Keep modest — large impulses at the cap produce rapid motion that's
- * hard to track visually in a discrete-row TUI. */
-const KINETIC_IMPULSE = 18
-/** Max absolute velocity (items/sec). Capped low enough that the eye can
- * follow the scroll during a long fast-flick (~30 rows/sec peak). */
-const KINETIC_MAX_VELOCITY = 50
-/** Multiplicative decay per 60Hz frame. 0.82^60 ≈ 5×10⁻⁶ (~all gone in 1s).
- * Half-life ~53ms → tight, snappy stop after the user releases. */
-const KINETIC_DECAY_PER_FRAME = 0.82
-/** Stop the loop once velocity drops below this (items/sec). */
-const KINETIC_STOP_THRESHOLD = 0.5
-/** Animation loop period in ms — 60Hz. */
+/** Base items per wheel event at the slow end — 1 click = 1 row. */
+const WHEEL_BASE_STEP = 1
+/** Max wheel acceleration multiplier at short inter-event dt. */
+const WHEEL_ACCEL_MAX = 5
+/** The dt (ms) at which accel factor = 1. Shorter dt → accel up to MAX. */
+const WHEEL_ACCEL_REFERENCE_DT_MS = 180
+/** Inter-event dt (ms) beyond which we treat events as isolated single-clicks
+ * (no velocity accumulation). Matches macOS system behavior. */
+const WHEEL_ISOLATED_DT_MS = 500
+
+/** Max absolute velocity (items/sec). Capped so momentum distance stays
+ * trackable in row-space. amplitude_max = MAX_VELOCITY × τ / 1000 in seconds
+ * scale — here 60 items/sec × 0.26s ≈ 15 items of max coast. */
+const KINETIC_MAX_VELOCITY = 60
+/** Momentum time constant (ms). See derivation above. */
+const KINETIC_TIME_CONSTANT_MS = 260
+/** Stop the momentum animation after this many τ (6τ → within 0.25% of target). */
+const KINETIC_STOP_AFTER_TAU_MULTIPLES = 6
+/** Stop when remaining distance is below this (items). Prevents stalling at
+ * fractional positions after the exponential flattens out. */
+const KINETIC_STOP_DISTANCE = 0.5
+/** Animation loop period in ms — 60Hz sampling of the closed-form curve. */
 const KINETIC_FRAME_MS = 16
+/** Wait this long with no wheel events before entering momentum phase. */
+const RELEASE_TIMEOUT_MS = 60
 /** How long (ms) the scrollbar stays visible after the last scroll activity. */
 const SCROLLBAR_FADE_AFTER_MS = 800
 
@@ -347,17 +356,26 @@ function ListViewInner<T>(
   // `anchorFloatRef` is the sub-item accumulator used by the kinetic loop
   // for smooth momentum; the rendered viewportAnchor is always an integer.
   //
-  // `scrollbarFloat` is the 0..1 position of the scrollbar thumb top — it
-  // tracks `anchorFloatRef` in fractional item space and updates every
-  // kinetic frame so the thumb slides smoothly even when the integer
-  // viewportAnchor hasn't changed. `isScrolling` controls thumb visibility;
-  // a setTimeout hides it SCROLLBAR_FADE_AFTER_MS after the last activity.
+  // `isScrolling` controls the scrollbar thumb visibility; a setTimeout
+  // hides it SCROLLBAR_FADE_AFTER_MS after the last wheel activity. The
+  // thumb's position is derived from the virtualizer's `leadingHeight` in
+  // row space (see render below) so it stays locked to content motion
+  // rather than drifting ahead via item-index interpolation.
   const [viewportAnchor, setViewportAnchor] = useState<number | null>(null)
-  const [scrollbarFloat, setScrollbarFloat] = useState(0)
   const [isScrolling, setIsScrolling] = useState(false)
   const anchorFloatRef = useRef<number | null>(null)
+  // Velocity in items/sec, sampled from wheel-event position deltas.
   const velocityRef = useRef(0)
+  const lastWheelTimeRef = useRef(0)
+  // Momentum phase (closed-form exponential decay) state. Populated on
+  // release; `null` means "no momentum animation in flight".
+  const momentumRef = useRef<{
+    startPos: number
+    amplitude: number
+    startTime: number
+  } | null>(null)
   const kineticLoopRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollbarHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Latest item count — the wheel/kinetic paths close over a stale items.length
   // on each frame otherwise.
@@ -368,6 +386,14 @@ function ListViewInner<T>(
     if (kineticLoopRef.current !== null) {
       clearInterval(kineticLoopRef.current)
       kineticLoopRef.current = null
+    }
+    momentumRef.current = null
+  }, [])
+
+  const clearReleaseTimer = useCallback(() => {
+    if (releaseTimerRef.current !== null) {
+      clearTimeout(releaseTimerRef.current)
+      releaseTimerRef.current = null
     }
   }, [])
 
@@ -384,8 +410,9 @@ function ListViewInner<T>(
   // Cleanup on unmount.
   useEffect(() => () => {
     stopKinetic()
+    clearReleaseTimer()
     if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
-  }, [stopKinetic])
+  }, [stopKinetic, clearReleaseTimer])
 
   const moveTo = useCallback(
     (next: number) => {
@@ -393,94 +420,150 @@ function ListViewInner<T>(
       if (!isControlled) setUncontrolledCursor(clamped)
       onCursor?.(clamped)
       // Keyboard/programmatic cursor move → viewport snaps back to cursor.
-      // Kill any in-flight kinetic scroll.
+      // Kill any in-flight wheel/momentum animation and release timer.
       anchorFloatRef.current = null
       setViewportAnchor(null)
       velocityRef.current = 0
+      lastWheelTimeRef.current = 0
       stopKinetic()
+      clearReleaseTimer()
     },
-    [isControlled, items.length, onCursor, stopKinetic],
+    [clearReleaseTimer, isControlled, items.length, onCursor, stopKinetic],
   )
 
-  // One frame of kinetic integration — shared by the inline wheel path (so
-  // the first frame happens at event time, feels instant) and the setInterval
-  // loop (continuation). Returns true if the loop should keep running.
+  // Closed-form momentum sample — evaluates the exponential decay curve at
+  // absolute time t relative to release, returns false when the animation
+  // should terminate.
   //
-  // Two pieces of state update per frame:
-  //   - anchorFloat → viewportAnchor (integer, drives content scrollTo)
-  //   - scrollbarFloat (0..1 fractional, drives scrollbar thumb position —
-  //     changes every frame so the thumb slides smoothly even when the
-  //     integer anchor is unchanged for several frames at low velocity).
-  const kineticStep = useCallback((): boolean => {
-    const float = anchorFloatRef.current
-    if (float === null) return false
+  //   pos(t) = target − amplitude × exp(−t / τ)
+  //
+  // Where amplitude = v₀ × τ (total coast distance in items) and target
+  // is the clamped final position. Stop when t > 6τ or remaining distance
+  // is below KINETIC_STOP_DISTANCE — either criterion ensures a clean end.
+  const momentumStep = useCallback((): boolean => {
+    const m = momentumRef.current
+    if (m === null) return false
     const count = itemCountRef.current
     if (count <= 0) return false
     const maxIdx = count - 1
-    const dt = KINETIC_FRAME_MS / 1000
-    let nextFloat = float + velocityRef.current * dt
-    // Clamp to bounds. Hitting an edge kills velocity — no rubber-band
-    // overscroll in a discrete list; it just reads as chatter.
-    if (nextFloat <= 0) {
-      nextFloat = 0
-      velocityRef.current = 0
-    } else if (nextFloat >= maxIdx) {
-      nextFloat = maxIdx
-      velocityRef.current = 0
-    }
-    anchorFloatRef.current = nextFloat
-    const rendered = Math.round(nextFloat)
-    setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
-    setScrollbarFloat(maxIdx > 0 ? nextFloat / maxIdx : 0)
-    velocityRef.current *= KINETIC_DECAY_PER_FRAME
-    if (Math.abs(velocityRef.current) < KINETIC_STOP_THRESHOLD) {
-      velocityRef.current = 0
+    const tau = KINETIC_TIME_CONSTANT_MS
+    const t = performance.now() - m.startTime
+    if (t >= tau * KINETIC_STOP_AFTER_TAU_MULTIPLES) return false
+    const decay = Math.exp(-t / tau)
+    const remaining = m.amplitude * decay
+    if (Math.abs(remaining) < KINETIC_STOP_DISTANCE) return false
+    let pos = m.startPos + m.amplitude * (1 - decay)
+    // Hard clamp at edges — zero-remaining terminates.
+    if (pos <= 0) {
+      pos = 0
+      anchorFloatRef.current = 0
+      setViewportAnchor(0)
       return false
     }
+    if (pos >= maxIdx) {
+      pos = maxIdx
+      anchorFloatRef.current = maxIdx
+      setViewportAnchor(maxIdx)
+      return false
+    }
+    anchorFloatRef.current = pos
+    const rendered = Math.round(pos)
+    setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
     return true
   }, [])
 
-  const startKinetic = useCallback(() => {
+  const startMomentum = useCallback(() => {
     if (kineticLoopRef.current !== null) return
     kineticLoopRef.current = setInterval(() => {
-      if (!kineticStep()) stopKinetic()
+      if (!momentumStep()) stopKinetic()
     }, KINETIC_FRAME_MS)
-  }, [kineticStep, stopKinetic])
+  }, [momentumStep, stopKinetic])
+
+  // Transition from user-driven wheel to closed-form momentum phase: snapshot
+  // the current velocity into an exponential decay profile and start animating.
+  const enterMomentum = useCallback(() => {
+    const v = velocityRef.current
+    if (Math.abs(v) < 1) {
+      velocityRef.current = 0
+      return
+    }
+    const count = itemCountRef.current
+    if (count <= 0) return
+    const maxIdx = count - 1
+    const startPos = anchorFloatRef.current ?? 0
+    // amplitude = v × τ (with τ in seconds)
+    const amplitude = v * (KINETIC_TIME_CONSTANT_MS / 1000)
+    const rawTarget = startPos + amplitude
+    const clampedTarget = Math.max(0, Math.min(maxIdx, rawTarget))
+    momentumRef.current = {
+      startPos,
+      amplitude: clampedTarget - startPos,
+      startTime: performance.now(),
+    }
+    velocityRef.current = 0
+    startMomentum()
+  }, [startMomentum])
+
+  const scheduleRelease = useCallback(() => {
+    clearReleaseTimer()
+    releaseTimerRef.current = setTimeout(() => {
+      releaseTimerRef.current = null
+      enterMomentum()
+    }, RELEASE_TIMEOUT_MS)
+  }, [clearReleaseTimer, enterMomentum])
 
   const handleWheel = useCallback(
     ({ deltaY }: { deltaY: number }) => {
       const count = itemCountRef.current
       if (count <= 0) return
       const maxIdx = count - 1
+      const now = performance.now()
+      const dir = Math.sign(deltaY) || 0
+      if (dir === 0) return
+      // Cancel any in-flight momentum — user is actively driving again.
+      stopKinetic()
+      clearReleaseTimer()
       // First wheel event seeds the anchor from the current cursor (nav
       // mode) or 0 (passive mode — cursor is -1).
       if (anchorFloatRef.current === null) {
         anchorFloatRef.current = activeCursor >= 0 ? activeCursor : 0
       }
-      // Immediate one-item displacement for responsiveness. Without this a
-      // single wheel notch produces only a sub-item velocity bump that
-      // rounds to no visible motion.
-      const dir = Math.sign(deltaY) || 0
-      let nextFloat = anchorFloatRef.current + dir * WHEEL_STEP_IMMEDIATE
+      // Inter-event dt drives both step size (acceleration) and velocity
+      // estimation. Clamp dt to [1ms, ISOLATED] to avoid pathological
+      // 0-dt divide-by-zero on coalesced events or stale timestamps after
+      // long pauses.
+      const rawDt = lastWheelTimeRef.current === 0 ? WHEEL_ISOLATED_DT_MS : now - lastWheelTimeRef.current
+      const dt = Math.max(1, Math.min(WHEEL_ISOLATED_DT_MS, rawDt))
+      const accel = Math.min(
+        WHEEL_ACCEL_MAX,
+        Math.max(1, WHEEL_ACCEL_REFERENCE_DT_MS / dt),
+      )
+      const stepItems = WHEEL_BASE_STEP * accel
+      lastWheelTimeRef.current = now
+      // Advance anchor immediately — content follows on the next render.
+      let nextFloat = anchorFloatRef.current + dir * stepItems
       if (nextFloat < 0) nextFloat = 0
       else if (nextFloat > maxIdx) nextFloat = maxIdx
       anchorFloatRef.current = nextFloat
       const rendered = Math.round(nextFloat)
       setViewportAnchor((prev) => (prev === rendered ? prev : rendered))
-      setScrollbarFloat(maxIdx > 0 ? nextFloat / maxIdx : 0)
+      // Velocity estimate: items/sec implied by this single step, capped.
+      // An isolated slow click (long dt) yields tiny velocity → negligible
+      // momentum after release. A dense trackpad stream (short dt) sustains
+      // high velocity → long coast.
+      const vSample = dt >= WHEEL_ISOLATED_DT_MS ? 0 : (dir * stepItems) / (dt / 1000)
+      velocityRef.current = Math.max(
+        -KINETIC_MAX_VELOCITY,
+        Math.min(KINETIC_MAX_VELOCITY, vSample),
+      )
       // Scrollbar on — auto-hide refreshes on each event.
       setIsScrolling(true)
       scheduleScrollbarHide()
-      // Kinetic impulse — rapid notches accumulate, stopping mid-gesture
-      // still coasts briefly.
-      const nextV = velocityRef.current + deltaY * KINETIC_IMPULSE
-      velocityRef.current = Math.max(
-        -KINETIC_MAX_VELOCITY,
-        Math.min(KINETIC_MAX_VELOCITY, nextV),
-      )
-      startKinetic()
+      // After a short pause with no more wheel events, roll current
+      // velocity into a closed-form momentum animation.
+      scheduleRelease()
     },
-    [activeCursor, scheduleScrollbarHide, startKinetic],
+    [activeCursor, clearReleaseTimer, scheduleRelease, scheduleScrollbarHide, stopKinetic],
   )
 
   // Observe search bar state — while the bar is open, the app-wide
@@ -935,27 +1018,66 @@ function ListViewInner<T>(
   const scrollToIndex = hasTopPlaceholder ? selectedIndexInSlice + 1 : selectedIndexInSlice
   const boxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
 
-  // Scrollbar geometry — live-updated every kinetic frame. Only computed
-  // when the list overflows the viewport (thumbHeight < trackHeight).
+  // Scrollbar geometry — indexed on ROW (vertical position), not item#.
+  // Item-indexed thumb jumps erratically when item heights vary, because
+  // "50% through the items" is not "50% through the rendered content"
+  // when early items are tall and late items short (or vice-versa).
+  //
+  //   totalRows     = sum of every item's measured row height (or its
+  //                   estimate for unmeasured items). Stable across a
+  //                   scroll — depends on count + measurement cache only,
+  //                   not on the render window.
+  //   scrollable    = totalRows − trackHeight (rows the user can reveal
+  //                   by scrolling, excluding the always-visible viewport).
+  //   thumbHeight   = trackHeight × trackHeight / totalRows
+  //                   (viewport fraction of total, CSS-scrollbar shape).
+  //   thumbTop      = trackRemainder × leadingHeight / scrollable
+  //                   (row offset of viewport top → thumb top).
+  //
+  // `leadingHeight` comes from the virtualizer and is the measured row
+  // offset above the first visible item — this is exactly what a browser
+  // scrollbar uses, so tall items before the viewport correctly push the
+  // thumb further down than short ones.
   const trackHeight = Math.max(1, height)
-  const totalItems = activeItems.length
-  // Approximate visible count from the slice the virtualizer is rendering.
-  // Fallback to trackHeight when visibleItems is empty (initial mount).
-  const approxVisible = Math.max(1, visibleItems.length || trackHeight)
+  const totalRows = Math.max(
+    1,
+    sumHeights(
+      0,
+      activeItems.length,
+      adjustedEstimateHeight,
+      gap,
+      measuredHeights,
+      wrappedGetKey,
+    ),
+  )
+  // Rows scrolled past the viewport top — the exact measurement a browser
+  // uses for scrollbar position. `leadingHeight` from the virtualizer is
+  // `sumHeights(0, startIndex)` where startIndex = scrollOffset − overscan,
+  // so it underestimates "rows above viewport" by the overscan window and
+  // lags the thumb behind the content. Use `scrollOffset` (viewport-top
+  // item index) + sumHeights directly.
+  const rowsAboveViewport = sumHeights(
+    0,
+    scrollOffset,
+    adjustedEstimateHeight,
+    gap,
+    measuredHeights,
+    wrappedGetKey,
+  )
   const thumbHeight =
-    totalItems > approxVisible
-      ? Math.max(1, Math.floor((approxVisible / totalItems) * trackHeight))
+    totalRows > trackHeight
+      ? Math.max(1, Math.floor((trackHeight * trackHeight) / totalRows))
       : 0
+  const scrollableRows = Math.max(1, totalRows - trackHeight)
+  const trackRemainder = trackHeight - thumbHeight
+  // Clamp position to [0, trackRemainder] — thumb is always fully visible
+  // within the track, never over-runs top or bottom. Content clamp lives
+  // in `kineticStep` (anchor clamped to [0, maxIdx], velocity zeroed at
+  // edges — no rubber-band overshoot).
+  const clampedFrac =
+    scrollableRows > 0 ? Math.max(0, Math.min(1, rowsAboveViewport / scrollableRows)) : 0
   const thumbTop =
-    thumbHeight > 0
-      ? Math.max(
-          0,
-          Math.min(
-            trackHeight - thumbHeight,
-            Math.round(scrollbarFloat * (trackHeight - thumbHeight)),
-          ),
-        )
-      : 0
+    thumbHeight > 0 ? Math.max(0, Math.min(trackRemainder, Math.round(clampedFrac * trackRemainder))) : 0
   const showScrollbar = isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
 
   return (

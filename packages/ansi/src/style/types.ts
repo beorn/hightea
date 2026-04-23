@@ -3,6 +3,15 @@
  */
 
 import type { ColorTier } from "../types.ts"
+import type { TerminalCaps } from "../detection.ts"
+
+/**
+ * Structural subset of {@link TerminalCaps} the extended-underline methods on
+ * {@link Style} actually read. Declared here so test fixtures can synthesize
+ * underline-specific caps without constructing a full profile. Prefer passing
+ * `term.caps` / `createTerminalProfile().caps` in production code.
+ */
+export type UnderlineCaps = Pick<TerminalCaps, "underlineStyles" | "underlineColor">
 
 /** Options for createStyle(). */
 export interface StyleOptions {
@@ -16,6 +25,20 @@ export interface StyleOptions {
   level?: ColorTier | null
   /** Theme object for $token resolution. Any object with string-valued properties works. */
   theme?: ThemeLike | object
+  /**
+   * Underline capabilities. Drives the extended-underline methods on the
+   * returned {@link Style}. When absent, `createStyle` auto-detects via the
+   * same `createTerminalProfile()` call it uses for {@link level}, so
+   * casual consumers typically don't pass this. Pass explicit caps when:
+   * - Tests want deterministic fixtures (`{ underlineStyles: false }`)
+   * - A Term is in scope (`caps: term.caps`)
+   * - Running on a non-Node target where auto-detect can't work
+   *
+   * Added in km-silvery.underline-on-style (Phase 6 of the unicode plateau,
+   * 2026-04-23) when the bare `curlyUnderline()` exports were folded into
+   * `Style` methods. Previously, every call threaded caps per-invocation.
+   */
+  caps?: UnderlineCaps
 }
 
 /**
@@ -86,6 +109,23 @@ export interface Style {
   readonly bgMagentaBright: Style
   readonly bgCyanBright: Style
   readonly bgWhiteBright: Style
+
+  // Extended underline (terminators — call with text, not chainable).
+  // Post km-silvery.underline-on-style (Phase 6, 2026-04-23): these replace
+  // the bare `curlyUnderline()` etc. exports from `@silvery/ansi`. Each
+  // falls back to standard SGR 4 when the style's caps lack
+  // `underlineStyles` / `underlineColor` — same graceful-degradation
+  // contract the retired helpers used.
+  curlyUnderline(text: string): string
+  dottedUnderline(text: string): string
+  dashedUnderline(text: string): string
+  doubleUnderline(text: string): string
+  underlineColor(r: number, g: number, b: number, text: string): string
+  styledUnderline(
+    style: import("../types.ts").UnderlineStyle,
+    rgb: import("../types.ts").RGB,
+    text: string,
+  ): string
 
   // Color methods
   hex(color: string): Style

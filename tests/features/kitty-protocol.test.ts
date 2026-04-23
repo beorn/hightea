@@ -7,7 +7,7 @@
  * Ported from Ink's kitty-keyboard.tsx test suite.
  */
 import { describe, expect, test, vi } from "vitest"
-import { parseKeypress, _resetShiftWarning } from "@silvery/ag/keys"
+import { parseKeypress } from "@silvery/ag/keys"
 
 // Helper to create kitty protocol CSI u sequences
 // Full format: CSI codepoint[:shifted[:base]][;modifiers[:event_type][;text]] u
@@ -741,7 +741,6 @@ describe("kitty protocol - shifted punctuation", () => {
   describe("all 21 shifted punct WITHOUT shifted_codepoint (DISAMBIGUATE-only fallback)", () => {
     for (const [base, shifted, baseCp] of ALL_SHIFTED_PUNCT) {
       test(`Shift+${base} → fallback text='${shifted}' without shifted_codepoint`, () => {
-        _resetShiftWarning()
         const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
         const result = parseKeypress(kittyKey(baseCp, 2))
         expect(result.shift).toBe(true)
@@ -762,7 +761,6 @@ describe("kitty protocol - shifted punctuation", () => {
   test("shift without shifted_codepoint uses US QWERTY fallback silently", () => {
     // The code used to warn but now silently recovers via BASE_TO_SHIFTED_PUNCT.
     // Verify no warning is emitted and the text is correct.
-    _resetShiftWarning()
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     const r1 = parseKeypress(kittyKey(49, 2)) // Shift+1 without shifted_codepoint
     const r2 = parseKeypress(kittyKey(59, 2)) // Shift+; without shifted_codepoint
