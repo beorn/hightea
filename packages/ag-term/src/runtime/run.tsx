@@ -33,8 +33,7 @@ import { createApp } from "./create-app"
 import type { Term } from "../ansi/term"
 import {
   createTerminalProfile,
-  detectTheme,
-  pickColorLevel,
+  probeTerminalProfile,
   type ColorTier,
   type TerminalProfile,
 } from "@silvery/ansi"
@@ -327,66 +326,54 @@ export async function run(
     }
 
     // Real terminal: full setup.
-    // Term owns its resolved TerminalProfile (H15 /big review 2026-04-23 —
-    // bead km-silvery.plateau-term-owns-profile). When there's neither a
-    // caller-supplied `profile` nor a `colorLevel` override, we consume
-    // `term.profile` directly — no second `createTerminalProfile` call.
     //
-    // When `termOptions.colorLevel` is present, we still rebuild through
-    // `createTerminalProfile` so the override flows through the documented
-    // precedence chain (env > override > caller-caps > auto). The base caps
-    // come from `term.profile.caps` — still one Term, one caps source.
-    const termProfile: TerminalProfile =
-      termOptions?.profile ??
-      (termOptions?.colorLevel !== undefined
-        ? createTerminalProfile({
-            colorOverride: termOptions.colorLevel,
-            caps: term.profile.caps,
-          })
-        : term.profile)
-    const caps: TerminalCaps = termProfile.caps
-    // Pre-quantize the OSC-detected theme when the tier was *forced* — i.e.
-    // env vars (NO_COLOR / FORCE_COLOR) or an explicit `colorLevel` override
-    // displaced the terminal's natural tier. When the tier came from caps or
-    // auto-detect, the theme passes through unchanged.
-    // Phase 4: one boolean read on `profile.source` replaces the prior
-    // tier-comparison hack (`termProfile.colorTier !== term.caps.colorLevel`).
-    const termForcedTier: ColorTier | undefined =
-      termProfile.source === "env" || termProfile.source === "override"
-        ? termProfile.colorTier
-        : undefined
-    // Detect terminal colors via OSC — must happen before alt screen.
-    // When colorLevel is forced, pre-quantize the detected theme.
+    // One async call drives the whole detection pass: probeTerminalProfile
+    // bundles caps + colorTier + source + theme into a single TerminalProfile,
+    // applies the pre-quantize gate on its own, and lets the probe window be
+    // a structural concern instead of a copy-pasted try/finally block.
     //
-    // Phase 1 of km-silvery.input-owner: we construct an InputOwner for the
-    // probe window only — it owns raw-mode + stdin listener for the duration
-    // of detectTheme, then disposes BEFORE createApp spins up the
-    // term-provider. This avoids the wasRaw race between probeColors' finally
-    // and term-provider.events() startup that killed host-TUI input.
-    // Phase 2 will extend ownership across the entire session.
+    // The InputOwner is still transient — owns raw-mode + stdin listener for
+    // the probe duration only, disposed BEFORE createApp spins up its own
+    // input owner. That separation is what avoids the wasRaw race between
+    // probeColors' finally and term-provider startup (see km-silvery.input-owner
+    // Phase 1-2; Phase 8b pins the rationale — `term.input` would yield a
+    // second owner competing for stdin if constructed here).
     //
-    // Phase 8b: pre-session probe is the transient owner window before
-    // `term.input` takes over. Constructing an InputOwner here is the correct
-    // primitive — the Term's own lazy `term.input` getter would yield a second
-    // owner competing for stdin. Internal accessor reads the raw streams
-    // since the public Term interface no longer exposes them.
+    // Post km-silvery.plateau-profile-theme (H2 /big review 2026-04-23):
+    // collapses the prior `createTerminalProfile` + InputOwner dance +
+    // `detectTheme` + `pickColorLevel` quartet into one function call. The
+    // `termOptions.profile` caller-override still short-circuits the whole
+    // thing, and `term.profile` is the caps base when no override is passed.
     const { stdin: termStdin, stdout: termStdout } = getInternalStreams(term)
     const probeOwner =
       termStdin?.isTTY && termStdout?.isTTY
         ? createInputOwner(termStdin, termStdout, { retainRawModeOnDispose: true })
         : null
-    let theme
+    let termProfile: TerminalProfile
     try {
-      theme = await detectTheme({
-        fallbackDark: nord,
-        fallbackLight: catppuccinLatte,
-        ...(probeOwner ? { input: probeOwner } : {}),
-      })
+      termProfile =
+        termOptions?.profile ??
+        (await probeTerminalProfile({
+          colorOverride: termOptions?.colorLevel,
+          caps: term.profile.caps,
+          fallbackDark: nord,
+          fallbackLight: catppuccinLatte,
+          ...(probeOwner ? { input: probeOwner } : {}),
+        }))
     } finally {
       probeOwner?.dispose()
     }
-    const resolvedTheme = termForcedTier ? pickColorLevel(theme, termForcedTier) : theme
-    const themed = <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
+    const caps: TerminalCaps = termProfile.caps
+    // `profile.theme` is populated by probeTerminalProfile (already
+    // pre-quantized when `source === "env" | "override"`). When a caller
+    // supplied a pre-built profile without a theme, no ThemeProvider wrap
+    // happens — the app uses whatever ThemeProvider higher up the tree or
+    // the framework default.
+    const themed = termProfile.theme ? (
+      <ThemeProvider theme={termProfile.theme}>{element}</ThemeProvider>
+    ) : (
+      element
+    )
     const app = createApp(() => () => ({}))
     // Phase 8b: real-terminal Term adapter — createApp's option bag still takes
     // raw WriteStream / ReadStream, so we thread them via the internal accessor.
@@ -413,63 +400,55 @@ export async function run(
   }
 
   // Options path: auto-detect caps and derive defaults.
-  // Phase 3 of km-silvery.terminal-profile-plateau: one `createTerminalProfile`
-  // call replaces the prior `detectTerminalCaps` + `resolveColorTier` trio.
-  // Env vars (NO_COLOR / FORCE_COLOR) > `options.colorLevel` > caller-supplied
-  // `options.caps.colorLevel` > auto-detect — see the profile docstring for
-  // the full precedence chain. Phase 4 also lets callers pass a pre-built
-  // `profile` to bypass detection entirely.
+  //
+  // Post km-silvery.plateau-profile-theme (H2 /big review 2026-04-23):
+  // collapses the prior `createTerminalProfile` + InputOwner + `detectTheme`
+  // + `pickColorLevel` dance into one `probeTerminalProfile` call. The
+  // `options.profile` caller-override still short-circuits the probe, and
+  // headless terms skip the probe entirely (no theme wrap).
   const {
     mode,
     colorLevel: colorLevelOption,
     profile: profileOption,
     ...rest
   } = optionsOrTerm as RunOptions
-  const optsProfile: TerminalProfile =
-    profileOption ??
-    createTerminalProfile({
-      colorOverride: colorLevelOption,
-      caps: rest.caps,
-    })
-  const caps: TerminalCaps = optsProfile.caps
-  // Pre-quantize when the tier was forced (env override or explicit
-  // `colorLevel`). Phase 4 replaces the prior triple env-var read + option
-  // check with one `profile.source` lookup — same semantics, one source of
-  // truth. A caller-supplied `profile` whose `source` is already `"env"` or
-  // `"override"` triggers pre-quantization too (the profile tells us the
-  // resolution was forced upstream).
-  const effectiveTier: ColorTier | undefined =
-    optsProfile.source === "env" || optsProfile.source === "override"
-      ? optsProfile.colorTier
-      : undefined
   const headless = rest.writable != null || (rest.cols != null && rest.rows != null && !rest.stdout)
-  // Detect terminal colors via OSC — must happen before alt screen (skipped for headless).
-  // When colorLevel is forced, pre-quantize the detected theme to the chosen tier so
-  // token hex values match what the pipeline will actually emit.
-  //
-  // See the primary detectTheme() call above for the InputOwner rationale.
   const runStdin = (rest.stdin ?? process.stdin) as NodeJS.ReadStream
   const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
+
+  // Transient InputOwner around the probe window — owns raw-mode + stdin
+  // listener for the duration, disposed BEFORE createApp constructs its own
+  // input owner. Same shape as the Term-path branch above.
   const optsProbeOwner =
     !headless && runStdin.isTTY && runStdout.isTTY
       ? createInputOwner(runStdin, runStdout, { retainRawModeOnDispose: true })
       : null
-  let themed: ReactElement
-  if (headless) {
-    themed = element
-  } else {
-    try {
-      const theme = await detectTheme({
-        fallbackDark: nord,
-        fallbackLight: catppuccinLatte,
-        ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
-      })
-      const resolvedTheme = effectiveTier ? pickColorLevel(theme, effectiveTier) : theme
-      themed = <ThemeProvider theme={resolvedTheme}>{element}</ThemeProvider>
-    } finally {
-      optsProbeOwner?.dispose()
-    }
+  let optsProfile: TerminalProfile
+  try {
+    optsProfile =
+      profileOption ??
+      (headless
+        ? createTerminalProfile({ colorOverride: colorLevelOption, caps: rest.caps })
+        : await probeTerminalProfile({
+            colorOverride: colorLevelOption,
+            caps: rest.caps,
+            fallbackDark: nord,
+            fallbackLight: catppuccinLatte,
+            ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
+          }))
+  } finally {
+    optsProbeOwner?.dispose()
   }
+  const caps: TerminalCaps = optsProfile.caps
+  // Headless renders don't wrap in ThemeProvider — no OSC probe ran, no
+  // theme was bundled. Non-headless renders with a theme wrap the element
+  // so the app sees the detected (and pre-quantized when forced) theme.
+  const themed: ReactElement =
+    !headless && optsProfile.theme ? (
+      <ThemeProvider theme={optsProfile.theme}>{element}</ThemeProvider>
+    ) : (
+      element
+    )
   const app = createApp(() => () => ({}))
   const handle = await app.run(themed, {
     ...rest,

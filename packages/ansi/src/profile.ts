@@ -13,6 +13,10 @@
 import { defaultCaps } from "./detection"
 import type { TerminalCaps } from "./detection"
 import type { ColorTier } from "./types"
+import { detectTheme } from "./theme/detect"
+import type { DetectThemeOptions, ProbeInputOwner } from "./theme/detect"
+import type { Theme } from "./theme/types"
+import { pickColorLevel } from "./color-maps"
 
 /**
  * Which rung of the precedence chain resolved the profile's color tier.
@@ -50,6 +54,19 @@ export interface TerminalProfile {
    * the terminal's natural capabilities (caller-caps/auto).
    */
   source: TerminalProfileSource
+  /**
+   * OSC-detected terminal theme, populated only when the profile was built via
+   * {@link probeTerminalProfile}. Pre-quantized to {@link colorTier} when the
+   * tier was forced (`source === "env"` or `"override"`) so token hex values
+   * match what the pipeline will actually emit.
+   *
+   * Absent on sync {@link createTerminalProfile} — theme detection is an async
+   * OSC probe and can't run inside a sync call. Entry points that need a
+   * theme (run, createApp) should use `probeTerminalProfile` instead.
+   *
+   * Post km-silvery.plateau-profile-theme (H2 of the /big review 2026-04-23).
+   */
+  theme?: Theme
 }
 
 /**
@@ -190,6 +207,115 @@ export function createTerminalProfile(
     colorTier: resolvedTier,
     source,
   }
+}
+
+// ============================================================================
+// probeTerminalProfile — async profile with bundled theme detection
+// ============================================================================
+
+/**
+ * Options for {@link probeTerminalProfile}. Extends the sync factory options
+ * with the async-only fields a theme probe needs.
+ */
+export interface ProbeTerminalProfileOptions extends CreateTerminalProfileOptions {
+  /**
+   * Probe the terminal's theme via OSC 10/11/4 and bundle the result as
+   * `profile.theme`. Default `true` — the whole point of using the async
+   * variant is to get the theme alongside caps. Set `false` to skip the
+   * probe (no OSC writes) while still resolving a {@link TerminalProfile}
+   * identical to the sync path.
+   */
+  probeTheme?: boolean
+  /**
+   * Fallback scheme when the OSC probe returns partial / no data. Matches
+   * {@link DetectThemeOptions.fallbackDark}.
+   */
+  fallbackDark?: DetectThemeOptions["fallbackDark"]
+  /** Fallback for light terminals (overrides `fallbackDark`). */
+  fallbackLight?: DetectThemeOptions["fallbackLight"]
+  /** Per-OSC-query timeout in ms (default 150 — matches `detectTheme`). */
+  timeoutMs?: number
+  /**
+   * Optional {@link ProbeInputOwner} (the structural type `detectTheme`
+   * accepts). When provided, the probe routes OSC queries through the
+   * owner's `probe()` method instead of touching `process.stdin` directly —
+   * required inside a running TUI session. Callers in `@silvery/ag-term`
+   * construct a transient `InputOwner` around this call; standalone callers
+   * can omit it.
+   */
+  input?: ProbeInputOwner
+}
+
+/**
+ * Build a {@link TerminalProfile} with an OSC-detected `theme` bundled in.
+ *
+ * Async because the theme probe writes OSC queries to stdout and waits for
+ * responses on stdin. This is the Phase-H2 variant of
+ * {@link createTerminalProfile} — everything the sync factory does, plus:
+ *
+ * 1. Run `detectTheme` (OSC 4/10/11 probe with fallback) once.
+ * 2. Pre-quantize the resulting theme via {@link pickColorLevel} when the
+ *    tier was forced (`source === "env"` or `"override"`) so token hex
+ *    values match what the pipeline will actually emit.
+ * 3. Return the profile with `theme` populated — one detection, one profile
+ *    flowing end-to-end through run() / createApp().
+ *
+ * Call sites previously ran `createTerminalProfile(...)` + `detectTheme(...)`
+ * + `pickColorLevel(...)` as three separate steps on both the Term-path and
+ * options-path branches. Collapsing that into one function removes the
+ * duplication and the possibility of the three views disagreeing about
+ * what was forced.
+ *
+ * When `probeTheme` is `false`, behaves like the sync {@link createTerminalProfile}
+ * but wrapped in a Promise — useful for call sites that want uniform async
+ * treatment regardless of whether a probe is needed.
+ *
+ * @example
+ * ```ts
+ * // Node entry point with TUI-safe probing.
+ * const profile = await probeTerminalProfile({
+ *   colorOverride: options.colorLevel,
+ *   caps: term.profile.caps,
+ *   fallbackDark: nord,
+ *   fallbackLight: catppuccinLatte,
+ *   input: probeOwner, // structural InputOwner from @silvery/ag-term
+ * })
+ * // profile.caps, profile.colorTier, profile.source, profile.theme
+ * ```
+ *
+ * @see createTerminalProfile — sync variant, no theme probe
+ * @see DetectThemeOptions — the underlying probe options this wraps
+ */
+export async function probeTerminalProfile(
+  options: ProbeTerminalProfileOptions = {},
+): Promise<TerminalProfile> {
+  // Reuse the sync resolution for caps + colorTier + source — single source
+  // of truth for the precedence chain. Only the theme bundling is new.
+  const profile = createTerminalProfile(options)
+
+  // `probeTheme: false` skips the OSC round-trip but still returns a valid
+  // Promise — lets callers unify their entry-point flow on one async path.
+  if (options.probeTheme === false) return profile
+
+  // Run the OSC probe. The detectTheme docstring documents its own fallbacks
+  // (mono/ansi16 tiers skip the probe and return canned themes); we pass the
+  // profile's caps through so those short-circuits fire when appropriate.
+  const theme = await detectTheme({
+    caps: profile.caps,
+    fallbackDark: options.fallbackDark,
+    fallbackLight: options.fallbackLight,
+    timeoutMs: options.timeoutMs,
+    input: options.input,
+  })
+
+  // Pre-quantize when the tier was forced — same gate run.tsx applied
+  // inline. With the gate co-located with the profile factory, entry-point
+  // branches collapse to one `await probeTerminalProfile(...)` call.
+  const forced =
+    profile.source === "env" || profile.source === "override" ? profile.colorTier : undefined
+  const resolvedTheme = forced ? pickColorLevel(theme, forced) : theme
+
+  return { ...profile, theme: resolvedTheme }
 }
 
 // ============================================================================

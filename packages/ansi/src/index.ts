@@ -64,12 +64,18 @@ export {
 // Terminal Profile (single source of truth — Phase 3 of terminal-profile-plateau)
 // =============================================================================
 
-export { createTerminalProfile, detectColorFromEnv, detectTerminalCapsFromEnv } from "./profile"
+export {
+  createTerminalProfile,
+  probeTerminalProfile,
+  detectColorFromEnv,
+  detectTerminalCapsFromEnv,
+} from "./profile"
 export type {
   TerminalProfile,
   TerminalProfileSource,
   TerminalProfileStdout,
   CreateTerminalProfileOptions,
+  ProbeTerminalProfileOptions,
 } from "./profile"
 
 // =============================================================================

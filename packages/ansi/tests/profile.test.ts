@@ -13,6 +13,7 @@
 import { describe, expect, test } from "vitest"
 import {
   createTerminalProfile,
+  probeTerminalProfile,
   detectColorFromEnv,
   detectTerminalCapsFromEnv,
 } from "../src/profile"
@@ -708,5 +709,79 @@ describe("createTerminalProfile — contract", () => {
         stdout: tty,
       }).source,
     ).toBe("auto")
+  })
+})
+
+// ============================================================================
+// probeTerminalProfile — async profile with bundled theme
+// ============================================================================
+//
+// H2 of the /big review 2026-04-23 (km-silvery.plateau-profile-theme).
+// probeTerminalProfile folds detectTheme + pickColorLevel into the profile
+// factory so run() / createApp() stop duplicating the probe dance across
+// their Term-path and options-path branches. The contract tests below pin:
+//   1. probeTheme: false behaves like createTerminalProfile (no theme).
+//   2. probeTheme: true (default) populates profile.theme on mono/ansi16
+//      tiers using the ANSI-16 canned themes — no OSC roundtrip needed.
+//   3. The precedence chain + source attribution match the sync factory.
+
+describe("probeTerminalProfile — contract", () => {
+  test('contract: probeTheme: false returns a profile without theme (sync-equivalent)', async () => {
+    // When probeTheme is explicitly disabled, the async variant must produce
+    // exactly what createTerminalProfile would have — same caps, same tier,
+    // same source, no theme field. This lets callers unify on one async
+    // entry point even when they don't want a probe.
+    const profile = await probeTerminalProfile({
+      env: { FORCE_COLOR: "3" },
+      stdout: tty,
+      probeTheme: false,
+    })
+    expect(profile.colorTier).toBe("truecolor")
+    expect(profile.source).toBe("env")
+    expect(profile.theme).toBeUndefined()
+  })
+
+  test('contract: probeTheme: true on mono tier returns a canned theme (no OSC probe)', async () => {
+    // detectTheme short-circuits mono/ansi16 to the built-in ANSI-16 themes,
+    // so this test runs to completion even in non-TTY Vitest environments
+    // where an OSC probe would time out. The profile.theme field must be
+    // populated — that's the whole point of using probeTerminalProfile.
+    const profile = await probeTerminalProfile({
+      env: { NO_COLOR: "1" },
+      stdout: tty,
+      fallbackDark: undefined, // let detectTheme pick its built-in default
+      fallbackLight: undefined,
+    })
+    expect(profile.colorTier).toBe("mono")
+    expect(profile.source).toBe("env")
+    expect(profile.theme).toBeDefined()
+    // Sanity: the theme has the required top-level fields (not a test of
+    // theme shape, just that we returned *a* theme).
+    expect(typeof profile.theme).toBe("object")
+  })
+
+  test('contract: probeTheme: true on ansi16 tier returns a canned theme', async () => {
+    const profile = await probeTerminalProfile({
+      env: { FORCE_COLOR: "1" },
+      stdout: tty,
+    })
+    expect(profile.colorTier).toBe("ansi16")
+    expect(profile.source).toBe("env")
+    expect(profile.theme).toBeDefined()
+  })
+
+  test("contract: precedence chain matches createTerminalProfile (env > override > caps > auto)", async () => {
+    // Async variant must honor the same precedence — env wins over override
+    // wins over caller-caps. Pinning the chain here ensures the async wrapper
+    // can't drift apart from the sync source of truth.
+    const profile = await probeTerminalProfile({
+      env: { FORCE_COLOR: "0" }, // mono — env wins
+      stdout: tty,
+      colorOverride: "truecolor",
+      caps: { colorLevel: "truecolor" },
+      probeTheme: false, // isolate the precedence assertion from theme probing
+    })
+    expect(profile.colorTier).toBe("mono")
+    expect(profile.source).toBe("env")
   })
 })
