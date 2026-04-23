@@ -191,19 +191,35 @@ const INSTRUMENTED = STRICT_MODE || CELL_DEBUG !== null
 // ============================================================================
 
 /**
- * Check if value is a Provider with events (full interface).
+ * Check if value is a Provider usable by the event loop.
+ *
+ * Two accepted shapes:
+ *   - Term umbrella: has `.size` + `.modes` sub-owners. The event loop
+ *     subscribes directly via `term.input.on*` and `watch(term.size.snapshot())`.
+ *   - Legacy custom Provider: has `events()`/`getState()`/`subscribe()`. The
+ *     event loop iterates `events()` into the queue.
  */
 function isFullProvider(value: unknown): value is Provider<unknown, Record<string, unknown>> {
   if (value === null || value === undefined) return false
   // Term is a Proxy wrapping chalk, so typeof is "function" not "object"
   if (typeof value !== "object" && typeof value !== "function") return false
+  const o = value as Record<string, unknown>
+  // Term-shape: has `size` sub-owner.
+  if (
+    typeof o.size === "object" &&
+    o.size !== null &&
+    typeof (o.size as Record<string, unknown>).cols === "function"
+  ) {
+    return true
+  }
+  // Legacy Provider shape.
   return (
-    "getState" in value &&
-    "subscribe" in value &&
-    "events" in value &&
-    typeof (value as Provider).getState === "function" &&
-    typeof (value as Provider).subscribe === "function" &&
-    typeof (value as Provider).events === "function"
+    "getState" in o &&
+    "subscribe" in o &&
+    "events" in o &&
+    typeof o.getState === "function" &&
+    typeof o.subscribe === "function" &&
+    typeof o.events === "function"
   )
 }
 
