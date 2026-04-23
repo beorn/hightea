@@ -530,6 +530,14 @@ export { SearchProvider, useSearch, useSearchOptional } from "./providers/Search
 export type { Searchable, SearchContextValue } from "./providers/SearchProvider"
 export { SearchBar } from "./ui/components"
 
+// Match-range utility + type — used by consumers that render multi-segment
+// items and need to compute highlight ranges on each segment independently.
+// Canonical search-match algorithm (case-insensitive, overlap-preserving)
+// lives in ag-term so the same logic powers both SearchProvider's match
+// discovery and ListItemMeta.matchRanges.
+export { computeMatchRanges } from "@silvery/ag-term/search-overlay"
+export type { MatchRange } from "@silvery/ag-term/search-overlay"
+
 /**
  * Re-export React concurrent features for TUI responsiveness.
  *

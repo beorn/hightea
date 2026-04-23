@@ -11,6 +11,51 @@ export interface SearchMatch {
   endCol: number
 }
 
+/**
+ * A single contiguous character range within a string that matched a search
+ * query. `start` is inclusive, `end` is exclusive — same convention as
+ * `String.prototype.slice(start, end)`.
+ */
+export interface MatchRange {
+  start: number
+  end: number
+}
+
+/**
+ * Find all case-insensitive occurrences of `query` inside `text` and return
+ * their character offsets. Empty query or empty text returns `[]`.
+ *
+ * This is the canonical silvery search-match algorithm. The same logic runs
+ * inside `ListView`'s registered Searchable (to find matches across items)
+ * and is exposed to consumers that render multi-segment items — a LogRow
+ * whose searchable text is a concatenation of field values, but whose visual
+ * rendering splits those fields across separate Text nodes, needs per-segment
+ * ranges to highlight without re-implementing the semantics.
+ *
+ * Ranges are returned in ascending `start` order; overlapping matches are
+ * not produced (`indexOf(..., start = last.start + 1)` advances past each
+ * match start, not past its full length, preserving overlapping runs of
+ * short queries — e.g. `"aa"` in `"aaaa"` yields `[0..2], [1..3], [2..4]`).
+ *
+ * Offsets are CHARACTER offsets into the input string. They are not column
+ * offsets — multi-column wide glyphs are counted as one character here, the
+ * same way the SearchProvider's match-row computation does.
+ */
+export function computeMatchRanges(text: string, query: string): MatchRange[] {
+  if (query === "" || text === "") return []
+  const lowerText = text.toLowerCase()
+  const lowerQuery = query.toLowerCase()
+  const ranges: MatchRange[] = []
+  let cursor = 0
+  while (cursor < lowerText.length) {
+    const found = lowerText.indexOf(lowerQuery, cursor)
+    if (found === -1) break
+    ranges.push({ start: found, end: found + query.length })
+    cursor = found + 1
+  }
+  return ranges
+}
+
 export interface SearchState {
   active: boolean
   query: string

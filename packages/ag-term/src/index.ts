@@ -740,8 +740,10 @@ export {
   createSearchState,
   searchUpdate,
   renderSearchBar,
+  computeMatchRanges,
   type SearchState,
   type SearchMatch,
+  type MatchRange,
   type SearchAction,
   type SearchEffect,
 } from "./search-overlay"
