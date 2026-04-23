@@ -216,23 +216,6 @@ export interface StyleProps {
   color?: string
   backgroundColor?: string
   bold?: boolean
-  /**
-   * @deprecated Use a semantic token instead: `$muted` for captions,
-   * `$faint` (via `<Small>`) for fine print, `$disabledfg` for inactive.
-   * `dim` is a rendering detail with uneven terminal support; tokens
-   * resolve to pre-dimmed hex values at truecolor. Will be removed in the
-   * next silvery major. Internal renderer still emits SGR 2 at ANSI 16
-   * / mono tiers for tokens that resolve there.
-   * Deletion tracked: km-silvery.delete-dim-dimcolor
-   */
-  dim?: boolean
-  /**
-   * @deprecated Alias for `dim` (Ink compatibility). Migrate to a semantic
-   * token instead — `$muted` / `$faint` / `$disabledfg`. Will be removed in
-   * the next silvery major.
-   * Deletion tracked: km-silvery.delete-dim-dimcolor
-   */
-  dimColor?: boolean
   italic?: boolean
   /**
    * Enable underline. Accepts:

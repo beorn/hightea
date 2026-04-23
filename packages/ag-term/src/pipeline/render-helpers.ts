@@ -314,7 +314,7 @@ export function getTextStyle(props: TextProps): Style {
 
   // Start with the user-specified attrs.
   let bold = props.bold
-  let dim = props.dim || props.dimColor // dimColor is Ink compatibility alias
+  let dim: boolean | undefined
   let italic = props.italic
   let underline = !!props.underline || !!underlineStyle
   let strikethrough = props.strikethrough

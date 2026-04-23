@@ -105,7 +105,7 @@ function ResizableApp() {
           {i + 1}. {item}
         </Text>
       ))}
-      <Text dimColor>Footer</Text>
+      <Text color="$muted">Footer</Text>
     </Box>
   )
 }
@@ -178,7 +178,7 @@ function ChunkableApp() {
           <Text>Visible content</Text>
         </Box>
       )}
-      <Text dimColor>Footer</Text>
+      <Text color="$muted">Footer</Text>
     </Box>
   )
 }

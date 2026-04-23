@@ -257,7 +257,7 @@ function ComponentShowcase() {
           <Link href="https://example.com" color="$fg-accent">
             primary link
           </Link>
-          <Link href="https://example.com" dim>
+          <Link href="https://example.com" color="$muted">
             dim link
           </Link>
         </Box>

@@ -1150,8 +1150,6 @@ function mayHaveBoxAttrOverlay(props: BoxProps): boolean {
     props.underlineColor ||
     props.overline ||
     props.bold ||
-    props.dim ||
-    props.dimColor ||
     props.italic ||
     props.inverse ||
     props.strikethrough
@@ -1190,20 +1188,18 @@ function computeBoxAttrOverlay(
   const hasUnderline = !!underlineStyle
 
   const bold = !!props.bold
-  const dim = !!props.dim || !!props.dimColor
   const italic = !!props.italic
   const inverse = !!props.inverse
   const strikethrough = !!props.strikethrough
   const overline = !!props.overline
 
-  if (!hasUnderline && !bold && !dim && !italic && !inverse && !strikethrough && !overline) {
+  if (!hasUnderline && !bold && !italic && !inverse && !strikethrough && !overline) {
     // No overlay attrs — skip.
     return null
   }
 
   const attrs: import("../buffer").CellAttrs = {
     bold: bold || undefined,
-    dim: dim || undefined,
     italic: italic || undefined,
     inverse: inverse || undefined,
     strikethrough: strikethrough || undefined,

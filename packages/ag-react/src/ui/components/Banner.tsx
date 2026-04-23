@@ -104,9 +104,7 @@ export function Banner({
       {onDismiss && (
         <>
           <Box flexGrow={1} />
-          <Text color={tokens.fg} dim>
-            {dismissLabel}
-          </Text>
+          <Text color="$muted">{dismissLabel}</Text>
         </>
       )}
     </Box>

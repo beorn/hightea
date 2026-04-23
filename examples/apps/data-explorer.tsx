@@ -310,7 +310,7 @@ function SummaryBar({ processes, query }: { processes: ProcessInfo[]; query: str
       {query && (
         <>
           <Muted>|</Muted>
-          <Text dim>filter: &quot;{query}&quot;</Text>
+          <Text color="$muted">filter: &quot;{query}&quot;</Text>
         </>
       )}
     </Box>

@@ -176,7 +176,7 @@ export class SilveryErrorBoundary extends Component<
             { key: "location", marginTop: 1 },
             React.createElement(
               "silvery-text",
-              { dimColor: true },
+              { color: "$muted" },
               `${filePath}:${origin.line}:${origin.column}`,
             ),
           ),
@@ -193,9 +193,9 @@ export class SilveryErrorBoundary extends Component<
             React.createElement(
               "silvery-text",
               {
-                dimColor: line !== origin.line,
                 backgroundColor: line === origin.line ? "red" : undefined,
-                color: line === origin.line ? "white" : undefined,
+                color:
+                  line === origin.line ? "white" : line !== origin.line ? "$muted" : undefined,
               },
               `${lineNum}:`,
             ),
@@ -226,22 +226,22 @@ export class SilveryErrorBoundary extends Component<
             return React.createElement(
               "silvery-box",
               { key: `stack-${i}` },
-              React.createElement("silvery-text", { dimColor: true }, `- ${line.trim()}`),
+              React.createElement("silvery-text", { color: "$muted" }, `- ${line.trim()}`),
             )
           }
           const cleanFile = cleanupPath(parsed.file)
           return React.createElement(
             "silvery-box",
             { key: `stack-${i}` },
-            React.createElement("silvery-text", { dimColor: true }, "- "),
+            React.createElement("silvery-text", { color: "$muted" }, "- "),
             React.createElement(
               "silvery-text",
-              { dimColor: true, bold: true },
+              { color: "$muted", bold: true },
               parsed.function ?? "",
             ),
             React.createElement(
               "silvery-text",
-              { dimColor: true, color: "gray" },
+              { color: "$muted" },
               ` (${cleanFile ?? ""}:${parsed.line}:${parsed.column})`,
             ),
           )

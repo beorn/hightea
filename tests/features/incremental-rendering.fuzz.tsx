@@ -102,7 +102,7 @@ function StyledBoxes() {
 
   return (
     <Box flexDirection="column" borderStyle={s.border}>
-      <Text bold={s.bold} dimColor={s.dim}>
+      <Text bold={s.bold} color={s.dim ? "$muted" : undefined}>
         Variant {variant}
       </Text>
       <Box paddingX={1}>
@@ -394,7 +394,7 @@ describe("incremental rendering fuzz", () => {
           </Box>
           {showExtra && (
             <Box borderStyle="single">
-              <Text dimColor>Extra section visible</Text>
+              <Text color="$muted">Extra section visible</Text>
             </Box>
           )}
         </Box>
@@ -523,7 +523,7 @@ describe("incremental rendering fuzz", () => {
             ))}
           </Box>
           <Box height={1}>
-            <Text dimColor>
+            <Text color="$muted">
               {offset}/{items.length}
             </Text>
           </Box>

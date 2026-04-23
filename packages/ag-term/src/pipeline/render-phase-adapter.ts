@@ -529,7 +529,7 @@ function mergeAdapterStyleContext(
   return {
     color: childProps.color ?? parent.color,
     bold: childProps.bold ?? parent.bold,
-    dim: childProps.dim ?? (childProps as any).dimColor ?? parent.dim,
+    dim: parent.dim,
     italic: childProps.italic ?? parent.italic,
     underline: childUnderline.underline ?? parent.underline,
     underlineStyle: childUnderline.underlineStyle ?? parent.underlineStyle,
@@ -671,7 +671,6 @@ function renderText(
   const rootContext: AdapterStyleContext = {
     color: props.color ?? undefined,
     bold: props.bold,
-    dim: props.dim,
     italic: props.italic,
     underline: rootUnderline.underline,
     underlineStyle: rootUnderline.underlineStyle,

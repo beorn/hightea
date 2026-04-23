@@ -48,6 +48,8 @@ function splitTitleBody(content: string): { title: string; body: string } {
 
 /** Render a line with auto-linked URLs. */
 function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; color?: string }) {
+  // If `dim` is requested and no explicit color given, fall back to $muted token.
+  const effectiveColor = color ?? (dim ? "$muted" : undefined)
   const parts: JSX.Element[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
@@ -56,14 +58,14 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
   while ((match = URL_RE.exec(text)) !== null) {
     if (match.index > lastIndex) {
       parts.push(
-        <Text key={`t${lastIndex}`} dim={dim} color={color}>
+        <Text key={`t${lastIndex}`} color={effectiveColor}>
           {text.slice(lastIndex, match.index)}
         </Text>,
       )
     }
     const url = match[0]
     parts.push(
-      <Link key={`l${match.index}`} href={url} dim={dim}>
+      <Link key={`l${match.index}`} href={url} color={effectiveColor}>
         {url}
       </Link>,
     )
@@ -71,17 +73,13 @@ function LinkifiedLine({ text, dim, color }: { text: string; dim?: boolean; colo
   }
   if (lastIndex < text.length) {
     parts.push(
-      <Text key={`t${lastIndex}`} dim={dim} color={color}>
+      <Text key={`t${lastIndex}`} color={effectiveColor}>
         {text.slice(lastIndex)}
       </Text>,
     )
   }
   if (parts.length === 0) {
-    return (
-      <Text dim={dim} color={color}>
-        {text}
-      </Text>
-    )
+    return <Text color={effectiveColor}>{text}</Text>
   }
   return <Text>{parts}</Text>
 }
@@ -248,7 +246,10 @@ export function ExchangeItem({
   return (
     <Box flexDirection="column">
       <Text>
-        <Text bold color={bulletColor} dimColor={hasOperations && !pulse && phase !== "done"}>
+        <Text
+          bold
+          color={hasOperations && !pulse && phase !== "done" ? "$muted" : bulletColor}
+        >
           {"●"}
         </Text>
         {phase === "thinking" ? (

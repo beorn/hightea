@@ -210,7 +210,7 @@ const prioritySymbols: Record<string, { symbol: string; color: string }> = {
 function Tag({ name }: { name: string }) {
   const color = tagColors[name] ?? "$fg-muted"
   return (
-    <Text color={color} dim>
+    <Text color={color} color="$muted">
       #{name}
     </Text>
   )
@@ -234,7 +234,7 @@ function CardView({ card, focused }: { card: CardData; focused: boolean }) {
       </Box>
       {card.description && (
         <Box paddingX={1}>
-          <Text color="$fg-muted" dim wrap="truncate">
+          <Text color="$fg-muted" wrap="truncate">
             {card.description}
           </Text>
         </Box>
@@ -294,10 +294,10 @@ function StatusBar({ focusedId }: { focusedId: string | null }) {
 
   return (
     <Box paddingX={1} gap={2}>
-      <Text color="$fg-muted" dim>
+      <Text color="$fg-muted" color="$muted">
         ←↑↓→/hjkl navigate
       </Text>
-      <Text color="$fg-muted" dim>
+      <Text color="$fg-muted" color="$muted">
         q quit
       </Text>
       {focusedCard && (

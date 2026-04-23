@@ -94,7 +94,7 @@ const tagColors: Record<string, string> = {
 function Tag({ name }: { name: string }) {
   const color = tagColors[name] ?? "$fg-muted"
   return (
-    <Text color={color} dim>
+    <Text color={color} color="$muted">
       #{name}
     </Text>
   )
@@ -167,7 +167,7 @@ function ColumnComponent({
         ))}
 
         {column.cards.length === 0 && (
-          <Text dim italic>
+          <Text italic color="$muted">
             No cards
           </Text>
         )}

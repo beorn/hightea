@@ -121,7 +121,7 @@ export function Dashboard({ widgetCount }: { widgetCount: number }): ReactElemen
 
       {/* Footer */}
       <Box height={1}>
-        <Text dimColor>Status bar</Text>
+        <Text color="$muted">Status bar</Text>
       </Box>
     </Box>
   )

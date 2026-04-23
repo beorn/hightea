@@ -53,7 +53,7 @@ const TICK_MS = 33
  * ```tsx
  * function FadeIn({ children }) {
  *   const { value } = useAnimation({ duration: 300, easing: "easeOut" })
- *   return <Text dimColor={value < 1}>{children}</Text>
+ *   return <Text color={value < 1 ? "$muted" : undefined}>{children}</Text>
  * }
  * ```
  */

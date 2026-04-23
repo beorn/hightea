@@ -1325,7 +1325,7 @@ export type { GridCellProps } from "./ui/components"
  *
  * function FadeIn() {
  *   const { value } = useAnimation({ duration: 300, easing: "easeOut" });
- *   return <Text dimColor={value < 1}>Hello</Text>;
+ *   return <Text color={value < 1 ? "$muted" : undefined}>Hello</Text>;
  * }
  * ```
  *

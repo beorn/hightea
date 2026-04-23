@@ -39,7 +39,7 @@ export function ComplexLayout() {
             <Text>Main content area</Text>
           </Box>
           <Box height={1}>
-            <Text dimColor>Footer</Text>
+            <Text color="$muted">Footer</Text>
           </Box>
         </Box>
       </Box>
@@ -160,7 +160,7 @@ export function ChalkStyledContent() {
       <Text italic>Italic text</Text>
       <Text underline>Underlined text</Text>
       <Text strikethrough>Strikethrough text</Text>
-      <Text dimColor>Dim text</Text>
+      <Text color="$muted">Dim text</Text>
       <Text color="red">Red text</Text>
       <Text color="green" bold>
         Green bold text

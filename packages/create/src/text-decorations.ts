@@ -48,8 +48,6 @@ export interface DecorationStyle {
   underline?: boolean
   /** Strikethrough text */
   strikethrough?: boolean
-  /** Dim (reduced intensity) */
-  dimColor?: boolean
   /** Inverse (swap fg/bg) */
   inverse?: boolean
 }

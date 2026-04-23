@@ -116,11 +116,11 @@ describe("Link", () => {
     expect(cell.attrs.underline).toBe(true)
   })
 
-  test("forwards ...rest TextProps (bold, dim)", () => {
+  test("forwards ...rest TextProps (bold, italic)", () => {
     const render = createRenderer({ cols: 40, rows: 5 })
     const app = render(
       <Box>
-        <Link href="https://example.com" bold dim>
+        <Link href="https://example.com" bold italic>
           Styled
         </Link>
       </Box>,
@@ -129,7 +129,7 @@ describe("Link", () => {
     const col = app.text.indexOf("Styled")
     const cell = app.term.cell(col, 0)
     expect(cell.attrs.bold).toBe(true)
-    expect(cell.attrs.dim).toBe(true)
+    expect(cell.attrs.italic).toBe(true)
   })
 
   test("hover triggers onMouseEnter/onMouseLeave via ...rest", async () => {

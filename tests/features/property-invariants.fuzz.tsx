@@ -545,7 +545,7 @@ describe("property invariants fuzz", () => {
               ))}
             </Box>
           )}
-          <Text dimColor>Footer</Text>
+          <Text color="$muted">Footer</Text>
         </Box>
       )
     }

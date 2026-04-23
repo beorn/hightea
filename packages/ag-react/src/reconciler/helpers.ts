@@ -77,8 +77,6 @@ const STYLE_PROPS = new Set([
   "color",
   "backgroundColor",
   "bold",
-  "dim",
-  "dimColor",
   "italic",
   "underline",
   "underlineStyle",

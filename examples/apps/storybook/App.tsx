@@ -241,7 +241,7 @@ export function App(): React.ReactElement {
 
   const header = (
     <Box paddingX={1} gap={1}>
-      <Text dim color="$fg-accent">
+      <Text color="$fg-accent">
         ▸ silvery
       </Text>
       <Strong>Sterling Storybook</Strong>
