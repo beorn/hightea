@@ -680,8 +680,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const shouldGuardOutput = guardOutputOption ?? (alternateScreen && !headless && isRealStdout)
   // Output owner — mediates stdout/stderr/console writes. Stable across the
   // session; toggled via activate()/deactivate() for pause/resume cycles.
-  // Constructed lazily below only if shouldGuardOutput is true.
+  // If an injected Term exposes `.output`, we reuse it (one writer per
+  // resource). Otherwise we construct a local one and own its lifetime.
   let output: Output | null = null
+  let ownsOutput = false
 
   // Initialize layout engine
   await ensureLayoutEngine()
@@ -1185,8 +1187,11 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Dispose output owner BEFORE terminal protocol cleanup — restores original
     // stdout/stderr write methods so the cleanup sequences go through unimpeded.
+    // Only dispose if we constructed it; an injected Term's Output is owned by
+    // the Term and will be disposed when the Term is.
     if (output) {
-      output.dispose()
+      if (ownsOutput) output.dispose()
+      else output.deactivate()
       output = null
     }
 
@@ -1669,13 +1674,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // render pipeline can write to stdout — all other writes are suppressed
   // (stdout) or redirected to DEBUG_LOG (stderr).
   if (shouldGuardOutput) {
-    output = createOutput()
+    // Prefer the injected Term's Output sub-owner (single writer per
+    // resource). Fall back to constructing a local one when no Term is
+    // injected or the Term has no Output (headless / emulator backends).
+    const termOutput = injectedTerm?.output
+    if (termOutput) {
+      output = termOutput
+      ownsOutput = false
+    } else {
+      output = createOutput()
+      ownsOutput = true
+    }
     output.activate()
-    // NOTE: if an injected Term's `term.console` was already capturing at
-    // this point, Output just overwrote its tap wrappers — entries logged
-    // during the alt-screen session won't land in Console until we ship
-    // the structural fix (one shared ConsoleRouter). Tracked in bead
-    // km-silvery.console-output-one-patcher.
   }
 
   // Assign pause/resume now that doRender and runtime are available.
