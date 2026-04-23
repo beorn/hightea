@@ -20,12 +20,15 @@
  */
 
 import React from "react"
-import { afterEach, beforeEach, describe, expect, test } from "vitest"
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 
 import { Box, Text } from "../../src/index.js"
-import { run } from "../../packages/ag-term/src/runtime/run"
+import {
+  run,
+  _resetRunOptionsWarningForTesting,
+} from "../../packages/ag-term/src/runtime/run"
 import { createTerminalProfile } from "../../packages/ansi/src/profile"
 
 // ============================================================================
@@ -312,39 +315,46 @@ describe("contract: RunOptions.profile", () => {
     expect(profile.colorTier).toBe("truecolor")
   })
 
-  test("contract: profile wins over caps + colorLevel supplied alongside (documents silent-wins)", async () => {
-    // Documents the run.tsx contract that `profile` supplied with `caps` and
-    // `colorLevel` silently ignores both — the profile wins. This is a
-    // "silent-wins" shape identical to the three plateau precursor bugs
-    // (6c4442ee, 48143ef0, 915b4bf9). Pinning it here prevents a future
-    // refactor from inverting the precedence without flagging this test.
-    //
-    // When we deprecate `caps` / `colorLevel` in favour of profile-only
-    // (km-silvery.plateau-deprecate-caps-field), this test flips from
-    // "documents silent-wins" to "asserts the deprecated fields are
-    // rejected / warned about".
+  test("contract: profile + caps/colorLevel mixed — TS-level XOR blocks it, JS caller gets a runtime warning (profile still wins)", async () => {
+    // Phase 5 (/pro review 2026-04-23). The prior "silent-wins" semantics
+    // that supplying both fields ignored caps/colorLevel was exactly the bug
+    // class the plateau was supposed to kill. Now:
+    //   - TS callers: `RunOptions` is a type-level XOR — mixing is a compile
+    //     error. That's the primary defence.
+    //   - JS callers: `run()` emits a one-time console.warn documenting the
+    //     migration path. Profile still wins (back-compat back-stop) but the
+    //     user is on notice that caps/colorLevel will go away in 1.1.
     using term = createTermless({ cols: 20, rows: 3 })
     const profile = createTerminalProfile({
       env: {},
       stdout: { isTTY: false },
       caps: { colorLevel: "256", kittyKeyboard: false },
     })
-    const handle = await run(<Text>hi</Text>, term, {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
+    // Reset the once-per-process warning latch so this test sees the warn.
+    _resetRunOptionsWarningForTesting()
+    // `as any` simulates a JS caller that smuggled both keys through (a TS
+    // caller would have failed to compile on `{ profile, caps, colorLevel }`).
+    const badOptions = {
       profile,
       caps: {
         ...profile.caps,
-        colorLevel: "truecolor", // deliberately conflicts with profile
-        kittyKeyboard: true, // deliberately conflicts
+        colorLevel: "truecolor",
+        kittyKeyboard: true,
       },
-      colorLevel: "mono", // deliberately conflicts
-    })
+      colorLevel: "mono",
+    } as unknown as Parameters<typeof run>[2]
+    const handle = await run(<Text>hi</Text>, term, badOptions)
     await settle(80)
-    // The profile's shape is what reached the pipeline. If caps/colorLevel
-    // had silently won, we'd be asserting truecolor + kitty — this test would
-    // flip. Breaking this assertion is a red flag for precedence inversion.
+    // Warning fired with the expected migration hint.
+    expect(warnSpy).toHaveBeenCalledOnce()
+    expect(warnSpy.mock.calls[0]?.[0]).toContain("mutually exclusive")
+    expect(warnSpy.mock.calls[0]?.[0]).toContain("createTerminalProfile")
+    // Profile still wins — not truecolor, not kittyKeyboard, not mono.
     expect(profile.caps.colorLevel).toBe("256")
     expect(profile.caps.kittyKeyboard).toBe(false)
     expect(profile.colorTier).toBe("256")
+    warnSpy.mockRestore()
     handle.unmount()
   })
 })

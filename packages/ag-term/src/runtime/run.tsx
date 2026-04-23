@@ -61,8 +61,21 @@ export type { Key, InputHandler } from "./keys"
  * captures mouse events and native text selection (copy/paste) requires holding
  * Shift (or Option on macOS in some terminals). Set `mouse: false` to restore
  * native copy/paste behavior.
+ *
+ * **Profile vs caps/colorLevel (XOR):** `RunOptions` is a type-level union —
+ * callers supply *either* a pre-built `profile: TerminalProfile` *or* the
+ * legacy `caps` / `colorLevel` fields, never both. Mixing them is a compile
+ * error; a runtime warning fires if JS callers smuggle both through. The
+ * `caps` / `colorLevel` branch is `@deprecated` and will be deleted in 1.1
+ * — migrate via `run({ profile: createTerminalProfile({ caps, colorLevel }) })`.
  */
-export interface RunOptions {
+export type RunOptions = RunOptionsCommon & RunOptionsProfileBranch
+
+/**
+ * Fields shared between both branches of the RunOptions XOR (everything
+ * except `profile` / `caps` / `colorLevel`).
+ */
+export interface RunOptionsCommon {
   /** Terminal dimensions (default: from process.stdout) */
   cols?: number
   rows?: number
@@ -136,48 +149,6 @@ export interface RunOptions {
    */
   focusReporting?: boolean
   /**
-   * Terminal capabilities for width measurement and output suppression.
-   * Default: auto-detected via detectTerminalCaps()
-   */
-  caps?: import("../terminal-caps.js").TerminalCaps
-  /**
-   * Pre-built {@link TerminalProfile}. When supplied, `run()` skips its own
-   * `createTerminalProfile()` call and uses this profile end-to-end — the
-   * profile's `caps` feed the pipeline, and the pre-quantize gate reads
-   * `profile.colorForced` to decide whether the OSC-detected theme should be
-   * re-quantized. This is the Phase 4 single-source-of-truth entry point:
-   * callers that already built a profile (e.g. via a top-level bootstrap,
-   * a test harness, or a Term adapter) can pass it through without each
-   * entry point re-detecting caps + color tier.
-   *
-   * When supplied alongside `caps` or `colorLevel`, the profile wins — the
-   * other fields are silently ignored to avoid double-detection ambiguity.
-   */
-  profile?: TerminalProfile
-  /**
-   * Force the color tier end-to-end, bypassing auto-detection.
-   *
-   * When set, the pipeline's `caps.colorLevel` is overridden for the full
-   * run (affects inline hex quantization, mono attribute fallback, SGR
-   * encoding, backdrop blend targets), AND the active Theme is pre-quantized
-   * via {@link pickColorLevel} so token hex values match.
-   *
-   * Useful for:
-   * - bypassing under-reporting terminals (force `"truecolor"`),
-   * - testing low-end degradation (force `"ansi16"` or `"mono"`),
-   * - accessibility / CI output (force `"mono"`).
-   *
-   * Priority (highest wins): `NO_COLOR` env → `FORCE_COLOR` env →
-   * `colorLevel` → auto-detect.
-   *
-   * Tiers:
-   * - `"mono"` — monochrome (attribute fallback: bold/dim/inverse).
-   * - `"ansi16"` — 16-slot palette (SGR 30-37, 90-97).
-   * - `"256"` — xterm-256 palette.
-   * - `"truecolor"` — 24-bit RGB (no quantization).
-   */
-  colorLevel?: ColorTier
-  /**
    * Handle Ctrl+Z by suspending the process. Default: true
    */
   suspendOnCtrlZ?: boolean
@@ -192,6 +163,76 @@ export interface RunOptions {
   /** Called on Ctrl+C. Return false to prevent exit. */
   onInterrupt?: () => boolean | void
 }
+
+/**
+ * The profile-vs-caps XOR branch of {@link RunOptions}.
+ *
+ * TypeScript distinguishes these two shapes via the `?: never` idiom —
+ * passing `profile` marks `caps` / `colorLevel` as `never`, and vice versa.
+ * Mixing them is a compile error. Callers that actually build a profile from
+ * caps should use `createTerminalProfile({ caps, colorLevel })` and pass the
+ * resulting profile.
+ *
+ * Phase 5 of `km-silvery.terminal-profile-plateau` (/pro review 2026-04-23):
+ * this replaces the prior "silent-wins" semantics where supplying both fields
+ * had the profile silently ignore the others. Silent precedence was exactly
+ * the bug class the plateau was supposed to kill.
+ */
+export type RunOptionsProfileBranch =
+  | {
+      /**
+       * Pre-built {@link TerminalProfile}. When supplied, `run()` skips its
+       * own `createTerminalProfile()` call and uses this profile end-to-end
+       * — the profile's `caps` feed the pipeline, and the pre-quantize gate
+       * reads `profile.colorForced` to decide whether the OSC-detected theme
+       * should be re-quantized. This is the single-source-of-truth entry
+       * point: callers that already built a profile (e.g. via a top-level
+       * bootstrap, a test harness, or a Term adapter) pass it through
+       * without each entry point re-detecting caps + color tier.
+       *
+       * Mutually exclusive with `caps` / `colorLevel` — see
+       * {@link RunOptionsProfileBranch}.
+       */
+      profile: TerminalProfile
+      caps?: never
+      colorLevel?: never
+    }
+  | {
+      profile?: undefined
+      /**
+       * Terminal capabilities for width measurement and output suppression.
+       * Default: auto-detected via the profile factory.
+       *
+       * @deprecated Use `profile: createTerminalProfile({ caps })` instead.
+       * Will be removed in 1.1. The `caps` option can't encode color
+       * provenance (`colorForced` / `colorProvenance`) so it conflates
+       * "detected real caps" with "synthetically forced caps"; `profile`
+       * carries both.
+       */
+      caps?: TerminalCaps
+      /**
+       * Force the color tier end-to-end, bypassing auto-detection.
+       *
+       * When set, the pipeline's `caps.colorLevel` is overridden for the
+       * full run (affects inline hex quantization, mono attribute fallback,
+       * SGR encoding, backdrop blend targets), AND the active Theme is
+       * pre-quantized via `pickColorLevel` so token hex values match.
+       *
+       * Priority (highest wins): `NO_COLOR` env → `FORCE_COLOR` env →
+       * `colorLevel` → auto-detect.
+       *
+       * Tiers:
+       * - `"mono"` — monochrome (attribute fallback: bold/dim/inverse).
+       * - `"ansi16"` — 16-slot palette (SGR 30-37, 90-97).
+       * - `"256"` — xterm-256 palette.
+       * - `"truecolor"` — 24-bit RGB (no quantization).
+       *
+       * @deprecated Use
+       * `profile: createTerminalProfile({ colorOverride: colorLevel })`
+       * instead. Will be removed in 1.1.
+       */
+      colorLevel?: ColorTier
+    }
 
 /**
  * Handle returned by run() for controlling the app.
@@ -254,6 +295,9 @@ export async function run(
   // Term path: pass Term as provider + its streams, auto-enable from Term caps
   if (isTerm(optionsOrTerm)) {
     const term = optionsOrTerm as Term
+    // Phase 5 (/pro review 2026-04-23): XOR enforcement for termOptions too —
+    // the Term path has the same profile-vs-caps conflict.
+    if (termOptions) warnIfMixedRunOptions(termOptions)
     const emulator = (term as unknown as Record<string, unknown>)._emulator as
       | { feed(data: string): void }
       | undefined
@@ -349,12 +393,18 @@ export async function run(
       termStdin?.isTTY && termStdout?.isTTY
         ? createInputOwner(termStdin, termStdout, { retainRawModeOnDispose: true })
         : null
+    // Read profile / colorLevel through a widened view of termOptions — the
+    // TS union narrows them to `never` on the opposite XOR branch, but the
+    // runtime warning above already enforces mutual exclusion.
+    const termOptsAny = termOptions as
+      | (Partial<RunOptionsCommon> & { profile?: TerminalProfile; colorLevel?: ColorTier })
+      | undefined
     let termProfile: TerminalProfile
     try {
       termProfile =
-        termOptions?.profile ??
+        termOptsAny?.profile ??
         (await probeTerminalProfile({
-          colorOverride: termOptions?.colorLevel,
+          colorOverride: termOptsAny?.colorLevel,
           caps: term.profile.caps,
           fallbackDark: nord,
           fallbackLight: catppuccinLatte,
@@ -406,12 +456,18 @@ export async function run(
   // + `pickColorLevel` dance into one `probeTerminalProfile` call. The
   // `options.profile` caller-override still short-circuits the probe, and
   // headless terms skip the probe entirely (no theme wrap).
+  //
+  // Phase 5 (/pro review 2026-04-23): the RunOptions type is XOR at the TS
+  // level — profile vs caps/colorLevel are mutually exclusive. A JS caller
+  // can still smuggle both; the runtime warning below is the back-stop.
+  warnIfMixedRunOptions(optionsOrTerm)
   const {
     mode,
     colorLevel: colorLevelOption,
     profile: profileOption,
+    caps: capsOption,
     ...rest
-  } = optionsOrTerm as RunOptions
+  } = optionsOrTerm as RunOptions & { caps?: TerminalCaps; colorLevel?: ColorTier }
   const headless = rest.writable != null || (rest.cols != null && rest.rows != null && !rest.stdout)
   const runStdin = (rest.stdin ?? process.stdin) as NodeJS.ReadStream
   const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
@@ -428,10 +484,10 @@ export async function run(
     optsProfile =
       profileOption ??
       (headless
-        ? createTerminalProfile({ colorOverride: colorLevelOption, caps: rest.caps })
+        ? createTerminalProfile({ colorOverride: colorLevelOption, caps: capsOption })
         : await probeTerminalProfile({
             colorOverride: colorLevelOption,
-            caps: rest.caps,
+            caps: capsOption,
             fallbackDark: nord,
             fallbackLight: catppuccinLatte,
             ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
@@ -508,4 +564,41 @@ function wrapHandle(handle: {
     [Symbol.dispose]: () => handle[Symbol.dispose](),
     press: (key: string) => handle.press(key),
   }
+}
+
+/**
+ * Runtime XOR enforcement for {@link RunOptions}. The TS type already makes
+ * mixing `profile` with `caps` / `colorLevel` a compile error; this back-stop
+ * fires when JS callers (or `as any` test setups) smuggle both through.
+ *
+ * The warning documents the migration path rather than silently picking one —
+ * silent precedence is exactly the bug class the plateau was supposed to kill.
+ * Warning, not throw, because pre-1.0 callers in the ecosystem still need the
+ * grace period before the 1.1 deletion (see
+ * km-silvery.runoptions-caps-colorlevel-removal).
+ */
+let mixedRunOptionsWarned = false
+function warnIfMixedRunOptions(options: unknown): void {
+  if (options == null || typeof options !== "object") return
+  const o = options as { profile?: unknown; caps?: unknown; colorLevel?: unknown }
+  const hasProfile = o.profile != null
+  const hasLegacy = o.caps != null || o.colorLevel != null
+  if (hasProfile && hasLegacy && !mixedRunOptionsWarned) {
+    mixedRunOptionsWarned = true
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[silvery] run() received both `profile` and `caps`/`colorLevel` — " +
+        "these are mutually exclusive. `profile` wins; the others are ignored. " +
+        "Migrate to run({ profile: createTerminalProfile({ caps, colorLevel }) }) " +
+        "— caps/colorLevel will be removed in 1.1.",
+    )
+  }
+}
+
+/**
+ * Test-only hook to reset the once-per-process mixed-options warning flag.
+ * @internal
+ */
+export function _resetRunOptionsWarningForTesting(): void {
+  mixedRunOptionsWarned = false
 }
