@@ -72,7 +72,6 @@ export {
 export type {
   TerminalProfile,
   ColorProvenance,
-  TerminalProfileSource,
   TerminalProfileStdout,
   TerminalProfileStdin,
   CreateTerminalProfileOptions,

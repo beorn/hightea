@@ -55,14 +55,6 @@ import { pickColorLevel } from "./color-maps"
 export type ColorProvenance = "env" | "override" | "caller-caps" | "auto"
 
 /**
- * @deprecated Renamed to {@link ColorProvenance} (Phase 5 — /pro review
- * 2026-04-23). The old name claimed to describe the whole profile but only
- * covered color. This alias is kept so external consumers of `@silvery/ansi`
- * that imported the name directly don't break on upgrade; remove in 1.1.
- */
-export type TerminalProfileSource = ColorProvenance
-
-/**
  * A fully-resolved view of the current terminal.
  *
  * Bundled intentionally — callers shouldn't mix and match detection sources.

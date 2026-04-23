@@ -446,7 +446,7 @@ Same structure, inverted for light backgrounds:
 ANSI 16 themes are used when:
 
 - `deriveTheme(palette, "ansi16")` is called explicitly
-- The detected color level is `"basic"` (only 16 colors supported)
+- The detected color level is `"ansi16"` (only 16 colors supported)
 - No palette detection is available and the application falls back to safe defaults
 
 ## Color Utilities

@@ -13,7 +13,6 @@ export {
   probeTerminalProfile,
   type TerminalProfile,
   type ColorProvenance,
-  type TerminalProfileSource,
   type CreateTerminalProfileOptions,
   type ProbeTerminalProfileOptions,
 } from "@silvery/ansi"

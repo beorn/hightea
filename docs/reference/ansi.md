@@ -37,7 +37,7 @@ const profile = createTerminalProfile()
 // profile.colorTier: "mono" | "ansi16" | "256" | "truecolor"
 // profile.colorForced: boolean (env or override displaced baseline)
 // profile.colorProvenance: "env" | "override" | "caller-caps" | "auto"
-// profile.caps: full TerminalCaps — colorLevel, kittyKeyboard, osc52, …
+// profile.caps: full TerminalCaps — colorTier, kittyKeyboard, osc52, …
 ```
 
 Precedence (highest wins):
@@ -45,7 +45,7 @@ Precedence (highest wins):
 1. `NO_COLOR` env var -- forces `mono` ([no-color.org](https://no-color.org))
 2. `FORCE_COLOR` env var -- `0` = mono, `1` = ansi16, `2` = 256, `3` = truecolor
 3. Explicit `colorOverride` option (includes `null` alias for `mono`)
-4. `caps.colorLevel` from caller-supplied partial caps
+4. `caps.colorTier` from caller-supplied partial caps
 5. Auto-detect from `COLORTERM`, `TERM`, `TERM_PROGRAM`, CI vars — otherwise `ansi16` if TTY, `mono` if piped
 
 ### Color Tiers
@@ -187,7 +187,7 @@ buildHyperlink("click me", "https://example.com")
 
 ```typescript
 import type {
-  ColorLevel, // "basic" | "256" | "truecolor"
+  ColorLevel, // "ansi16" | "256" | "truecolor"
   RGB, // [r: number, g: number, b: number]
   AnsiColorName, // "red" | "green" | "cyan" | ... (16 standard names)
   Color, // AnsiColorName | "#hex" | "rgb(...)" | "$token" | string

@@ -360,7 +360,7 @@ For most apps, you never deal with this — Silvery picks the right mode. If you
 import { createStyle } from "@silvery/ansi"
 
 // Force basic color for CI output
-const s = createStyle({ level: "basic" })
+const s = createStyle({ level: "ansi16" })
 ```
 
 ### Pre-built ANSI 16 Themes

@@ -39,7 +39,7 @@ s.bgYellow.black("Warning") // black text on yellow background
 ```typescript
 interface StyleOptions {
   /** Color level override. Auto-detected from terminal if omitted. */
-  level?: "truecolor" | "256" | "basic" | null
+  level?: "truecolor" | "256" | "ansi16" | null
   /** Theme object for $token resolution. */
   theme?: ThemeLike
 }
@@ -47,7 +47,7 @@ interface StyleOptions {
 
 | Option  | Type                                      | Default       | Description                                     |
 | ------- | ----------------------------------------- | ------------- | ----------------------------------------------- |
-| `level` | `"truecolor" \| "256" \| "basic" \| null` | auto-detected | Color support level. `null` disables all color. |
+| `level` | `"truecolor" \| "256" \| "ansi16" \| null` | auto-detected | Color support level. `null` disables all color. |
 | `theme` | `ThemeLike`                               | `undefined`   | Theme object for token resolution               |
 
 When `level` is omitted, `createStyle()` auto-detects from `process.stdout`, respecting `NO_COLOR` and `FORCE_COLOR` environment variables.
@@ -60,7 +60,7 @@ Creates a style object without a theme. Equivalent to `createStyle()` without a 
 import { createPlainStyle } from "@silvery/ansi"
 
 const s = createPlainStyle() // auto-detect color level
-const s = createPlainStyle("basic") // force ANSI 16
+const s = createPlainStyle("ansi16") // force ANSI 16
 ```
 
 ## Global `style`
@@ -225,7 +225,7 @@ s.resolve("$surface-bg") // theme.surfacebg (hyphens stripped)
 | ------------- | ----------------- | ----------------------------------------- |
 | `"truecolor"` | 16 million colors | `38;2;R;G;B` — exact color                |
 | `"256"`       | 256 colors        | `38;5;N` — nearest in 6x6x6 cube          |
-| `"basic"`     | 16 colors         | `30`--`37` / `90`--`97` — nearest ANSI    |
+| `"ansi16"`     | 16 colors         | `30`--`37` / `90`--`97` — nearest ANSI    |
 | `null`        | No color          | All styling stripped, plain text returned |
 
 The degradation from truecolor to 256 uses the 6x6x6 color cube (indices 16--231) and the 24-shade gray ramp (indices 232--255). The degradation from 256 to basic uses Euclidean distance in RGB space against the standard ANSI 16 color values.
@@ -240,7 +240,7 @@ const s = createStyle({ level: "truecolor" })
 const s = createStyle({ level: null })
 
 // Force ANSI 16 for maximum compatibility
-const s = createStyle({ level: "basic" })
+const s = createStyle({ level: "ansi16" })
 ```
 
 ### Chalk-compatible `level` Property

@@ -788,7 +788,6 @@ export {
   defaultCaps,
   type TerminalProfile,
   type ColorProvenance,
-  type TerminalProfileSource,
   type ProbeTerminalProfileOptions,
   type CreateTerminalProfileOptions,
 } from "@silvery/ansi"

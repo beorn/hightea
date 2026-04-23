@@ -130,7 +130,7 @@ import { createTerminalProfile } from "@silvery/ag-term"
 
 const profile = createTerminalProfile()
 const caps = profile.caps
-// caps.colorLevel, caps.kittyKeyboard, caps.osc52, etc.
+// caps.colorTier, caps.kittyKeyboard, caps.osc52, etc.
 // profile.colorTier, profile.colorProvenance — resolved + attribution
 ```
 
