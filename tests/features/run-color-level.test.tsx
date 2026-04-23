@@ -70,18 +70,20 @@ function makeSink() {
 
 async function runCapturing(
   element: React.ReactElement,
-  // Post Phase 7 the run() option name is still `colorLevel` (the option
-  // belongs to RunOptions, not TerminalCaps — the caps field `colorLevel`
-  // renamed to `colorLevel` is a separate surface). Keep the test wrapper
-  // spelling in sync with the public API.
+  // Post colorTier→colorLevel reversal: the RunOptions field name matches
+  // caps.colorLevel / createTerminalProfile({ colorLevel }) — canonical
+  // shorthand, no longer deprecated. The test wrapper still threads caps
+  // (which IS @deprecated for structural reasons) so the spy below catches
+  // that warning harmlessly.
   opts: { colorLevel?: "mono" | "ansi16" | "256" | "truecolor" } = {},
 ): Promise<string> {
   const sink = makeSink()
   let handle: RunHandle | undefined
-  // Exercising the `caps` / `colorLevel` legacy branch on purpose — this
-  // test suite pins the deprecated option's runtime behaviour until it's
-  // deleted in 1.1. Swallow the once-per-process deprecation warning so the
-  // vitest console-spy setup doesn't fail the test.
+  // Exercising the `caps` legacy branch on purpose — this test suite pins
+  // the deprecated option's runtime behaviour until it's deleted in 1.1.
+  // Swallow the once-per-process deprecation warning so the vitest
+  // console-spy setup doesn't fail the test. `colorLevel` on its own path
+  // no longer warns (un-deprecated 2026-04-23).
   _resetRunOptionsWarningForTesting()
   const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
   try {

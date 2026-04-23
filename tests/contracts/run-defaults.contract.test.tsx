@@ -383,24 +383,26 @@ describe("contract: RunOptions.profile", () => {
     handle.unmount()
   })
 
-  test("contract: run({ colorLevel }) alone emits the deprecation warning", async () => {
-    // Legacy option field name — the RunOptions deprecation branch is still
-    // called `colorLevel` (not `colorLevel`) even after Phase 7 renamed
-    // the caps field. Migration is via `profile: createTerminalProfile({
-    // colorLevel })` which uses the new vocabulary; the legacy field
-    // name stays for backward compat until 1.1 deletion.
+  test("contract: run({ colorLevel }) alone emits NO deprecation warning (canonical shorthand)", async () => {
+    // Post colorTier→colorLevel reversal (2026-04-23): the option name is
+    // aligned 1:1 with `caps.colorLevel` and `createTerminalProfile({
+    // colorLevel })`, so the shorthand is a first-class canonical override,
+    // not a legacy field. The original deprecation ("use the profile route
+    // for naming consistency") is obsolete — names ARE consistent now.
+    //
+    // `caps` stays @deprecated for a different structural reason (can't
+    // encode colorForced/colorProvenance); see its own contract test above.
     using term = createTermless({ cols: 20, rows: 3 })
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {})
     _resetRunOptionsWarningForTesting()
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const handle = await run(<Text>hi</Text>, term, { colorLevel: "mono" } as any)
+    const handle = await run(<Text>hi</Text>, term, { colorLevel: "mono" })
     await settle(80)
-    expect(warnSpy).toHaveBeenCalled()
     const messages = warnSpy.mock.calls.map((c) => c[0] as string)
+    // Guard against regression — if anyone re-adds a colorLevel warning,
+    // this test must flip red.
     expect(
       messages.some((m) => m.includes("run({ colorLevel })") && m.includes("deprecated")),
-    ).toBe(true)
-    expect(messages.some((m) => m.includes("colorLevel"))).toBe(true)
+    ).toBe(false)
     warnSpy.mockRestore()
     handle.unmount()
   })

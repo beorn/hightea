@@ -64,10 +64,10 @@ export type { Key, InputHandler } from "./keys"
  *
  * **Profile vs caps/colorLevel (XOR):** `RunOptions` is a type-level union —
  * callers supply *either* a pre-built `profile: TerminalProfile` *or* the
- * legacy `caps` / `colorLevel` fields, never both. Mixing them is a compile
- * error; a runtime warning fires if JS callers smuggle both through. The
- * `caps` / `colorLevel` branch is `@deprecated` and will be deleted in 1.1
- * — migrate via `run({ profile: createTerminalProfile({ caps, colorLevel }) })`.
+ * `caps` / `colorLevel` fields, never both. Mixing them is a compile error;
+ * a runtime warning fires if JS callers smuggle both through. The `caps`
+ * branch is `@deprecated` (see its JSDoc); `colorLevel` is a canonical
+ * shorthand for `profile: createTerminalProfile({ colorLevel })`.
  */
 export type RunOptions = RunOptionsCommon & RunOptionsProfileBranch
 
@@ -213,6 +213,14 @@ export type RunOptionsProfileBranch =
       /**
        * Force the color tier end-to-end, bypassing auto-detection.
        *
+       * Canonical shorthand for `profile: createTerminalProfile({ colorLevel })`
+       * — the option name is aligned 1:1 with `caps.colorLevel` and the
+       * profile-factory argument of the same name, so the shorthand is a
+       * clean override rather than a second way to name the same field.
+       *
+       *   run(<App />, { colorLevel: "truecolor" })                         // 4× shorter
+       *   run(<App />, { profile: createTerminalProfile({ colorLevel }) })  // long form
+       *
        * When set, the pipeline's `caps.colorLevel` is overridden for the
        * full run (affects inline hex quantization, mono attribute fallback,
        * SGR encoding, backdrop blend targets), AND the active Theme is
@@ -226,10 +234,6 @@ export type RunOptionsProfileBranch =
        * - `"ansi16"` — 16-slot palette (SGR 30-37, 90-97).
        * - `"256"` — xterm-256 palette.
        * - `"truecolor"` — 24-bit RGB (no quantization).
-       *
-       * @deprecated Use
-       * `profile: createTerminalProfile({ colorLevel: colorLevel })`
-       * instead. Will be removed in 1.1.
        */
       colorLevel?: ColorLevel
     }
@@ -578,11 +582,13 @@ function wrapHandle(handle: {
  *    runtime, matching the pre-Phase-5 behaviour, but the caller is on
  *    notice that mixing is against the contract.
  *
- * 2. **Deprecation warning** — `caps` and `colorLevel` are `@deprecated` on
+ * 2. **Deprecation warning** — `caps` is `@deprecated` on
  *    {@link RunOptionsProfileBranch} and scheduled for deletion in 1.1 (see
  *    km-silvery.runoptions-caps-colorlevel-removal). A one-time warning
- *    fires on any use of either option, even without `profile`, so callers
- *    can migrate before the delete lands.
+ *    fires on any use of `caps`, even without `profile`, so callers can
+ *    migrate before the delete lands. `colorLevel` is NOT deprecated — it
+ *    is the canonical shorthand for the profile route (names align 1:1
+ *    with `caps.colorLevel` / `createTerminalProfile({ colorLevel })`).
  *
  * Warnings fire once per process per category — a long-running TUI shouldn't
  * spam stderr on every render, but a script that calls `run()` once under a
@@ -590,7 +596,6 @@ function wrapHandle(handle: {
  */
 let mixedRunOptionsWarned = false
 let deprecatedCapsWarned = false
-let deprecatedColorLevelWarned = false
 
 function warnIfMixedRunOptions(options: unknown): void {
   if (options == null || typeof options !== "object") return
@@ -605,11 +610,11 @@ function warnIfMixedRunOptions(options: unknown): void {
     console.warn(
       "[silvery] run() received both `profile` and `caps`/`colorLevel` — " +
         "these are mutually exclusive. `profile` wins; the others are ignored. " +
-        "Migrate to run({ profile: createTerminalProfile({ caps, colorLevel }) }) " +
-        "— caps/colorLevel will be removed in 1.1.",
+        "Pass one or the other — e.g. run({ profile: createTerminalProfile({ " +
+        "caps, colorLevel }) }) — not both.",
     )
     // When mixed, the deprecated-use warning is redundant with the mixed
-    // warning (the mixed message already names the fields and migration).
+    // warning (the mixed message already names the fields).
     return
   }
 
@@ -622,14 +627,6 @@ function warnIfMixedRunOptions(options: unknown): void {
         "profile carries color provenance end-to-end.",
     )
   }
-  if (hasColorLevel && !deprecatedColorLevelWarned) {
-    deprecatedColorLevelWarned = true
-    // eslint-disable-next-line no-console
-    console.warn(
-      "[silvery] run({ colorLevel }) is deprecated and will be removed in 1.1. " +
-        "Migrate to run({ profile: createTerminalProfile({ colorLevel: colorLevel }) }).",
-    )
-  }
 }
 
 /**
@@ -639,5 +636,4 @@ function warnIfMixedRunOptions(options: unknown): void {
 export function _resetRunOptionsWarningForTesting(): void {
   mixedRunOptionsWarned = false
   deprecatedCapsWarned = false
-  deprecatedColorLevelWarned = false
 }
