@@ -523,6 +523,15 @@ function ListViewInner<T>(
   const scrollToItemRef = useRef(scrollToItem)
   scrollToItemRef.current = scrollToItem
 
+  // Stable ref to moveTo so the search reveal closure can move the nav
+  // cursor without stale-closure issues. In nav mode, scrollToItem is a
+  // no-op (Box.scrollTo is overridden by activeCursor), so reveal must
+  // route through moveTo → onCursor → App's cursor state instead.
+  const moveToRef = useRef(moveTo)
+  moveToRef.current = moveTo
+  const navRef = useRef(nav)
+  navRef.current = nav
+
   // Create and maintain ListDocument + TextSurface when surfaceId is set
   useEffect(() => {
     if (!surfaceId || cacheMode !== "virtual" || !cacheBuffer) return
@@ -623,8 +632,19 @@ function ListViewInner<T>(
           const text = currentGetText?.(item) ?? String(item)
           const lineCount = text.split("\n").length
           if (match.row < row + lineCount) {
-            // This item contains the match — scroll to it
-            scrollToItemRef.current(Math.max(0, i - unmountedCountRef.current))
+            // Route to the correct consumer:
+            //  - nav mode: move the cursor (scrollTo is overridden by
+            //    activeCursor in nav mode, so moveTo is the only thing
+            //    that actually brings the match into view + lets the
+            //    App observe the new position via onCursor).
+            //  - passive mode: scroll the viewport.
+            if (navRef.current) {
+              // moveTo takes original (pre-unmounted) indices — same as
+              // items[i]. It clamps internally.
+              moveToRef.current(i)
+            } else {
+              scrollToItemRef.current(Math.max(0, i - unmountedCountRef.current))
+            }
             return
           }
           row += lineCount
