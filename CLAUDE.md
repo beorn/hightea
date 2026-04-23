@@ -46,6 +46,41 @@ Tests must use realistic-scale fixtures (50+ nodes), not 2-3 node toy components
 
 **Why:** `outlineStyle` was added speculatively without a test. When km finally used it, the entire feature broke (incremental cascade false positives, stack overflow, stale pixels). Hours of debugging. Speculative completeness is the norm in silvery — that's fine, but every speculatively-added prop must have a regression test from day one. See `tests/features/outline-incremental.test.tsx` for the canonical pattern.
 
+## Defaults contract tests
+
+**Every public option with a `@default` or `Default:` docstring MUST have a contract test that omits the option and asserts the documented behavior.**
+
+Three bugs shipped in one week with the same shape:
+
+1. `selectionEnabled = selectionOption ?? false` — docstring said "Default: true when mouse is enabled". Fixed 6c4442ee.
+2. `detectTerminalCaps()` ignored `FORCE_COLOR` — docstring listed env precedence, function short-circuited before the canonical helper. Fixed 48143ef0.
+3. Mouse drag state machine — no click-vs-drag threshold test; plain click created a 1-char selection + spurious onClick. Fixed 915b4bf9.
+
+All three had the same cause: **every existing test passed the option explicitly, so the default path was never exercised.** Docstring and code drifted silently.
+
+### Convention
+
+- **File placement**: `tests/contracts/<entry-point>-defaults.contract.test.tsx`, one file per public entry point.
+- **Naming**: test name starts with `contract:` and names the contract, not the seeding bug. E.g. `contract: selection defaults to true when mouse: true is passed`, not "bug 1 regression test".
+- **Shape**: instantiate the consumer with the option **omitted**; assert observable behavior matches the docstring.
+- **Ergonomics**: use `term.mouse.*` and `term.clipboard` from `@silvery/test` — never hand-rolled SGR byte strings or `as any` casts.
+
+### When adding a new `@default` option
+
+Your PR adding the option **MUST** include a contract test in the same PR that omits the option and asserts the documented default. Without the test, the docstring is a lie waiting to happen. If the entry point doesn't have a contracts file yet, create one.
+
+Phase 1 (current) seeds the convention with five entry points:
+
+- `run-defaults.contract.test.tsx` — `run(element, term, options?)`
+- `create-app-defaults.contract.test.tsx` — `createApp()` + `.run()`
+- `render-defaults.contract.test.tsx` — `render()` (lower-level)
+- `create-termless-defaults.contract.test.tsx` — `createTermless()` test harness
+- `create-term-defaults.contract.test.tsx` — `createTerm()` live terminal
+
+Phase 2 backlogs live in each file as TODO comments — grep for `Phase 2 backlog` to find the outstanding defaults. Phase 3 will add a lint-ish script that flags any `@default` docstring without a matching contract test.
+
+See `tests/contracts/README.md` and bead `km-silvery.defaults-contract-tests`.
+
 ## Quick Start
 
 The simplest Silvery app — styled text that exits on any keypress:
