@@ -311,6 +311,10 @@ const RELEASE_TIMEOUT_MS = 60
 const SCROLLBAR_FADE_AFTER_MS = 800
 /** How long (ms) the edge-bump indicator shows after hitting a boundary. */
 const EDGE_BUMP_SHOW_MS = 600
+/** Pulse period for the edge-bump indicator (ms per half-cycle). Produces a
+ * dim on/off flash so the line reads as movement against static chrome — a
+ * plain overline against e.g. an inverted top bar is nearly invisible. */
+const EDGE_BUMP_PULSE_MS = 250
 
 // =============================================================================
 // Measurement
@@ -459,6 +463,11 @@ function ListViewInner<T>(
   // transient "you've hit the end" cue, NOT a permanent at-edge marker.
   const [bumpedEdge, setBumpedEdge] = useState<"top" | "bottom" | null>(null)
   const bumpHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Pulse state — toggles every EDGE_BUMP_PULSE_MS while bumpedEdge is
+  // active. The indicator Box renders only when isPulseOn is true, so the
+  // line appears as a dim on/off flash. Against static chrome (e.g. an
+  // inverted top bar), movement is far easier to see than a static line.
+  const [isPulseOn, setIsPulseOn] = useState(true)
   // Latest item count — the wheel/kinetic paths close over a stale items.length
   // on each frame otherwise.
   const itemCountRef = useRef(items.length)
@@ -486,6 +495,17 @@ function ListViewInner<T>(
     scrollbarHideTimerRef.current = setTimeout(() => {
       setIsScrolling(false)
       scrollbarHideTimerRef.current = null
+      // Scrollbar-lifecycle sync: tie the overscroll indicator to the same
+      // idle signal as the scrollbar. When wheel/momentum activity quiesces
+      // and the scrollbar fades out, any lingering bump indicator is cleared
+      // too — the user has stopped scrolling, so the "you hit the end" cue
+      // should not outlive the scrollbar. Keyboard-triggered bumps don't
+      // touch `isScrolling`, so they fall through to their own 600 ms timer.
+      setBumpedEdge(null)
+      if (bumpHideTimerRef.current !== null) {
+        clearTimeout(bumpHideTimerRef.current)
+        bumpHideTimerRef.current = null
+      }
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
 
@@ -494,12 +514,25 @@ function ListViewInner<T>(
   // called when the viewport merely rests at the edge without a push.
   const flashEdgeBump = useCallback((edge: "top" | "bottom") => {
     setBumpedEdge(edge)
+    // Reset the pulse phase so the flash starts visible — otherwise a new
+    // bump arriving during the "off" phase of a prior bump would be invisible
+    // until the next toggle.
+    setIsPulseOn(true)
     if (bumpHideTimerRef.current !== null) clearTimeout(bumpHideTimerRef.current)
     bumpHideTimerRef.current = setTimeout(() => {
       setBumpedEdge(null)
       bumpHideTimerRef.current = null
     }, EDGE_BUMP_SHOW_MS)
   }, [])
+
+  // Drive the dim on/off pulse while the bump indicator is active.
+  useEffect(() => {
+    if (bumpedEdge === null) return undefined
+    const id = setInterval(() => {
+      setIsPulseOn((on) => !on)
+    }, EDGE_BUMP_PULSE_MS)
+    return () => clearInterval(id)
+  }, [bumpedEdge])
 
   // Cleanup on unmount.
   useEffect(() => () => {
@@ -780,9 +813,23 @@ function ListViewInner<T>(
       if (nextFloat < 0) nextFloat = 0
       else if (nextFloat > maxRow) nextFloat = maxRow
       const appliedRows = nextFloat - prev
-      // Clamp detection → flash edge-bump indicator.
-      if (rawNext < 0) flashEdgeBump("top")
-      else if (rawNext > maxRow) flashEdgeBump("bottom")
+      // Intent-based edge-bump — fire whenever the user pushed past the edge,
+      // including the "already at edge, push further" case that the strict
+      // `<` / `>` comparison missed. The request is `dir * WHEEL_STEP_ROWS`;
+      // whenever that request is non-zero AND the clamped result is flush
+      // against the corresponding edge, the indicator fires.
+      //
+      // Why: previously the formula was `rawNext > maxRow` (strict), so when
+      // a user started with the viewport already at the bottom (prev = maxRow)
+      // and wheel-scrolled down, rawNext = maxRow + 1 DID fire — but when the
+      // seeded prev was fractionally below maxRow (e.g. maxRow - 0.3) and step
+      // = 1, rawNext = maxRow + 0.7 fired. The trouble case was any path where
+      // rawNext landed EXACTLY at maxRow (never strictly past it) — no bump.
+      // Matching the keyboard intent model (moveTo), we now treat "pushed AND
+      // ended at the edge" as overscroll intent regardless of transition
+      // shape.
+      if (dir > 0 && nextFloat >= maxRow) flashEdgeBump("bottom")
+      else if (dir < 0 && nextFloat <= 0) flashEdgeBump("top")
       scrollRowFloatRef.current = nextFloat
       syncScrollbarFrac()
       const rendered = Math.round(nextFloat)
@@ -1589,10 +1636,10 @@ function ListViewInner<T>(
       * so mergeAttrsInRect (km-silvery.text-box-attr-props) layers the
       * SGR on every cell in the row WITHOUT overwriting the text glyph /
       * fg / bg underneath. */}
-    {bumpedEdge === "top" && effectiveRowsAbove === 0 && (
-      <Box position="absolute" top={0} left={0} right={0} height={1} overline />
+    {bumpedEdge === "top" && effectiveRowsAbove === 0 && isPulseOn && (
+      <Box position="absolute" top={0} left={0} right={0} height={1} overline bold />
     )}
-    {bumpedEdge === "bottom" && effectiveRowsAbove === scrollableRows && (
+    {bumpedEdge === "bottom" && effectiveRowsAbove === scrollableRows && isPulseOn && (
       <Box
         position="absolute"
         top={trackHeight - 1}
@@ -1600,7 +1647,8 @@ function ListViewInner<T>(
         right={0}
         height={1}
         underline="single"
-        underlineColor="$muted"
+        underlineColor="$fg"
+        bold
       />
     )}
     </Box>

@@ -131,6 +131,102 @@ describe("ListView overscroll bump — already-at-edge intent", () => {
     expect(sawUnderline).toBe(true)
   })
 
+  test("wheel-down when already at bottom fires bump on first event", async () => {
+    // Reproduce: user navigates to the last item so the viewport is flush
+    // against the bottom. A single wheel-down event is an intent to overscroll
+    // — bottom indicator should fire immediately, NOT only after a second
+    // event that "transitions into" the edge. The old `rawNext > maxRow`
+    // strict inequality missed the "seeded at maxRow, push past" case.
+    const render = createRenderer({ cols: 30, rows: 6 })
+    const app = render(
+      <ListView items={ITEMS} height={4} nav renderItem={(item) => <Text>{item}</Text>} />,
+    )
+    // Navigate to the last item so the viewport is flush against the bottom.
+    for (let i = 0; i < ITEMS.length - 1; i++) await app.press("j")
+    // This first-round j sequence also ends with a bump at the last item;
+    // wait for EDGE_BUMP_SHOW_MS to elapse so we can measure the wheel's
+    // bump in isolation. 700 ms > EDGE_BUMP_SHOW_MS (600 ms).
+    await new Promise((r) => setTimeout(r, 700))
+
+    // Scan before wheel — no indicator should be visible (bump expired).
+    const scanUnderline = (): boolean => {
+      for (let row = 0; row < 6; row++) {
+        for (let col = 0; col < 30; col++) {
+          if (app.cell(col, row).underline === "single") return true
+        }
+      }
+      return false
+    }
+    app.rerender(
+      <ListView items={ITEMS} height={4} nav renderItem={(item) => <Text>{item}</Text>} />,
+    )
+    expect(scanUnderline()).toBe(false)
+
+    // Wheel down at a point inside the ListView box. Positive delta = down.
+    await app.wheel(5, 2, 1)
+    expect(scanUnderline()).toBe(true)
+  })
+
+  test("wheel-up when already at top fires bump on first event", async () => {
+    const render = createRenderer({ cols: 30, rows: 6 })
+    const app = render(
+      <ListView items={ITEMS} height={4} nav renderItem={(item) => <Text>{item}</Text>} />,
+    )
+    // Starting cursor is already 0 → viewport flush-top. Negative delta = up.
+    await app.wheel(5, 2, -1)
+
+    let sawOverline = false
+    for (let col = 0; col < 30; col++) {
+      if (app.cell(col, 0).overline === true) {
+        sawOverline = true
+        break
+      }
+    }
+    expect(sawOverline).toBe(true)
+  })
+
+  test("overscroll indicator pulses on/off while active", async () => {
+    // The indicator should flash dim on/off (EDGE_BUMP_PULSE_MS=250 ms toggle)
+    // instead of drawing as a static line. Against inverted chrome, movement
+    // is far easier to spot than a static overline/underline.
+    const render = createRenderer({ cols: 30, rows: 6 })
+    const app = render(
+      <ListView items={ITEMS} height={4} nav renderItem={(item) => <Text>{item}</Text>} />,
+    )
+    // Navigate to the last item so we are at the bottom edge.
+    for (let i = 0; i < ITEMS.length - 1; i++) await app.press("j")
+    // Trigger the bump — cursor is clamped, bottom overscroll fires.
+    await app.press("j")
+
+    const scanUnderline = (): boolean => {
+      for (let row = 0; row < 6; row++) {
+        for (let col = 0; col < 30; col++) {
+          if (app.cell(col, row).underline === "single") return true
+        }
+      }
+      return false
+    }
+
+    // Sample across the first ~500 ms of the bump lifetime (EDGE_BUMP_SHOW_MS
+    // = 600 ms, so the whole window fits). Pulse half-period is 250 ms, so
+    // 5 samples at 120 ms cadence straddle at minimum one on→off transition.
+    const observations: boolean[] = []
+    observations.push(scanUnderline())
+    for (let i = 0; i < 4; i++) {
+      await new Promise((r) => setTimeout(r, 120))
+      // Force a repaint so the pulse state is flushed to the buffer.
+      app.rerender(
+        <ListView items={ITEMS} height={4} nav renderItem={(item) => <Text>{item}</Text>} />,
+      )
+      observations.push(scanUnderline())
+    }
+
+    // At least one sample should have the line visible, and at least one
+    // should not — the pulse is toggling on/off.
+    expect(observations.some((on) => on)).toBe(true)
+    expect(observations.some((on) => !on)).toBe(true)
+  })
+
   test("G from last item is idempotent — no bump (request = cap, not past-edge)", async () => {
     // `G` requests `items.length - 1` explicitly — exactly the cap. Our
     // intent check uses `next > items.length - 1` (strict), so this should
