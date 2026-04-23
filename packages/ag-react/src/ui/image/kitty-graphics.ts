@@ -120,10 +120,10 @@ export function deleteKittyImage(id: number): string {
  * @returns `true` if the terminal likely supports Kitty graphics
  */
 export function isKittyGraphicsSupported(
-  caps?: Pick<TerminalCaps, "program" | "term">,
+  emulator?: { program: string; TERM: string },
 ): boolean {
-  const resolved = caps ?? createTerminalProfile().caps
-  const term = resolved.term
+  const resolved = emulator ?? createTerminalProfile().emulator
+  const term = resolved.TERM
   const termProgram = resolved.program
 
   // Kitty terminal

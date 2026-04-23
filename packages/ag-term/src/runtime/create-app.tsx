@@ -674,10 +674,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // `capsOption?.textSizing` / `capsOption?.kittyKeyboard` sees the
   // same shape whether caps came from `caps` or `profile.caps`.
   const capsOption = profileOption?.caps ?? capsOptionRaw
-  // Post km-silvery.caps-restructure (Phase 7, 2026-04-23): program / version
-  // moved from caps onto TerminalIdentity. createApp's probe-cache fingerprint
-  // still needs them, so we source the identity off the profile when present.
-  const identityOption = profileOption?.identity
+  // Post km-silvery.plateau-naming-polish (2026-04-23): profile identity lives
+  // on `profile.emulator` (program/version/TERM). createApp's probe-cache
+  // fingerprint reads off the emulator when a profile is supplied.
+  const emulatorOption = profileOption?.emulator
 
   // Derive kitty mode for press(): use explicit kittyMode if set, otherwise
   // auto-enable when kitty protocol is active (so press() encodes modifier keys correctly)
@@ -1012,7 +1012,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     textSizingOption === "probe" || (textSizingOption === "auto" && heuristicSupported)
   // Probe-cache fingerprint: program@version, derived from caps. Computed
   // once so the initial cache check and the async-probe path share one key.
-  const probeFingerprint = getTerminalFingerprint(identityOption ?? { program: "", version: "" })
+  const probeFingerprint = getTerminalFingerprint(emulatorOption ?? { program: "", version: "" })
   // If we have a cached probe result, use it immediately instead of probing again
   const cachedProbe = shouldProbe ? getCachedProbeResult(probeFingerprint) : undefined
   let textSizingEnabled: boolean
@@ -1041,20 +1041,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     !headless &&
     (widthDetectionOption === true || (widthDetectionOption === "auto" && capsOption != null))
 
-  // Track effective caps — may be updated by width detection and text sizing probes
+  // Track effective caps — may be updated by width detection and text sizing
+  // probes. Heuristic fields (`maybeWideEmojis` etc.) live on caps now (post
+  // km-silvery.plateau-naming-polish), so width detection toggles them
+  // directly on the same object.
   let effectiveCaps = capsOption
     ? { ...capsOption, textSizing: textSizingEnabled }
     : undefined
-  // Post km-silvery.caps-restructure (Phase 7): textEmojiWide lives on
-  // TerminalHeuristics. Width detection + createPipeline need heuristics
-  // alongside caps so they can react to DEC emoji-width mode changes.
-  let effectiveHeuristics = profileOption?.heuristics
 
-  // Create pipeline config from caps + heuristics (scoped width measurer + output phase)
-  // Use `let` because the pipeline may be recreated after a probe changes textSizing
-  let pipelineConfig = effectiveCaps
-    ? createPipeline({ caps: effectiveCaps, heuristics: effectiveHeuristics })
-    : undefined
+  // Create pipeline config from caps (scoped width measurer + output phase).
+  // Use `let` because the pipeline may be recreated after a probe changes
+  // textSizing or width detection flips `caps.maybeWideEmojis`.
+  let pipelineConfig = effectiveCaps ? createPipeline({ caps: effectiveCaps }) : undefined
 
   // Create runtime (pass scoped output phase to ensure measurer/caps are threaded)
   // mode must match alternateScreen: inline apps (alternateScreen=false) need
@@ -2734,26 +2732,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         detector.dispose()
         stdin.off("data", stdinListener)
 
-        // Apply detected width config to caps + heuristics and recreate
-        // pipeline if changed. Post Phase 7 textEmojiWide moved to
-        // heuristics; applyWidthConfig splits the update across both layers.
+        // Apply detected width config to caps and recreate pipeline if
+        // changed. Post km-silvery.plateau-naming-polish: `maybeWideEmojis`
+        // and `textSizing` both live on caps — one overlay, one object.
         if (effectiveCaps) {
-          const heuristicsBefore = effectiveHeuristics ?? { textEmojiWide: true }
-          const { caps: updatedCaps, heuristics: updatedHeuristics } = applyWidthConfig(
-            effectiveCaps,
-            heuristicsBefore,
-            widthConfig,
-          )
+          const updatedCaps = applyWidthConfig(effectiveCaps, widthConfig)
           const capsChanged =
-            updatedHeuristics.textEmojiWide !== heuristicsBefore.textEmojiWide ||
+            updatedCaps.maybeWideEmojis !== effectiveCaps.maybeWideEmojis ||
             updatedCaps.textSizing !== effectiveCaps.textSizing
           if (capsChanged) {
             effectiveCaps = updatedCaps
-            effectiveHeuristics = updatedHeuristics as typeof effectiveHeuristics
-            pipelineConfig = createPipeline({
-              caps: effectiveCaps,
-              heuristics: effectiveHeuristics,
-            })
+            pipelineConfig = createPipeline({ caps: effectiveCaps })
             runtime.setOutputPhaseFn(pipelineConfig.outputPhaseFn)
             // Recreate Ag with updated measurer (caps changed text sizing/emoji width)
             renderer.resetAg()

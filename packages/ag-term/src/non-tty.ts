@@ -62,27 +62,27 @@ export type ResolvedNonTTYMode = Exclude<NonTTYMode, "auto">
  * - TERM=dumb
  * - CI environment variables are set
  *
- * Pass `identity` (from `term.identity` or a TerminalIdentity fixture) when
- * available to avoid a redundant env read. Without caps, the TERM=dumb
- * check delegates to {@link createTerminalProfile} — the canonical single-
- * source-of-truth entry in `@silvery/ansi/profile`. CI env vars remain
- * read directly because they are orthogonal to terminal capabilities (a
- * CI runner's TTY status doesn't describe what the terminal can render).
+ * Pass `emulator` (from `term.emulator` or a TerminalEmulator fixture) when
+ * available to avoid a redundant env read. Without it, the TERM=dumb check
+ * delegates to {@link createTerminalProfile} — the canonical single-source-
+ * of-truth entry in `@silvery/ansi/profile`. CI env vars remain read
+ * directly because they are orthogonal to terminal capabilities (a CI
+ * runner's TTY status doesn't describe what the terminal can render).
  */
 export function isTTY(
   stdout: NodeJS.WriteStream = process.stdout,
-  /** Structural identity — post km-silvery.caps-restructure (Phase 7) TERM
-   * lives on TerminalIdentity as `termName` (renamed to avoid Term type shadow). */
-  identity?: { termName: string },
+  /** Structural emulator — `{ TERM }` is the only field this helper reads. */
+  emulator?: { TERM: string },
 ): boolean {
   // Check stdout.isTTY
   if (!stdout.isTTY) {
     return false
   }
 
-  // Check TERM=dumb via identity (preferred) or the canonical profile factory.
-  const termName = identity?.termName ?? createTerminalProfile().identity.termName
-  if (termName === "dumb") {
+  // Check TERM=dumb via the passed emulator (preferred) or the canonical
+  // profile factory.
+  const TERM = emulator?.TERM ?? createTerminalProfile().emulator.TERM
+  if (TERM === "dumb") {
     return false
   }
 

@@ -52,21 +52,18 @@ export interface ScrollRegionConfig {
  * Most modern terminals do (xterm, iTerm2, Kitty, Ghostty, WezTerm, etc.)
  * but some (e.g., Linux console) may not handle them correctly.
  *
- * Pass `identity` (via `term.identity` or a test fixture) when in scope.
+ * Pass `emulator` (via `term.emulator` or a test fixture) when in scope.
  * Without it, this falls back to {@link createTerminalProfile} — the canonical
  * single-source-of-truth entry point in `@silvery/ansi/profile`. Direct
- * reads of terminal-signal env vars
- * (TERM / TERM_PROGRAM / …) are banned outside that module — see
- * `scripts/lint-env-reads.ts`.
+ * reads of terminal-signal env vars (TERM / TERM_PROGRAM / …) are banned
+ * outside that module — see `scripts/lint-env-reads.ts`.
  */
 export function supportsScrollRegions(
-  /** Post km-silvery.caps-restructure (Phase 7, 2026-04-23): program /
-   * termName moved to {@link TerminalIdentity}. Accept identity here
-   * instead of the old caps.program / caps.term reads. */
-  identity?: { program: string; termName: string },
+  /** Structural emulator — `{ program, TERM }` is all this helper reads. */
+  emulator?: { program: string; TERM: string },
 ): boolean {
-  const resolved = identity ?? createTerminalProfile().identity
-  const term = resolved.termName
+  const resolved = emulator ?? createTerminalProfile().emulator
+  const term = resolved.TERM
   const termProgram = resolved.program
 
   // Known-good terminal programs

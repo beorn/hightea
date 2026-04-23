@@ -6,7 +6,6 @@
  */
 
 import type { Term, TerminalCaps } from "./ansi/index"
-import type { TerminalHeuristics } from "@silvery/ansi"
 import { createWidthMeasurer, type Measurer } from "./unicode"
 import { createOutputPhase } from "./pipeline/output-phase"
 import { setActiveColorLevel } from "./pipeline/state"
@@ -27,12 +26,9 @@ export interface MeasuredTerm extends Term, Measurer {}
  */
 export function withMeasurer(term: Term): MeasuredTerm {
   const caps = term.caps
-  const heuristics = term.heuristics
-  // Post km-silvery.caps-restructure (Phase 7): textEmojiWide moved from
-  // caps onto TerminalHeuristics; textSizing stays on caps (hard protocol flag).
   const measurer = createWidthMeasurer(
     caps
-      ? { textEmojiWide: heuristics.textEmojiWide, textSizingEnabled: caps.textSizing }
+      ? { textEmojiWide: caps.maybeWideEmojis, textSizingEnabled: caps.textSizing }
       : {},
   )
 
@@ -54,26 +50,24 @@ export function withMeasurer(term: Term): MeasuredTerm {
  * This is the single factory for PipelineConfig -- use it instead of
  * manually constructing { measurer, outputPhaseFn }.
  *
- * @param options.caps - Terminal capabilities (for output phase SGR generation)
+ * @param options.caps - Terminal capabilities (for output phase SGR generation).
+ *   Reads `caps.maybeWideEmojis` (text-presentation emoji width) and
+ *   `caps.textSizing` for measurement.
  * @param options.measurer - Explicit measurer (if omitted, created from caps)
  */
 export function createPipeline(
   options: {
     caps?: TerminalCaps
-    /** Post km-silvery.caps-restructure (Phase 7): textEmojiWide moved from
-     * caps onto TerminalHeuristics. When omitted the measurer defaults to
-     * `true` (modern-terminal behavior). */
-    heuristics?: TerminalHeuristics
     measurer?: Measurer
   } = {},
 ): PipelineConfig {
-  const { caps, heuristics, measurer: explicitMeasurer } = options
+  const { caps, measurer: explicitMeasurer } = options
   const measurer =
     explicitMeasurer ??
     createWidthMeasurer(
       caps
         ? {
-            textEmojiWide: heuristics?.textEmojiWide ?? true,
+            textEmojiWide: caps.maybeWideEmojis,
             textSizingEnabled: caps.textSizing,
           }
         : {},
@@ -96,7 +90,7 @@ export function createPipeline(
   // OutputContext. At mono tier ("none"), $tokens resolve to null fg/bg and
   // getTextStyle injects per-token SGR attrs from DEFAULT_MONO_ATTRS so apps
   // keep hierarchy (bold / dim / italic / underline / inverse) when color is
-  // unavailable. See hub/silvery/design/v10-terminal/theme-system-v2-plan.md#p4.
+  // unavailable.
   if (caps?.colorTier) setActiveColorLevel(caps.colorTier)
   return { measurer, outputPhaseFn }
 }

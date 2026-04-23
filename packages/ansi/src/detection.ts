@@ -1,19 +1,22 @@
 /**
  * Narrow-scope terminal probes.
  *
- * Post km-silvery.caps-restructure (Phase 7, 2026-04-23): the flat 22-field
- * `TerminalCaps` interface split into three layers on
- * {@link ./profile#TerminalProfile}:
+ * Post km-silvery.plateau-naming-polish (2026-04-23): the 3-layer structure
+ * from Phase 7 collapsed to 2 layers on {@link ./profile#TerminalProfile}:
  *
- * - {@link TerminalCaps}      — pure protocol flags renderers branch on.
- * - {@link TerminalIdentity}  — environment identity (what terminal IS this).
- * - {@link TerminalHeuristics} — subjective guesses (likely dark background, …).
+ * - {@link TerminalCaps}     — pure protocol flags + `maybe*` heuristics.
+ * - {@link TerminalEmulator} — environment identity (program/version/TERM).
+ *
+ * The former `TerminalHeuristics` namespace was absorbed into `TerminalCaps`
+ * with a `maybe` prefix on each field (`maybeDarkBackground`, `maybeNerdFont`,
+ * `maybeWideEmojis`). The prefix makes uncertainty visible at every call site
+ * instead of hiding it behind a namespace; three fields don't earn a struct.
  *
  * Broader caps/color/unicode/underline detection is owned by {@link ./profile} —
  * import `createTerminalProfile()` (sync) or `probeTerminalProfile()` (async
  * with theme) for the canonical single-source-of-truth entry point. Every
  * TerminalCaps field is resolved there; consumers read `profile.caps.unicode`,
- * `profile.caps.underlineStyles`, `profile.heuristics.textEmojiWide`, etc.
+ * `profile.caps.underlineStyles`, `profile.caps.maybeWideEmojis`, etc.
  *
  * Post km-silvery.unicode-plateau Phase 1: `detectUnicode()` and
  * `detectExtendedUnderline()` are retired — their logic moved into
@@ -75,14 +78,20 @@ import type { ColorProvenance } from "./profile"
 // =============================================================================
 
 /**
- * Pure protocol capability flags — what the terminal *can* do at the wire
- * level. Used by renderers / measurer for pre-flight branching.
+ * Pure protocol capability flags plus low-confidence environment heuristics —
+ * what the terminal *can* do at the wire level, plus what the system guesses
+ * about theme/font/emoji rendering. Used by renderers / measurer for
+ * pre-flight branching.
  *
- * Post km-silvery.caps-restructure (Phase 7, 2026-04-23): the flat 22-field
- * shape was split into {@link TerminalCaps} (protocol flags, this type),
- * {@link TerminalIdentity} (environment identity — program/version/termName),
- * and {@link TerminalHeuristics} (subjective guesses — darkBackground,
- * nerdfont, textEmojiWide). All three live on `profile.{caps,identity,heuristics}`.
+ * Post km-silvery.plateau-naming-polish (2026-04-23):
+ * - `TerminalHeuristics` was absorbed into this type. Guesses live alongside
+ *   hard facts but carry a `maybe` prefix so the uncertainty is loud at every
+ *   read site (`caps.maybeDarkBackground` vs `caps.cursor`).
+ *
+ * Post km-silvery.caps-restructure (Phase 7, 2026-04-23): the original flat
+ * 22-field shape was split into {@link TerminalCaps} (this type) and
+ * {@link TerminalEmulator} (environment identity — program/version/TERM).
+ * Both live on `profile.{caps,emulator}`.
  *
  * Renames from the old flat shape:
  * - `colorLevel` → `colorTier` (matches the {@link ColorTier} return type)
@@ -187,6 +196,31 @@ export interface TerminalCaps {
   readonly notifications: boolean
   /** Synchronized output (DEC 2026) */
   readonly syncOutput: boolean
+
+  // -------------------------------------------------------------------------
+  // Environment heuristics (low-confidence guesses)
+  //
+  // These are *guesses* based on env-var sniffing, not protocol-verified
+  // facts. They travel alongside hard caps because call sites need both
+  // classes of information, but the `maybe` prefix keeps the uncertainty
+  // visible inline. Callers override them in `createTerminalProfile({caps})`
+  // without touching hard caps.
+  //
+  // Absorbed from the former `TerminalHeuristics` namespace in
+  // km-silvery.plateau-naming-polish (2026-04-23).
+  // -------------------------------------------------------------------------
+
+  /** Heuristic: likely dark background (for theme selection). Use
+   * {@link probeTerminalProfile} with OSC 11 to resolve definitively. */
+  readonly maybeDarkBackground: boolean
+  /** Heuristic: likely has Nerd Font installed (for icon selection).
+   * Sniffed from TERM / LC_TERMINAL / known-modern terminal programs. */
+  readonly maybeNerdFont: boolean
+  /** Heuristic: text-presentation emoji (`⚠` `☑` `⭐` — `Extended_Pictographic`
+   * without default `Emoji_Presentation`) rendered as 2 cells. Modern terminals
+   * (Ghostty, iTerm, Kitty) render these at emoji width (2 cells); Terminal.app
+   * renders them at text width (1 cell). Affects measurer + layout. */
+  readonly maybeWideEmojis: boolean
 }
 
 /**
@@ -194,9 +228,12 @@ export interface TerminalCaps {
  * {@link TerminalCaps} because identity doesn't gate rendering; it's what
  * tests, diagnostics, and probe-cache keys discriminate on.
  *
- * Post km-silvery.caps-restructure (Phase 7, 2026-04-23).
+ * Post km-silvery.plateau-naming-polish (2026-04-23): renamed from
+ * `TerminalIdentity` → `TerminalEmulator` (the thing IS a terminal emulator,
+ * matches `TERM_PROGRAM` provenance) and `termName` → `TERM` (matches the
+ * env var name and shell convention).
  */
-export interface TerminalIdentity {
+export interface TerminalEmulator {
   /** Terminal program name (from TERM_PROGRAM). */
   readonly program: string
   /** Terminal program version string (from TERM_PROGRAM_VERSION). Empty when
@@ -204,32 +241,18 @@ export interface TerminalIdentity {
    * `program@version` fingerprint used as the probe-cache key in
    * `@silvery/ag-term/text-sizing`. See km-silvery.unicode-plateau Phase 2. */
   readonly version: string
-  /** TERM env value. Renamed from `term` in Phase 7 to avoid shadowing the
-   * ubiquitous `Term` type when consumers destructure `const { term } = ...`. */
-  readonly termName: string
+  /** Value of the `TERM` env var (`"xterm-kitty"`, `"xterm-256color"`, …).
+   * Named `TERM` rather than `termName` to mirror the env-var name
+   * explicitly — the field's sole source is the `TERM` environment entry,
+   * resolved once by {@link createTerminalProfile}. */
+  readonly TERM: string
 }
 
 /**
- * Subjective heuristics — guesses the system made based on env cues. Separate
- * from {@link TerminalCaps} because these aren't protocol facts the renderer
- * can verify; they're hints for theme / icon selection that callers can
- * override without touching hard caps.
- *
- * Post km-silvery.caps-restructure (Phase 7, 2026-04-23).
- */
-export interface TerminalHeuristics {
-  /** Heuristic: likely dark background (for theme selection). */
-  readonly darkBackground: boolean
-  /** Heuristic: likely has Nerd Font installed (for icon selection). */
-  readonly nerdfont: boolean
-  /** Text-presentation emoji (⚠, ☑, ⭐) rendered as 2-wide.
-   * Modern terminals (Ghostty, iTerm, Kitty) render these at emoji width (2 cells).
-   * Terminal.app renders them at text width (1 cell). */
-  readonly textEmojiWide: boolean
-}
-
-/**
- * Default capabilities (assumes modern terminal with full support).
+ * Default capabilities — modern-terminal-ish defaults for headless / emulator /
+ * unknown contexts. Heuristic fields (`maybe*`) bake in "probably dark, no
+ * nerd font, wide emojis like Ghostty/iTerm" — callers override via
+ * `createTerminalProfile({caps})`.
  */
 export function defaultCaps(): TerminalCaps {
   return {
@@ -251,31 +274,21 @@ export function defaultCaps(): TerminalCaps {
     hyperlinks: false,
     notifications: false,
     syncOutput: false,
+    maybeDarkBackground: true,
+    maybeNerdFont: false,
+    maybeWideEmojis: true,
   }
 }
 
 /**
- * Default identity — unknown terminal, unversioned, no TERM set. Matches
- * what a non-TTY Node process sees when run from CI without env vars.
+ * Default emulator identity — unknown terminal, unversioned, no `TERM` set.
+ * Matches what a non-TTY Node process sees when run from CI without env vars.
  */
-export function defaultIdentity(): TerminalIdentity {
+export function defaultEmulator(): TerminalEmulator {
   return {
     program: "",
     version: "",
-    termName: "",
-  }
-}
-
-/**
- * Default heuristics — modern-terminal-ish defaults. Matches the shape that
- * used to be baked into `defaultCaps()` before Phase 7 split identity /
- * heuristics out.
- */
-export function defaultHeuristics(): TerminalHeuristics {
-  return {
-    darkBackground: true,
-    nerdfont: false,
-    textEmojiWide: true,
+    TERM: "",
   }
 }
 

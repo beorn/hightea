@@ -30,7 +30,7 @@
 // =============================================================================
 
 export type { ColorTier, RGB, AnsiColorName, Color, UnderlineStyle, TerminalCaps } from "./types"
-export type { TerminalIdentity, TerminalHeuristics } from "./detection"
+export type { TerminalEmulator } from "./detection"
 
 // =============================================================================
 // Constants
@@ -56,7 +56,7 @@ export {
 // routes through the profile factory instead.
 // =============================================================================
 
-export { defaultCaps, defaultIdentity, defaultHeuristics } from "./detection"
+export { defaultCaps, defaultEmulator } from "./detection"
 
 // =============================================================================
 // Terminal Profile — single source of truth for terminal detection.
@@ -68,7 +68,6 @@ export {
   defaultProfile,
   detectColorFromEnv,
   detectTerminalProfileFromEnv,
-  detectTerminalCapsFromEnv,
 } from "./profile"
 export type {
   TerminalProfile,

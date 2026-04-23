@@ -288,18 +288,17 @@ export function notify(
   message: string,
   opts?: {
     title?: string
-    /** Terminal identity — post km-silvery.caps-restructure (Phase 7) program
-     * and termName live on TerminalIdentity, not on TerminalCaps. */
-    identity?: { program: string; termName: string }
+    /** Structural emulator — `{ program, TERM }` is all this function reads. */
+    emulator?: { program: string; TERM: string }
   },
 ): void {
-  const identity = opts?.identity ?? createTerminalProfile().identity
-  const termProgram = identity.program
-  const term = identity.termName
+  const emulator = opts?.emulator ?? createTerminalProfile().emulator
+  const termProgram = emulator.program
+  const TERM = emulator.TERM
 
   if (termProgram === "iTerm.app") {
     stdout.write(notifyITerm2(message))
-  } else if (term === "xterm-kitty") {
+  } else if (TERM === "xterm-kitty") {
     stdout.write(notifyKitty(message, opts))
   } else {
     stdout.write(BEL)

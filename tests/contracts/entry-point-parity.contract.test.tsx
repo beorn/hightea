@@ -79,17 +79,12 @@ function makeProfile(tier: "truecolor" | "256" | "ansi16" | "mono"): TerminalPro
     env: {},
     stdout: { isTTY: false },
     colorOverride: tier,
-    // Post km-silvery.caps-restructure (Phase 7): caps / identity / heuristics
-    // live on separate options fields. program/term/darkBackground/nerdfont/
-    // textEmojiWide used to sit on caps; they moved out per /pro review.
-    identity: {
+    // Post km-silvery.plateau-naming-polish: 2-layer profile — emulator carries
+    // identity (program/version/TERM); caps carries protocol flags + `maybe*`
+    // heuristic guesses.
+    emulator: {
       program: "Ghostty",
-      termName: "xterm-ghostty",
-    },
-    heuristics: {
-      darkBackground: true,
-      nerdfont: false,
-      textEmojiWide: true,
+      TERM: "xterm-ghostty",
     },
     caps: {
       kittyKeyboard: false,
@@ -102,6 +97,9 @@ function makeProfile(tier: "truecolor" | "256" | "ansi16" | "mono"): TerminalPro
       mouse: false,
       syncOutput: true,
       unicode: true,
+      maybeDarkBackground: true,
+      maybeNerdFont: false,
+      maybeWideEmojis: true,
       underlineStyles: ["double", "curly", "dotted", "dashed"],
       underlineColor: true,
       textSizing: false,

@@ -115,9 +115,7 @@ function buildStaticEntries(caps: TerminalCaps): CapEntry[] {
     { name: "Underline Styles (SGR 4:x)", status: bool(caps.underlineStyles.length > 0) },
     { name: "Underline Color (SGR 58)", status: bool(caps.underlineColor) },
     { name: "Unicode", status: bool(caps.unicode) },
-    // Post km-silvery.caps-restructure (Phase 7) nerdfont lives on heuristics
-    // — but buildStaticEntries only sees caps, so drop this entry here; the
-    // header below reads it from heuristics directly.
+    { name: "Nerd Font (guess)", status: bool(caps.maybeNerdFont) },
   ]
 }
 
@@ -135,13 +133,11 @@ function TerminalCapsApp({
   }
 }) {
   const { exit } = useApp()
-  // Post km-silvery.caps-restructure (Phase 7): caps / identity / heuristics
-  // are three sibling views on the profile — pull all three so the demo can
-  // render each.
+  // Post km-silvery.plateau-naming-polish: 2-layer profile — `caps` (protocol
+  // flags + `maybe*` heuristics) and `emulator` (program/version/TERM).
   const [profile] = useState(() => createTerminalProfile())
   const caps = profile.caps
-  const identity = profile.identity
-  const heuristics = profile.heuristics
+  const emulator = profile.emulator
   const [colorScheme] = useState<BgMode>(initialProbes?.colorScheme ?? "unknown")
   const [widthConfig] = useState<TerminalWidthConfig | null>(initialProbes?.widthConfig ?? null)
   const [kittyDetected] = useState<boolean | null>(initialProbes?.kittyDetected ?? null)
@@ -202,19 +198,19 @@ function TerminalCapsApp({
     {
       name: "OSC 5522 Advanced Clipboard",
       // Kitty 0.28+ supports this; approximate via kitty detection
-      status: identity.termName === "xterm-kitty" ? "supported" : "not-supported",
-      detail: identity.termName === "xterm-kitty" ? "Kitty" : "not supported",
+      status: emulator.TERM === "xterm-kitty" ? "supported" : "not-supported",
+      detail: emulator.TERM === "xterm-kitty" ? "Kitty" : "not supported",
     },
     {
       name: "DA1/DA2/DA3",
       // All modern terminals respond to DA queries
-      status: identity.program !== "" ? "supported" : "not-supported",
+      status: emulator.program !== "" ? "supported" : "not-supported",
     },
   ]
 
-  // Terminal info header (identity drives program / term, heuristics drives nerdfont/dark)
-  const termProgram = identity.program || "(unknown)"
-  const termType = identity.termName || "(unknown)"
+  // Terminal info header
+  const termProgram = emulator.program || "(unknown)"
+  const termType = emulator.TERM || "(unknown)"
   const colorTier = caps.colorTier
 
   // Column width for alignment
@@ -224,11 +220,11 @@ function TerminalCapsApp({
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <H3>Terminal Capabilities Probe</H3>
 
-      {/* Terminal identity */}
+      {/* Terminal emulator */}
       <Box paddingBottom={1}>
         <Muted>
-          Terminal: {termProgram} ({termType}) | Colors: {colorTier} | Background:{" "}
-          {heuristics.darkBackground ? "dark" : "light"}
+          Terminal: {termProgram} ({termType}) | Colors: {colorTier} | Background (guess):{" "}
+          {caps.maybeDarkBackground ? "dark" : "light"}
         </Muted>
       </Box>
 

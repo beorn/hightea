@@ -301,60 +301,55 @@ describe("DEFAULT_WIDTH_CONFIG", () => {
 })
 
 describe("applyWidthConfig", () => {
-  // Post km-silvery.caps-restructure (Phase 7): applyWidthConfig takes caps +
-  // heuristics as separate args (textEmojiWide moved to heuristics) and
-  // returns `{ caps, heuristics }`.
-  it("maps emojiWidth=2 to heuristics.textEmojiWide=true", () => {
-    const caps = { textSizing: false, other: "preserved" }
-    const heuristics = { textEmojiWide: false }
+  // Post km-silvery.plateau-naming-polish: applyWidthConfig takes caps (which
+  // now carries `maybeWideEmojis`) and returns updated caps — one object.
+  it("maps emojiWidth=2 to caps.maybeWideEmojis=true", () => {
+    const caps = { textSizing: false, maybeWideEmojis: false, other: "preserved" }
     const config: TerminalWidthConfig = {
       utf8: true,
       cjkWidth: 1,
       emojiWidth: 2,
       privateUseWidth: 1,
     }
-    const result = applyWidthConfig(caps, heuristics, config)
-    expect(result.heuristics.textEmojiWide).toBe(true)
-    expect(result.caps.other).toBe("preserved")
+    const result = applyWidthConfig(caps, config)
+    expect(result.maybeWideEmojis).toBe(true)
+    expect(result.other).toBe("preserved")
   })
 
-  it("maps emojiWidth=1 to heuristics.textEmojiWide=false", () => {
-    const caps = { textSizing: false }
-    const heuristics = { textEmojiWide: true }
+  it("maps emojiWidth=1 to caps.maybeWideEmojis=false", () => {
+    const caps = { textSizing: false, maybeWideEmojis: true }
     const config: TerminalWidthConfig = {
       utf8: true,
       cjkWidth: 1,
       emojiWidth: 1,
       privateUseWidth: 1,
     }
-    const result = applyWidthConfig(caps, heuristics, config)
-    expect(result.heuristics.textEmojiWide).toBe(false)
+    const result = applyWidthConfig(caps, config)
+    expect(result.maybeWideEmojis).toBe(false)
   })
 
   it("maps privateUseWidth=2 to caps.textSizing=true", () => {
-    const caps = { textSizing: false }
-    const heuristics = { textEmojiWide: true }
+    const caps = { textSizing: false, maybeWideEmojis: true }
     const config: TerminalWidthConfig = {
       utf8: true,
       cjkWidth: 1,
       emojiWidth: 2,
       privateUseWidth: 2,
     }
-    const result = applyWidthConfig(caps, heuristics, config)
-    expect(result.caps.textSizing).toBe(true)
+    const result = applyWidthConfig(caps, config)
+    expect(result.textSizing).toBe(true)
   })
 
   it("maps privateUseWidth=1 to caps.textSizing=false", () => {
-    const caps = { textSizing: true }
-    const heuristics = { textEmojiWide: true }
+    const caps = { textSizing: true, maybeWideEmojis: true }
     const config: TerminalWidthConfig = {
       utf8: true,
       cjkWidth: 1,
       emojiWidth: 2,
       privateUseWidth: 1,
     }
-    const result = applyWidthConfig(caps, heuristics, config)
-    expect(result.caps.textSizing).toBe(false)
+    const result = applyWidthConfig(caps, config)
+    expect(result.textSizing).toBe(false)
   })
 
   it("detected config overrides width measurement via measurer", async () => {
@@ -389,23 +384,18 @@ describe("width detection → measurer integration", () => {
     const widthConfig = await detector.detect()
     detector.dispose()
 
-    // Start with default caps + heuristics — Phase 7 split textEmojiWide out
-    // to TerminalHeuristics while keeping textSizing on caps.
-    const defaultCaps = { textSizing: false }
-    const defaultHeuristics = { textEmojiWide: true }
-    const { caps: updatedCaps, heuristics: updatedHeuristics } = applyWidthConfig(
-      defaultCaps,
-      defaultHeuristics,
-      widthConfig,
-    )
+    // Start with default caps (post km-silvery.plateau-naming-polish:
+    // `maybeWideEmojis` and `textSizing` both live on caps).
+    const defaultCaps = { textSizing: false, maybeWideEmojis: true }
+    const updatedCaps = applyWidthConfig(defaultCaps, widthConfig)
 
     // Detection should have overridden: emoji → narrow, PUA → wide
-    expect(updatedHeuristics.textEmojiWide).toBe(false) // emojiWidth=1 → textEmojiWide=false
-    expect(updatedCaps.textSizing).toBe(true) // privateUseWidth=2 → textSizing=true
+    expect(updatedCaps.maybeWideEmojis).toBe(false)
+    expect(updatedCaps.textSizing).toBe(true)
 
     // Create measurer from updated caps — map textSizing → textSizingEnabled
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedHeuristics.textEmojiWide,
+      textEmojiWide: updatedCaps.maybeWideEmojis,
       textSizingEnabled: updatedCaps.textSizing,
     })
     expect(measurer.textEmojiWide).toBe(false)
@@ -416,7 +406,7 @@ describe("width detection → measurer integration", () => {
     expect(measurer.graphemeWidth(warningSign)).toBe(1) // narrow because textEmojiWide=false
   })
 
-  it("emoji width from DEC 1022 overrides default textEmojiWide", async () => {
+  it("emoji width from DEC 1022 overrides default maybeWideEmojis", async () => {
     // Terminal reports emoji=narrow (DEC 1022 = reset/2)
     const responses = new Map([
       [WidthMode.UTF8, 1],
@@ -434,14 +424,13 @@ describe("width detection → measurer integration", () => {
     const widthConfig = await detector.detect()
     detector.dispose()
 
-    // Default caps assume emoji=wide (Phase 7: heuristics carry textEmojiWide)
-    const caps = { textSizing: false }
-    const heuristics = { textEmojiWide: true }
-    const { heuristics: updatedHeuristics } = applyWidthConfig(caps, heuristics, widthConfig)
+    // Default caps assume emoji=wide
+    const caps = { textSizing: false, maybeWideEmojis: true }
+    const updatedCaps = applyWidthConfig(caps, widthConfig)
 
     // DEC 1022=reset overrides the default
-    expect(updatedHeuristics.textEmojiWide).toBe(false)
-    const measurer = createWidthMeasurer({ textEmojiWide: updatedHeuristics.textEmojiWide })
+    expect(updatedCaps.maybeWideEmojis).toBe(false)
+    const measurer = createWidthMeasurer({ textEmojiWide: updatedCaps.maybeWideEmojis })
     const warningSign = "\u26A0"
     expect(measurer.graphemeWidth(warningSign)).toBe(1)
   })
@@ -483,20 +472,15 @@ describe("width detection → measurer integration", () => {
     // Should be all defaults
     expect(widthConfig).toEqual(DEFAULT_WIDTH_CONFIG)
 
-    // Applying defaults to default caps should be a no-op (Phase 7 shape).
-    const caps = { textSizing: false }
-    const heuristics = { textEmojiWide: true }
-    const { caps: updatedCaps, heuristics: updatedHeuristics } = applyWidthConfig(
-      caps,
-      heuristics,
-      widthConfig,
-    )
-    expect(updatedHeuristics.textEmojiWide).toBe(true) // default emojiWidth=2 → wide
-    expect(updatedCaps.textSizing).toBe(false) // default privateUseWidth=1 → not supported
+    // Applying defaults to default caps should be a no-op.
+    const caps = { textSizing: false, maybeWideEmojis: true }
+    const updatedCaps = applyWidthConfig(caps, widthConfig)
+    expect(updatedCaps.maybeWideEmojis).toBe(true) // default emojiWidth=2 → wide
+    expect(updatedCaps.textSizing).toBe(false) // default privateUseWidth=1
 
     // Measurer should use the default wide emoji behavior
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedHeuristics.textEmojiWide,
+      textEmojiWide: updatedCaps.maybeWideEmojis,
       textSizingEnabled: updatedCaps.textSizing,
     })
     const warningSign = "\u26A0"
@@ -512,22 +496,17 @@ describe("width detection → measurer integration", () => {
       privateUseWidth: 1,
     }
 
-    // Start with default caps + heuristics (Phase 7 shape, emoji=wide by default).
-    const initialCaps = { textSizing: false }
-    const initialHeuristics = { textEmojiWide: true }
+    // Start with default caps (emoji=wide by default).
+    const initialCaps = { textSizing: false, maybeWideEmojis: true }
 
-    // Apply width config — maps emoji=narrow to textEmojiWide=false
-    const { caps: updatedCaps, heuristics: updatedHeuristics } = applyWidthConfig(
-      initialCaps,
-      initialHeuristics,
-      widthConfig,
-    )
-    expect(updatedHeuristics.textEmojiWide).toBe(false)
+    // Apply width config — maps emoji=narrow to maybeWideEmojis=false
+    const updatedCaps = applyWidthConfig(initialCaps, widthConfig)
+    expect(updatedCaps.maybeWideEmojis).toBe(false)
     expect(updatedCaps.textSizing).toBe(false)
 
     // Create measurer from updated caps (same as createPipeline does internally)
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedHeuristics.textEmojiWide,
+      textEmojiWide: updatedCaps.maybeWideEmojis,
       textSizingEnabled: updatedCaps.textSizing,
     })
     expect(measurer.textEmojiWide).toBe(false)

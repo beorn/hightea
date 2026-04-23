@@ -2,12 +2,17 @@
  * Term interface and createTerm() factory.
  *
  * Term is the central abstraction for terminal interaction:
- * - Caps/identity/heuristics: term.caps / term.identity / term.heuristics
+ * - Caps + emulator identity: term.caps, term.emulator
  * - Dimensions: cols, rows (shorthand for term.size.cols() / .rows())
  * - I/O: write(), writeLine()
  * - Sub-owners: input, output, modes, size, signals, console
  * - Styling: Chainable styles via Proxy (term.bold.red('text'))
  * - Lifecycle: Disposable pattern via Symbol.dispose
+ *
+ * Post km-silvery.plateau-naming-polish (2026-04-23): `term.identity` became
+ * `term.emulator` (matches TERM_PROGRAM provenance) and `term.heuristics` was
+ * absorbed into `term.caps` with a `maybe` prefix per field
+ * (`caps.maybeDarkBackground` etc.).
  *
  * Post km-silvery.caps-restructure (Phase 7, 2026-04-23): the legacy
  * `hasCursor()`/`hasInput()`/`hasColor()`/`hasUnicode()` methods are gone.
@@ -32,8 +37,7 @@ import {
   createTerminalProfile,
   type Style,
   type TerminalProfile,
-  type TerminalIdentity,
-  type TerminalHeuristics,
+  type TerminalEmulator,
 } from "@silvery/ansi"
 import type {
   ColorTier,
@@ -302,20 +306,15 @@ export interface Term extends Disposable, StyleChain {
   readonly profile: TerminalProfile
 
   /**
-   * Environment identity — `program`, `version`, `termName`. Convenience
-   * mirror of `profile.identity`. Post Phase 7 (caps-restructure): split out
-   * of the flat caps so consumers that only need "who is the terminal"
-   * don't sit on the whole protocol-flags surface.
+   * Environment identity — `program`, `version`, `TERM`. Convenience mirror
+   * of `profile.emulator`. Callers that only need "who is the terminal?"
+   * (diagnostics, probe-cache keys) read this instead of sitting on the full
+   * protocol-flags surface of {@link caps}.
+   *
+   * Post km-silvery.plateau-naming-polish (2026-04-23): renamed from
+   * `term.identity`; `TerminalIdentity` → `TerminalEmulator`.
    */
-  readonly identity: TerminalIdentity
-
-  /**
-   * Subjective heuristics — `darkBackground`, `nerdfont`, `textEmojiWide`.
-   * Convenience mirror of `profile.heuristics`. Post Phase 7 (caps-restructure):
-   * split out of the flat caps because these are guesses the caller may
-   * override, not hard protocol facts.
-   */
-  readonly heuristics: TerminalHeuristics
+  readonly emulator: TerminalEmulator
 
   // -------------------------------------------------------------------------
   // Dimensions
@@ -898,8 +897,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   const termBase = {
     caps: detectedCaps,
     profile,
-    identity: profile.identity,
-    heuristics: profile.heuristics,
+    emulator: profile.emulator,
     size,
     modes,
     signals,
@@ -1022,8 +1020,7 @@ function createHeadlessTerm(
   const termBase = {
     caps: profile.caps,
     profile,
-    identity: profile.identity,
-    heuristics: profile.heuristics,
+    emulator: profile.emulator,
     size,
     modes,
     signals,
@@ -1140,8 +1137,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   const termBase = {
     caps: profile.caps,
     profile,
-    identity: profile.identity,
-    heuristics: profile.heuristics,
+    emulator: profile.emulator,
     size,
     modes,
     signals,

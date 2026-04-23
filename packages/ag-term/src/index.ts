@@ -248,7 +248,7 @@ export {
   setCachedProbeResult,
   clearProbeCache,
   type TextSizingProbeResult,
-  type FingerprintCaps,
+  type FingerprintEmulator,
 } from "./text-sizing"
 
 // =============================================================================

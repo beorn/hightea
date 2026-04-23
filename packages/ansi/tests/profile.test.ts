@@ -15,7 +15,6 @@ import {
   createTerminalProfile,
   probeTerminalProfile,
   detectColorFromEnv,
-  detectTerminalCapsFromEnv,
   detectTerminalProfileFromEnv,
 } from "../src/profile"
 import { defaultCaps } from "../src/detection"
@@ -156,9 +155,9 @@ describe("createTerminalProfile — caps base", () => {
       env: {},
       stdout: nonTty,
       caps,
-      identity: { program: "Ghostty" },
+      emulator: { program: "Ghostty" },
     })
-    expect(profile.identity.program).toBe("Ghostty")
+    expect(profile.emulator.program).toBe("Ghostty")
     expect(profile.caps.kittyKeyboard).toBe(true)
     expect(profile.caps.colorTier).toBe("truecolor")
   })
@@ -189,7 +188,7 @@ describe("createTerminalProfile — caps base", () => {
       env: { TERM: "xterm-kitty", TERM_PROGRAM: "kitty" },
       stdout: tty,
     })
-    expect(profile.identity.program).toBe("kitty")
+    expect(profile.emulator.program).toBe("kitty")
     expect(profile.caps.kittyKeyboard).toBe(true)
     expect(profile.caps.colorTier).toBe("truecolor") // via TERM pattern
   })
@@ -367,15 +366,15 @@ describe("createTerminalProfile — caps shape", () => {
   test("profile.caps always has every required field", () => {
     const profile = createTerminalProfile({ env: {}, stdout: nonTty })
     // Spot-check the fields the pipeline depends on.
-    expect(typeof profile.identity.program).toBe("string")
-    expect(typeof profile.identity.termName).toBe("string")
+    expect(typeof profile.emulator.program).toBe("string")
+    expect(typeof profile.emulator.TERM).toBe("string")
     expect(typeof profile.caps.colorTier).toBe("string")
     expect(typeof profile.caps.kittyKeyboard).toBe("boolean")
     expect(typeof profile.caps.unicode).toBe("boolean")
     expect(typeof profile.caps.bracketedPaste).toBe("boolean")
     expect(typeof profile.caps.mouse).toBe("boolean")
-    expect(typeof profile.heuristics.darkBackground).toBe("boolean")
-    expect(typeof profile.heuristics.nerdfont).toBe("boolean")
+    expect(typeof profile.caps.maybeDarkBackground).toBe("boolean")
+    expect(typeof profile.caps.maybeNerdFont).toBe("boolean")
   })
 
   test("colorTier matches profile.caps.colorTier", () => {
@@ -386,12 +385,12 @@ describe("createTerminalProfile — caps shape", () => {
     expect(profile.colorTier).toBe(profile.caps.colorTier)
   })
 
-  test("profile.identity.program reflects TERM_PROGRAM", () => {
+  test("profile.emulator.program reflects TERM_PROGRAM", () => {
     const profile = createTerminalProfile({
       env: { TERM_PROGRAM: "Ghostty" },
       stdout: tty,
     })
-    expect(profile.identity.program).toBe("Ghostty")
+    expect(profile.emulator.program).toBe("Ghostty")
   })
 })
 
@@ -399,7 +398,7 @@ describe("createTerminalProfile — caps shape", () => {
 // profile.caps.unicode — env-sensitive (regression: km-silvery.unicode-plateau Phase 1)
 // ============================================================================
 //
-// Before the unicode plateau, `detectTerminalCapsFromEnv` hardcoded
+// Before the unicode plateau, `detectTerminalProfileFromEnv` hardcoded
 // `unicode: true` and the real detection lived in a standalone `detectUnicode()`
 // helper that every consumer re-read env to call. The plateau refactor absorbed
 // the detection into the profile factory. These tests pin the absorbed
@@ -496,7 +495,7 @@ describe("createTerminalProfile — profile.caps.unicode env-sensitivity", () =>
 })
 
 // ============================================================================
-// profile.caps.textSizing + profile.identity.version — migrated from the retired
+// profile.caps.textSizing + profile.emulator.version — migrated from the retired
 // isTextSizingLikelySupported env probe (unicode-plateau Phase 2, 2026-04-23).
 // ============================================================================
 
@@ -679,26 +678,26 @@ describe("createTerminalProfile — profile.caps.cursor (absorbed from detectCur
   })
 })
 
-describe("createTerminalProfile — profile.identity.version", () => {
-  test("profile.identity.version mirrors TERM_PROGRAM_VERSION", () => {
+describe("createTerminalProfile — profile.emulator.version", () => {
+  test("profile.emulator.version mirrors TERM_PROGRAM_VERSION", () => {
     const profile = createTerminalProfile({
       env: { TERM_PROGRAM: "kitty", TERM_PROGRAM_VERSION: "0.40.0" },
       stdout: tty,
     })
-    expect(profile.identity.version).toBe("0.40.0")
+    expect(profile.emulator.version).toBe("0.40.0")
   })
 
-  test("profile.identity.version is empty string when TERM_PROGRAM_VERSION unset", () => {
+  test("profile.emulator.version is empty string when TERM_PROGRAM_VERSION unset", () => {
     const profile = createTerminalProfile({
       env: { TERM_PROGRAM: "kitty" },
       stdout: tty,
     })
-    expect(profile.identity.version).toBe("")
+    expect(profile.emulator.version).toBe("")
   })
 })
 
 // ============================================================================
-// Internal helpers — detectColorFromEnv / detectTerminalCapsFromEnv
+// Internal helpers — detectColorFromEnv / detectTerminalProfileFromEnv
 // (exported-internal so test fixtures can drive them deterministically)
 // ============================================================================
 
@@ -867,7 +866,7 @@ describe("detectColorFromEnv", () => {
   })
 })
 
-describe("detectTerminalCapsFromEnv", () => {
+describe("detectTerminalProfileFromEnv", () => {
   test("kittyKeyboard is true for xterm-kitty", () => {
     const profile = detectTerminalProfileFromEnv({ TERM: "xterm-kitty" }, tty)
     expect(profile.caps.kittyKeyboard).toBe(true)
@@ -885,7 +884,7 @@ describe("detectTerminalCapsFromEnv", () => {
 
   test("nerdfont defaults to true for modern terminals (iTerm.app)", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "iTerm.app" }, tty)
-    expect(profile.heuristics.nerdfont).toBe(true)
+    expect(profile.caps.maybeNerdFont).toBe(true)
   })
 
   test("NERDFONT=0 disables nerdfont override", () => {
@@ -893,7 +892,7 @@ describe("detectTerminalCapsFromEnv", () => {
       { TERM_PROGRAM: "iTerm.app", NERDFONT: "0" },
       tty,
     )
-    expect(profile.heuristics.nerdfont).toBe(false)
+    expect(profile.caps.maybeNerdFont).toBe(false)
   })
 })
 
@@ -907,13 +906,13 @@ describe("detectTerminalCapsFromEnv", () => {
 // the 8-flag "isModern" fanout (kittyKeyboard, osc52, hyperlinks, …).
 // ============================================================================
 
-describe("detectTerminalCapsFromEnv — terminal matrix", () => {
+describe("detectTerminalProfileFromEnv — terminal matrix", () => {
   test("Ghostty (TERM_PROGRAM=Ghostty) populates every modern-terminal cap", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "Ghostty" }, tty)
     // Regression: km-silvery.ghostty-case-sensitivity — the lowercase compare
     // at profile.ts:295 meant every one of these was false on real Ghostty
     // machines while the test suite (which only checked colorTier) passed.
-    expect(profile.identity.program).toBe("Ghostty")
+    expect(profile.emulator.program).toBe("Ghostty")
     expect(profile.caps.colorTier).toBe("truecolor")
     expect(profile.caps.kittyKeyboard).toBe(true)
     expect(profile.caps.kittyGraphics).toBe(true)
@@ -922,12 +921,12 @@ describe("detectTerminalCapsFromEnv — terminal matrix", () => {
     expect(profile.caps.syncOutput).toBe(true)
     expect(profile.caps.underlineStyles.length).toBeGreaterThan(0)
     expect(profile.caps.underlineColor).toBe(true)
-    expect(profile.heuristics.nerdfont).toBe(true)
+    expect(profile.caps.maybeNerdFont).toBe(true)
   })
 
   test("Kitty (TERM=xterm-kitty) populates kitty + modern caps", () => {
     const profile = detectTerminalProfileFromEnv({ TERM: "xterm-kitty" }, tty)
-    expect(profile.identity.termName).toBe("xterm-kitty")
+    expect(profile.emulator.TERM).toBe("xterm-kitty")
     expect(profile.caps.colorTier).toBe("truecolor")
     expect(profile.caps.kittyKeyboard).toBe(true)
     expect(profile.caps.kittyGraphics).toBe(true)
@@ -938,7 +937,7 @@ describe("detectTerminalCapsFromEnv — terminal matrix", () => {
 
   test("WezTerm (TERM_PROGRAM=WezTerm) populates kitty + modern caps", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "WezTerm" }, tty)
-    expect(profile.identity.program).toBe("WezTerm")
+    expect(profile.emulator.program).toBe("WezTerm")
     expect(profile.caps.colorTier).toBe("truecolor")
     expect(profile.caps.kittyKeyboard).toBe(true)
     expect(profile.caps.sixel).toBe(true)
@@ -956,7 +955,7 @@ describe("detectTerminalCapsFromEnv — terminal matrix", () => {
 
   test("iTerm.app (TERM_PROGRAM=iTerm.app) populates iTerm caps", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "iTerm.app" }, tty)
-    expect(profile.identity.program).toBe("iTerm.app")
+    expect(profile.emulator.program).toBe("iTerm.app")
     expect(profile.caps.colorTier).toBe("truecolor")
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
@@ -967,7 +966,7 @@ describe("detectTerminalCapsFromEnv — terminal matrix", () => {
 
   test("Apple_Terminal reports 256 color + text-narrow emoji + no modern caps", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "Apple_Terminal" }, tty)
-    expect(profile.identity.program).toBe("Apple_Terminal")
+    expect(profile.emulator.program).toBe("Apple_Terminal")
     expect(profile.caps.colorTier).toBe("256")
     expect(profile.caps.kittyKeyboard).toBe(false)
     expect(profile.caps.kittyGraphics).toBe(false)
@@ -977,12 +976,12 @@ describe("detectTerminalCapsFromEnv — terminal matrix", () => {
     expect(profile.caps.underlineColor).toBe(false)
     // Apple Terminal renders text-emoji at 1-cell width — required for correct
     // grapheme measurement in the pipeline.
-    expect(profile.heuristics.textEmojiWide).toBe(false)
+    expect(profile.caps.maybeWideEmojis).toBe(false)
   })
 
   test("Alacritty (TERM_PROGRAM=Alacritty) reports osc52 + hyperlinks without kitty", () => {
     const profile = detectTerminalProfileFromEnv({ TERM_PROGRAM: "Alacritty" }, tty)
-    expect(profile.identity.program).toBe("Alacritty")
+    expect(profile.emulator.program).toBe("Alacritty")
     expect(profile.caps.osc52).toBe(true)
     expect(profile.caps.hyperlinks).toBe(true)
     expect(profile.caps.underlineStyles.length).toBeGreaterThan(0)

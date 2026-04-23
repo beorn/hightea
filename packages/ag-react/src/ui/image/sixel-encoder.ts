@@ -179,10 +179,10 @@ export function encodeSixel(imageData: SixelImageData): string {
  * @returns `true` if the terminal likely supports Sixel
  */
 export function isSixelSupported(
-  caps?: Pick<TerminalCaps, "program" | "term">,
+  emulator?: { program: string; TERM: string },
 ): boolean {
-  const resolved = caps ?? createTerminalProfile().caps
-  const term = resolved.term
+  const resolved = emulator ?? createTerminalProfile().emulator
+  const term = resolved.TERM
   const termProgram = resolved.program
 
   // mlterm supports Sixel natively
