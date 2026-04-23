@@ -26,15 +26,14 @@ export interface MeasuredTerm extends Term, Measurer {}
  */
 export function withMeasurer(term: Term): MeasuredTerm {
   const caps = term.caps
-  const measurer = createWidthMeasurer(
-    caps
-      ? { textEmojiWide: caps.maybeWideEmojis, textSizingEnabled: caps.textSizing }
-      : {},
-  )
+  // caps is a structural superset of the measurer's input — name alignment
+  // (maybeWideEmojis, textSizing) lets the whole caps object flow through.
+  // Excess fields are ignored.
+  const measurer = createWidthMeasurer(caps ?? {})
 
   return Object.create(term, {
-    textEmojiWide: { get: () => measurer.textEmojiWide, enumerable: true },
-    textSizingEnabled: { get: () => measurer.textSizingEnabled, enumerable: true },
+    maybeWideEmojis: { get: () => measurer.maybeWideEmojis, enumerable: true },
+    textSizing: { get: () => measurer.textSizing, enumerable: true },
     displayWidth: { value: measurer.displayWidth.bind(measurer), enumerable: true },
     displayWidthAnsi: { value: measurer.displayWidthAnsi.bind(measurer), enumerable: true },
     graphemeWidth: { value: measurer.graphemeWidth.bind(measurer), enumerable: true },
@@ -62,16 +61,10 @@ export function createPipeline(
   } = {},
 ): PipelineConfig {
   const { caps, measurer: explicitMeasurer } = options
-  const measurer =
-    explicitMeasurer ??
-    createWidthMeasurer(
-      caps
-        ? {
-            textEmojiWide: caps.maybeWideEmojis,
-            textSizingEnabled: caps.textSizing,
-          }
-        : {},
-    )
+  // caps is a structural superset of createWidthMeasurer's input — the aligned
+  // field names (`maybeWideEmojis`, `textSizing`) let it spread through as a
+  // no-op. Excess caps fields are ignored.
+  const measurer = explicitMeasurer ?? createWidthMeasurer(caps ?? {})
   const outputPhaseFn = createOutputPhase(
     caps
       ? {

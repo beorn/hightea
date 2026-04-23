@@ -45,7 +45,7 @@ const WIDE_CHARS: Array<{ name: string; char: string; description: string }> = [
   { name: "fullwidth-A", char: "Ａ", description: "Fullwidth Latin A" },
 ]
 
-/** PUA / nerdfont icons (only width-2 when textSizingEnabled) */
+/** PUA / nerdfont icons (only width-2 when textSizing) */
 const PUA_CHARS: Array<{ name: string; char: string; description: string }> = [
   { name: "pua-nerd", char: "\uE0B0", description: "Powerline separator (PUA)" },
   { name: "pua-icon", char: "\uF013", description: "Nerdfont gear icon (PUA)" },
@@ -99,7 +99,7 @@ function writeString(
 
 /** Create output phase with text sizing ENABLED (Kitty-like) */
 function createOsc66EnabledOutputPhase() {
-  const measurer = createWidthMeasurer({ textSizingEnabled: true, textEmojiWide: true })
+  const measurer = createWidthMeasurer({ textSizing: true, maybeWideEmojis: true })
   return createOutputPhase(
     { underlineStyles: true, underlineColor: true, colorTier: "truecolor" },
     measurer,
@@ -108,7 +108,7 @@ function createOsc66EnabledOutputPhase() {
 
 /** Create output phase with text sizing DISABLED (most terminals) */
 function createOsc66DisabledOutputPhase() {
-  const measurer = createWidthMeasurer({ textSizingEnabled: false, textEmojiWide: true })
+  const measurer = createWidthMeasurer({ textSizing: false, maybeWideEmojis: true })
   return createOutputPhase(
     { underlineStyles: true, underlineColor: true, colorTier: "truecolor" },
     measurer,
@@ -146,7 +146,7 @@ describe("capability profile: OSC 66 supported (Kitty-like)", () => {
   })
 
   test.each(PUA_CHARS)(
-    "$name ($description): PUA wrapped in OSC 66 when textSizingEnabled",
+    "$name ($description): PUA wrapped in OSC 66 when textSizing",
     ({ char }) => {
       const buf = new TerminalBuffer(COLS, ROWS)
       writeString(buf, 0, 0, `A${char}B`, true)
@@ -196,7 +196,7 @@ describe("capability profile: OSC 66 unsupported (most terminals)", () => {
     })
 
     test.each(PUA_CHARS)(
-      "$name ($description): PUA NOT wrapped in OSC 66 when textSizingEnabled=false",
+      "$name ($description): PUA NOT wrapped in OSC 66 when textSizing=false",
       ({ char }) => {
         const buf = new TerminalBuffer(COLS, ROWS)
         // PUA treated as narrow (width 1) when textSizing is disabled

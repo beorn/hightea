@@ -156,7 +156,7 @@ export interface OutputPhaseFn {
 
 export interface OutputMeasurer {
   graphemeWidth(grapheme: string): number
-  readonly textSizingEnabled: boolean
+  readonly textSizing: boolean
 }
 
 /** Get grapheme width using the output context measurer (falls back to unicode.ts import). */
@@ -166,14 +166,14 @@ function outputGraphemeWidth(g: string, ctx: OutputContext): number {
 
 /** Check if text sizing is enabled using the output context measurer. */
 function outputTextSizingEnabled(ctx: OutputContext): boolean {
-  return ctx.measurer ? ctx.measurer.textSizingEnabled : isTextSizingEnabled()
+  return ctx.measurer ? ctx.measurer.textSizing : isTextSizingEnabled()
 }
 
 /**
  * Create a scoped output phase that uses specific terminal capabilities.
  *
  * @param caps - Terminal capabilities for SGR code generation
- * @param measurer - Width measurer for graphemeWidth/textSizingEnabled (avoids dual-module-loading issues)
+ * @param measurer - Width measurer for graphemeWidth/textSizing (avoids dual-module-loading issues)
  */
 export function createOutputPhase(
   caps: Partial<OutputCaps>,

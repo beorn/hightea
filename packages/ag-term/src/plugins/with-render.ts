@@ -106,8 +106,8 @@ export function withRender(term: Term): RenderTerm {
   // Return a proxy that extends the original term with measurer methods and render capabilities
   return Object.create(term, {
     // Measurer methods (from pipeline config)
-    textEmojiWide: { get: () => measurer.textEmojiWide, enumerable: true },
-    textSizingEnabled: { get: () => measurer.textSizingEnabled, enumerable: true },
+    maybeWideEmojis: { get: () => measurer.maybeWideEmojis, enumerable: true },
+    textSizing: { get: () => measurer.textSizing, enumerable: true },
     displayWidth: { value: measurer.displayWidth.bind(measurer), enumerable: true },
     displayWidthAnsi: { value: measurer.displayWidthAnsi.bind(measurer), enumerable: true },
     graphemeWidth: { value: measurer.graphemeWidth.bind(measurer), enumerable: true },

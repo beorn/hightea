@@ -98,8 +98,8 @@ export function createPretextMeasurer(config: PretextMeasurerConfig): Measurer {
   }
 
   const measurer: Measurer = {
-    textEmojiWide: false,
-    textSizingEnabled: false,
+    maybeWideEmojis: false,
+    textSizing: false,
     lineHeight: lineHeightPx,
 
     displayWidth(text: string): number {

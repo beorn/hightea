@@ -354,9 +354,9 @@ describe("applyWidthConfig", () => {
 
   it("detected config overrides width measurement via measurer", async () => {
     // Without emoji wide: text-presentation emoji = 1 cell
-    const narrow = createWidthMeasurer({ textEmojiWide: false })
+    const narrow = createWidthMeasurer({ maybeWideEmojis: false })
     // With emoji wide: text-presentation emoji = 2 cells
-    const wide = createWidthMeasurer({ textEmojiWide: true })
+    const wide = createWidthMeasurer({ maybeWideEmojis: true })
 
     // Warning sign (⚠) is a text-presentation emoji
     const warningSign = "\u26A0"
@@ -393,17 +393,17 @@ describe("width detection → measurer integration", () => {
     expect(updatedCaps.maybeWideEmojis).toBe(false)
     expect(updatedCaps.textSizing).toBe(true)
 
-    // Create measurer from updated caps — map textSizing → textSizingEnabled
+    // Create measurer from updated caps — map textSizing → textSizing
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedCaps.maybeWideEmojis,
-      textSizingEnabled: updatedCaps.textSizing,
+      maybeWideEmojis: updatedCaps.maybeWideEmojis,
+      textSizing: updatedCaps.textSizing,
     })
-    expect(measurer.textEmojiWide).toBe(false)
-    expect(measurer.textSizingEnabled).toBe(true)
+    expect(measurer.maybeWideEmojis).toBe(false)
+    expect(measurer.textSizing).toBe(true)
 
     // Warning sign (⚠) — text-presentation emoji
     const warningSign = "\u26A0"
-    expect(measurer.graphemeWidth(warningSign)).toBe(1) // narrow because textEmojiWide=false
+    expect(measurer.graphemeWidth(warningSign)).toBe(1) // narrow because maybeWideEmojis=false
   })
 
   it("emoji width from DEC 1022 overrides default maybeWideEmojis", async () => {
@@ -430,7 +430,7 @@ describe("width detection → measurer integration", () => {
 
     // DEC 1022=reset overrides the default
     expect(updatedCaps.maybeWideEmojis).toBe(false)
-    const measurer = createWidthMeasurer({ textEmojiWide: updatedCaps.maybeWideEmojis })
+    const measurer = createWidthMeasurer({ maybeWideEmojis: updatedCaps.maybeWideEmojis })
     const warningSign = "\u26A0"
     expect(measurer.graphemeWidth(warningSign)).toBe(1)
   })
@@ -480,8 +480,8 @@ describe("width detection → measurer integration", () => {
 
     // Measurer should use the default wide emoji behavior
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedCaps.maybeWideEmojis,
-      textSizingEnabled: updatedCaps.textSizing,
+      maybeWideEmojis: updatedCaps.maybeWideEmojis,
+      textSizing: updatedCaps.textSizing,
     })
     const warningSign = "\u26A0"
     expect(measurer.graphemeWidth(warningSign)).toBe(2) // default: wide
@@ -506,10 +506,10 @@ describe("width detection → measurer integration", () => {
 
     // Create measurer from updated caps (same as createPipeline does internally)
     const measurer = createWidthMeasurer({
-      textEmojiWide: updatedCaps.maybeWideEmojis,
-      textSizingEnabled: updatedCaps.textSizing,
+      maybeWideEmojis: updatedCaps.maybeWideEmojis,
+      textSizing: updatedCaps.textSizing,
     })
-    expect(measurer.textEmojiWide).toBe(false)
+    expect(measurer.maybeWideEmojis).toBe(false)
 
     // Verify the measurer measures correctly with detected settings
     const warningSign = "\u26A0"

@@ -34,7 +34,7 @@ const CUP_REGEX = /\x1b\[(\d+);(\d+)H/g
 function createTextSizedOutputPhase() {
   return createOutputPhase(
     { underlineStyles: true, underlineColor: true, colorTier: "truecolor" },
-    { graphemeWidth, textSizingEnabled: true },
+    { graphemeWidth, textSizing: true },
   )
 }
 

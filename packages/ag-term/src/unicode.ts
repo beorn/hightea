@@ -126,10 +126,10 @@ export function runWithMeasurer<T>(measurer: WidthMeasurer, fn: () => T): T {
 /**
  * Check if text sizing mode is currently enabled.
  * Returns the default (false) since globals have been removed.
- * Use measurer.textSizingEnabled for scoped queries.
+ * Use measurer.textSizing for scoped queries.
  */
 export function isTextSizingEnabled(): boolean {
-  if (_scopedMeasurer) return _scopedMeasurer.textSizingEnabled
+  if (_scopedMeasurer) return _scopedMeasurer.textSizing
   return DEFAULT_TEXT_SIZING_ENABLED
 }
 
@@ -142,8 +142,8 @@ export function isTextSizingEnabled(): boolean {
  * Created by createWidthMeasurer() from TerminalCaps.
  */
 export interface Measurer {
-  readonly textEmojiWide: boolean
-  readonly textSizingEnabled: boolean
+  readonly maybeWideEmojis: boolean
+  readonly textSizing: boolean
   /** Height of one line in measurement units. Terminal: 1 (one cell row). Canvas pixel: e.g. 20. */
   readonly lineHeight: number
   displayWidth(text: string): number
@@ -171,17 +171,17 @@ function stripOsc8ForSlice(text: string): string {
  * Each measurer has its own caches (no shared global state).
  */
 export function createWidthMeasurer(
-  caps: { textEmojiWide?: boolean; textSizingEnabled?: boolean } = {},
+  caps: { maybeWideEmojis?: boolean; textSizing?: boolean } = {},
 ): Measurer {
-  const textEmojiWide = caps.textEmojiWide ?? true
-  const textSizingEnabled = caps.textSizingEnabled ?? false
+  const maybeWideEmojis = caps.maybeWideEmojis ?? true
+  const textSizing = caps.textSizing ?? false
   const cache = new DisplayWidthCache(10000)
 
   function measuredGraphemeWidth(grapheme: string): number {
     const width = stringWidth(grapheme)
     if (width !== 1) return width
-    if (textEmojiWide && isTextPresentationEmoji(grapheme)) return 2
-    if (textSizingEnabled) {
+    if (maybeWideEmojis && isTextPresentationEmoji(grapheme)) return 2
+    if (textSizing) {
       const cp = grapheme.codePointAt(0)
       if (cp !== undefined && isPrivateUseArea(cp)) return 2
     }
@@ -194,7 +194,7 @@ export function createWidthMeasurer(
 
     let width: number
     const needsSlowPath =
-      MAY_CONTAIN_TEXT_EMOJI.test(text) || (textSizingEnabled && MAY_CONTAIN_PUA.test(text))
+      MAY_CONTAIN_TEXT_EMOJI.test(text) || (textSizing && MAY_CONTAIN_PUA.test(text))
     if (!needsSlowPath) {
       width = stringWidth(text)
     } else {
@@ -254,8 +254,8 @@ export function createWidthMeasurer(
   }
 
   const measurer: Measurer = {
-    textEmojiWide,
-    textSizingEnabled,
+    maybeWideEmojis,
+    textSizing,
     lineHeight: 1,
     displayWidth: measuredDisplayWidth,
     displayWidthAnsi: measuredDisplayWidthAnsi,

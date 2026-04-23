@@ -1015,22 +1015,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   const probeFingerprint = getTerminalFingerprint(emulatorOption ?? { program: "", version: "" })
   // If we have a cached probe result, use it immediately instead of probing again
   const cachedProbe = shouldProbe ? getCachedProbeResult(probeFingerprint) : undefined
-  let textSizingEnabled: boolean
+  let textSizing: boolean
   if (textSizingOption === true) {
-    textSizingEnabled = true
+    textSizing = true
   } else if (textSizingOption === "probe") {
     // "probe": start disabled unless cache says supported
-    textSizingEnabled = cachedProbe?.supported ?? false
+    textSizing = cachedProbe?.supported ?? false
   } else if (textSizingOption === "auto") {
     if (cachedProbe !== undefined) {
       // Cache available: use definitive probe result
-      textSizingEnabled = cachedProbe.supported
+      textSizing = cachedProbe.supported
     } else {
       // No cache: use heuristic for first render, probe will verify
-      textSizingEnabled = heuristicSupported
+      textSizing = heuristicSupported
     }
   } else {
-    textSizingEnabled = false
+    textSizing = false
   }
 
   // Whether we still need to run the async probe (no cache hit)
@@ -1046,7 +1046,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // km-silvery.plateau-naming-polish), so width detection toggles them
   // directly on the same object.
   let effectiveCaps = capsOption
-    ? { ...capsOption, textSizing: textSizingEnabled }
+    ? { ...capsOption, textSizing: textSizing }
     : undefined
 
   // Create pipeline config from caps (scoped width measurer + output phase).
@@ -2659,10 +2659,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         )
 
         // If probe result differs from initial heuristic, recreate pipeline
-        if (probeResult.supported !== textSizingEnabled) {
-          textSizingEnabled = probeResult.supported
+        if (probeResult.supported !== textSizing) {
+          textSizing = probeResult.supported
           if (effectiveCaps) {
-            effectiveCaps = { ...effectiveCaps, textSizing: textSizingEnabled }
+            effectiveCaps = { ...effectiveCaps, textSizing: textSizing }
             pipelineConfig = createPipeline({ caps: effectiveCaps })
             // Update runtime's output phase to use the new measurer
             runtime.setOutputPhaseFn(pipelineConfig.outputPhaseFn)

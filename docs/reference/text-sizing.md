@@ -49,7 +49,7 @@ await run(<App />, { textSizing: true })
 import { createMeasurer, runWithMeasurer, isTextSizingEnabled } from "@silvery/ag-term"
 
 // Create a measurer with text sizing enabled
-const measurer = createMeasurer({ textSizingEnabled: true })
+const measurer = createMeasurer({ textSizing: true })
 
 // Use the measurer for width calculations
 measurer.graphemeWidth("\uE0B0") // 2 (PUA treated as double-width)
@@ -157,9 +157,9 @@ Build a `program@version` cache key from `TerminalEmulator` (or any structural `
 
 Definitive detection using cursor position reports. Sends an OSC 66 test sequence and checks if the cursor advanced by the expected amount. `fingerprint` keys the result cache — pass the same value from `getTerminalFingerprint(term.emulator)` across probes in the same process.
 
-### `createMeasurer(opts: { textSizingEnabled: boolean }): Measurer`
+### `createMeasurer(opts: { textSizing: boolean }): Measurer`
 
-Create a measurer instance with the given text sizing configuration. When `textSizingEnabled` is true:
+Create a measurer instance with the given text sizing configuration. When `textSizing` is true:
 
 - `measurer.graphemeWidth()` returns 2 for PUA characters
 - `measurer.displayWidth()` accounts for PUA width

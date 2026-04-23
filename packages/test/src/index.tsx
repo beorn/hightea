@@ -304,7 +304,7 @@ function sgrButtonByte(options?: TermlessMouseOptions): number {
  *
  * Without a `caps` override, `term.caps` is populated from `defaultCaps()`
  * (truecolor / unicode / mouse). Callers that want a specific terminal
- * profile for a test — Apple_Terminal's lack of `textEmojiWide`, Kitty's
+ * profile for a test — Apple_Terminal's lack of `maybeWideEmojis`, Kitty's
  * `kittyKeyboard`, etc. — can pass a `Partial<TerminalCaps>` here.
  */
 export function createTermless(

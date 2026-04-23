@@ -170,8 +170,8 @@ export function createDomMeasurer(config: DomMeasurerConfig): Measurer & { dispo
   }
 
   const result: Measurer & { dispose: () => void } = {
-    textEmojiWide: false,
-    textSizingEnabled: false,
+    maybeWideEmojis: false,
+    textSizing: false,
     lineHeight: lineHeightPx,
 
     displayWidth(text: string): number {
