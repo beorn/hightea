@@ -27,6 +27,7 @@
 import { openSync, writeSync, closeSync } from "node:fs"
 import { createLogger } from "loggily"
 import { signal, type ReadSignal } from "@silvery/signals"
+import type { ConsoleRouter } from "./console-router"
 
 const log = createLogger("silvery:guard")
 
@@ -70,8 +71,17 @@ export interface OutputOptions {
 /**
  * Create an Output owner. Starts deactivated — call `activate()` to install
  * intercepts. Call `dispose()` for final cleanup.
+ *
+ * A `ConsoleRouter` may be passed to route `console.*` redirect policy
+ * through the shared patcher (so Console's tap and Output's sink layer
+ * deterministically). When omitted, Output patches `console.*` via its own
+ * private router — the behaviour is identical, but Console's tap cannot
+ * share the patch site.
  */
-export function createOutput(defaultOptions?: OutputOptions): Output {
+export function createOutput(
+  defaultOptions?: OutputOptions,
+  router?: ConsoleRouter,
+): Output {
   let disposed = false
   // Reactive `active` — internal writes from activate/deactivate only.
   // Exposed read-only via the `active` ReadSignal on the public Output shape.
@@ -86,16 +96,22 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
   let savedStderrWrite: typeof process.stderr.write | null = null
   let origStdoutWrite: ((chunk: unknown, ...args: unknown[]) => boolean) | null = null
   let origStderrWrite: ((chunk: unknown, ...args: unknown[]) => boolean) | null = null
-  let savedConsoleLog: typeof console.log | null = null
-  let savedConsoleInfo: typeof console.info | null = null
-  let savedConsoleWarn: typeof console.warn | null = null
-  let savedConsoleError: typeof console.error | null = null
-  let savedConsoleDebug: typeof console.debug | null = null
 
   // Stderr redirection state (re-created on activate, torn down on deactivate)
   let stderrFd: number | null = null
   let stderrBuffer: string[] = []
   let bufferStderr = false
+
+  // Router is the canonical patcher for console.*. `unregisterSink` holds
+  // the disposer for the sink policy we registered in activate().
+  const ownsRouter = !router
+  const _router: ConsoleRouter =
+    router ??
+    // Lazy local-router import to avoid a circular dep between console.ts
+    // and output.ts. `require` is safe here (node runtime) and dev-only.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    (require("./console-router") as typeof import("./console-router")).createConsoleRouter()
+  let unregisterSink: (() => void) | null = null
 
   // Route flag — when true, stdout.write(…) inside the intercept forwards to the
   // original (silvery's own write() path toggles this briefly).
@@ -152,36 +168,57 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
       return true
     } as typeof process.stderr.write
 
-    // Intercept console methods — they write to stderr in Bun/Node and bypass
-    // the process.stderr.write patch (they use internal C++ bindings).
-    savedConsoleLog = console.log
-    savedConsoleInfo = console.info
-    savedConsoleWarn = console.warn
-    savedConsoleError = console.error
-    savedConsoleDebug = console.debug
-
-    function redirectConsole(...args: unknown[]): void {
-      const str = args.map((a) => (typeof a === "string" ? a : String(a))).join(" ") + "\n"
-      redirectedCount++
-      if (stderrFd !== null) {
-        try {
-          writeSync(stderrFd, str)
-        } catch {
-          // File may have been closed
-        }
-        return
-      }
-      if (bufferStderr) {
+    // Intercept console methods via the shared ConsoleRouter — the router
+    // owns the five `target[method] = wrapper` installs and composes Output's
+    // redirect policy with whatever Console has registered as a tap. Using
+    // the router (instead of patching console.* directly here) is what makes
+    // the Console tap + Output sink coexist regardless of activation order
+    // (Pro review 2026-04-22 P0-3 structural fix).
+    unregisterSink = _router.registerSink({
+      // If we have a fd to redirect to, drive the router's writeSync path.
+      // Otherwise we'd want to buffer/drop — the router currently supports
+      // suppress + redirect, so we emulate "buffer" by intercepting in our
+      // own observer-style sink extension (via a tap that appends to the
+      // stderrBuffer). Keep the canonical flow simple: fd-redirect is the
+      // production case; buffering is the test case.
+      redirectFd: stderrFd,
+    })
+    if (bufferStderr && stderrFd === null) {
+      // Test/buffer mode: register a second sink that captures console.* into
+      // stderrBuffer. The last-registered sink wins; register AFTER the
+      // redirect sink so this one is active. Buffering also counts toward
+      // redirectedCount so consumers see an accurate tally.
+      unregisterSink?.()
+      unregisterSink = _router.registerSink({
+        // The router's sink currently has suppress/redirect semantics only;
+        // buffering requires the caller to also register a tap for side effects.
+        // We use suppress + a tap below.
+        suppress: true,
+      })
+      // Tap: every call gets appended to stderrBuffer + counted.
+      const unregisterBufferTap = _router.registerTap((call) => {
+        const str =
+          call.args.map((a) => (typeof a === "string" ? a : String(a))).join(" ") + "\n"
+        redirectedCount++
         stderrBuffer.push(str)
-        return
+      })
+      const prevUnregister = unregisterSink
+      unregisterSink = () => {
+        unregisterBufferTap()
+        prevUnregister()
+      }
+    } else {
+      // Count fd-redirected writes by registering a tap alongside the redirect
+      // sink. The tap fires BEFORE the sink runs writeSync, so count is in sync.
+      const unregisterCountTap = _router.registerTap(() => {
+        redirectedCount++
+      })
+      const prevUnregister = unregisterSink
+      unregisterSink = () => {
+        unregisterCountTap()
+        prevUnregister!()
       }
     }
-
-    console.log = redirectConsole as typeof console.log
-    console.info = redirectConsole as typeof console.info
-    console.warn = redirectConsole as typeof console.warn
-    console.error = redirectConsole as typeof console.error
-    console.debug = redirectConsole as typeof console.debug
 
     log?.info?.("activated" + (stderrLog ? ` (stderr -> ${stderrLog})` : " (stderr suppressed)"))
   }
@@ -192,11 +229,11 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
 
     if (savedStdoutWrite) process.stdout.write = savedStdoutWrite
     if (savedStderrWrite) process.stderr.write = savedStderrWrite
-    if (savedConsoleLog) console.log = savedConsoleLog
-    if (savedConsoleInfo) console.info = savedConsoleInfo
-    if (savedConsoleWarn) console.warn = savedConsoleWarn
-    if (savedConsoleError) console.error = savedConsoleError
-    if (savedConsoleDebug) console.debug = savedConsoleDebug
+    // Unregister the sink + redirect tap on the ConsoleRouter. The router
+    // itself stays wired (Console may still be tapping) — this just pops
+    // Output's policies off.
+    unregisterSink?.()
+    unregisterSink = null
 
     log?.info?.(
       `deactivated (suppressed ${suppressedCount} stdout, redirected ${redirectedCount} stderr)`,
@@ -223,17 +260,13 @@ export function createOutput(defaultOptions?: OutputOptions): Output {
     savedStderrWrite = null
     origStdoutWrite = null
     origStderrWrite = null
-    savedConsoleLog = null
-    savedConsoleInfo = null
-    savedConsoleWarn = null
-    savedConsoleError = null
-    savedConsoleDebug = null
   }
 
   function dispose(): void {
     if (disposed) return
     disposed = true
     deactivate()
+    if (ownsRouter) _router.dispose()
   }
 
   return {

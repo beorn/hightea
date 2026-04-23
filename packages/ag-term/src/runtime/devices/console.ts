@@ -43,6 +43,7 @@
 import { signal, type ReadSignal } from "@silvery/signals"
 
 import type { ConsoleEntry, ConsoleMethod } from "../../ansi/types"
+import { createConsoleRouter, type ConsoleRouter } from "./console-router"
 
 /**
  * Aggregate counts of captured console output by severity.
@@ -127,23 +128,27 @@ export interface Console extends Disposable {
   [Symbol.dispose](): void
 }
 
-const METHODS: ConsoleMethod[] = ["log", "info", "warn", "error", "debug"]
 const STDERR_METHODS = new Set<ConsoleMethod>(["error", "warn"])
 const EMPTY_ENTRIES: readonly ConsoleEntry[] = Object.freeze([])
 
 /**
- * Create a Console owner for the given `console` global. Starts in the
- * restored (non-capturing) state — call `capture()` to begin intercepting.
+ * Create a Console owner backed by a ConsoleRouter. Starts in the restored
+ * (non-capturing) state — call `capture()` to register the tap and (when
+ * `suppress: true`) also push a suppress sink policy on the router.
  *
- * Default target is the ambient `console` global, which is what every app
- * wants; tests can pass a stub.
+ * When no router is provided, Console constructs a private one patched
+ * against the given `target` console global. Production Term factories
+ * should pass a shared router so Console's tap and Output's sink layer
+ * deterministically via a single patch site.
  */
-export function createConsole(target: globalThis.Console = globalThis.console): Console {
+export function createConsole(
+  target: globalThis.Console = globalThis.console,
+  router?: ConsoleRouter,
+): Console {
   let disposed = false
   // Reactive `capturing` — written only by capture()/restore(), read by the
   // public `capturing` ReadSignal.
   const _capturing = signal<boolean>(false)
-  let suppress = false
   let captureEntries = true
 
   // Buffer the authoritative ConsoleEntry[] for replay(). The reactive
@@ -154,60 +159,49 @@ export function createConsole(target: globalThis.Console = globalThis.console): 
   const _entries = signal<readonly ConsoleEntry[]>(EMPTY_ENTRIES)
   const stats: ConsoleStats = { total: 0, errors: 0, warnings: 0 }
 
-  // Originals captured once the first `capture()` is called, then reused so
-  // nested capture/restore cycles always restore to the same baseline.
-  const originals = new Map<ConsoleMethod, globalThis.Console[ConsoleMethod]>()
+  const ownsRouter = !router
+  const _router: ConsoleRouter = router ?? createConsoleRouter(target)
 
-  function install() {
-    for (const method of METHODS) {
-      if (!originals.has(method)) {
-        // Store the method as-is (no .bind) so `restore()` puts back an
-        // identity-equal reference. Invocation uses `.call(target, …)`.
-        originals.set(method, target[method])
-      }
-      const original = originals.get(method)!
-      target[method] = (...args: unknown[]) => {
-        stats.total++
-        if (method === "error") stats.errors++
-        else if (method === "warn") stats.warnings++
-
-        if (captureEntries) {
-          const entry: ConsoleEntry = {
-            method,
-            args,
-            stream: STDERR_METHODS.has(method) ? "stderr" : "stdout",
-          }
-          buffer.push(entry)
-          // Fresh reference so alien-signals equality check fires; Object.freeze
-          // so subscribers can't mutate the array they read.
-          _entries(Object.freeze(buffer.slice()))
-        }
-
-        if (!suppress) original.call(target, ...args)
-      }
-    }
-  }
-
-  function uninstall() {
-    for (const method of METHODS) {
-      const original = originals.get(method)
-      if (original) target[method] = original
-    }
-  }
+  let unregisterTap: (() => void) | null = null
+  let unregisterSink: (() => void) | null = null
 
   function capture(options?: ConsoleCaptureOptions): void {
     if (disposed) return
     if (_capturing()) return
     _capturing(true)
-    suppress = options?.suppress ?? false
     captureEntries = options?.capture ?? true
-    install()
+    // Tap records each call into the entry buffer + stats.
+    unregisterTap = _router.registerTap((call) => {
+      stats.total++
+      if (call.method === "error") stats.errors++
+      else if (call.method === "warn") stats.warnings++
+      if (captureEntries) {
+        const entry: ConsoleEntry = {
+          method: call.method,
+          args: call.args,
+          stream: STDERR_METHODS.has(call.method) ? "stderr" : "stdout",
+        }
+        buffer.push(entry)
+        // Fresh reference so alien-signals equality check fires; Object.freeze
+        // so subscribers can't mutate the array they read.
+        _entries(Object.freeze(buffer.slice()))
+      }
+    })
+    // `suppress: true` asks the router to drop forwarding entirely.
+    // Without it, the router forwards to the active sink (Output's redirect)
+    // or, if no sink is registered, to the original method.
+    if (options?.suppress) {
+      unregisterSink = _router.registerSink({ suppress: true })
+    }
   }
 
   function restore(): void {
     if (!_capturing()) return
     _capturing(false)
-    uninstall()
+    unregisterTap?.()
+    unregisterTap = null
+    unregisterSink?.()
+    unregisterSink = null
   }
 
   function replay(stdout: NodeJS.WriteStream, stderr: NodeJS.WriteStream): void {
@@ -231,6 +225,7 @@ export function createConsole(target: globalThis.Console = globalThis.console): 
     if (disposed) return
     disposed = true
     restore()
+    if (ownsRouter) _router.dispose()
   }
 
   return {

@@ -65,6 +65,7 @@ import {
   type ConsoleCaptureOptions,
   type ConsoleStats,
 } from "../runtime/devices/console"
+import { createConsoleRouter } from "../runtime/devices/console-router"
 export type { DeviceConsole as Console, ConsoleCaptureOptions, ConsoleStats }
 import { splitRawInput, parseKey } from "@silvery/ag/keys"
 import { isMouseSequence, parseMouseSequence } from "../mouse"
@@ -803,6 +804,11 @@ function createNodeTerm(options: CreateTermOptions): Term {
     return _input
   }
 
+  // Shared ConsoleRouter — the single patcher for console.*. Both Console
+  // (tap) and Output (sink) register against it so activation order no
+  // longer matters. Pro review 2026-04-22 P0-3 structural fix.
+  const consoleRouter = createConsoleRouter(globalThis.console)
+
   // Lazy Output — constructed on first access. Owns stdout/stderr/console
   // intercepts for the Term's lifetime. Starts deactivated; caller activates
   // after protocol setup. See km-silvery.term-sub-owners Phase 3.
@@ -811,7 +817,7 @@ function createNodeTerm(options: CreateTermOptions): Term {
   const getOutput = (): Output | undefined => {
     if (stdout !== process.stdout) return undefined
     if (!_output) {
-      _output = createOutput()
+      _output = createOutput(undefined, consoleRouter)
     }
     return _output
   }
@@ -824,11 +830,11 @@ function createNodeTerm(options: CreateTermOptions): Term {
     stdin,
   })
 
-  // Console owner — captures console.* during alt-screen rendering. Constructed
-  // eagerly (cheap: no patching until capture()) so consumers can subscribe to
-  // entries even before the TUI goes interactive (buffered startup warnings).
-  // See km-silvery.term-sub-owners Phase 7.
-  const consoleOwner = createConsole(globalThis.console)
+  // Console owner — captures console.* during alt-screen rendering. Shares
+  // the Term's ConsoleRouter so its tap lives on the same patch site as
+  // Output's sink. See km-silvery.term-sub-owners Phase 7 + Phase C (Pro
+  // review follow-up).
+  const consoleOwner = createConsole(globalThis.console, consoleRouter)
 
   // Signals owner — coordinates process-signal handlers for this Term's
   // lifetime. No process-level listener is installed until the first `on()`
@@ -871,6 +877,10 @@ function createNodeTerm(options: CreateTermOptions): Term {
       if (_output) _output[Symbol.dispose]()
       if (provider) provider[Symbol.dispose]()
       consoleOwner[Symbol.dispose]()
+      // Dispose the shared router AFTER both Console and Output have been
+      // torn down (above) so no latent taps/sinks reference a disposed
+      // router.
+      consoleRouter.dispose()
       modes[Symbol.dispose]()
       size[Symbol.dispose]()
     },
