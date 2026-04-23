@@ -91,6 +91,15 @@ export interface RunOptions {
    */
   mouse?: boolean
   /**
+   * Enable buffer-level text selection via mouse drag.
+   * When enabled, left-mouse-drag selects text and mouse-up copies the
+   * selected text to the system clipboard via OSC 52. Defaults to `true`
+   * when `mouse` is enabled. Set to `false` to disable silvery's internal
+   * selection entirely — users can still select via Shift+drag (or Option
+   * on macOS) for the terminal's native selection.
+   */
+  selection?: boolean
+  /**
    * Render mode:
    * - `"fullscreen"` — alt screen buffer (default)
    * - `"inline"` — scrollback-compatible, no alt screen

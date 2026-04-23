@@ -1054,8 +1054,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   let kittyFlags: number = defaultKittyFlags
   let mouseEnabled = false
   let focusReportingEnabled = false
-  // Selection requires explicit opt-in — don't hijack mouse clicks by default
-  const selectionEnabled = selectionOption ?? false
+  // Selection follows mouse: when mouse tracking is enabled, drag-to-select +
+  // OSC 52 copy should work without requiring explicit opt-in. (The comment
+  // here used to say "don't hijack mouse clicks by default" but the
+  // documented default is "true when mouse is enabled" — the old `?? false`
+  // made every consumer set selection:true manually.) Callers that really
+  // want mouse-without-selection pass `selection:false`.
+  const selectionEnabled = selectionOption ?? mouseOption === true
   let selectionState = createTerminalSelectionState()
 
   // --- Selection bridge ---
