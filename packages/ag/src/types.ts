@@ -173,7 +173,22 @@ export interface FlexboxProps {
   overflowY?: "visible" | "hidden"
 
   // Scroll control (only used when overflow='scroll')
-  /** Child index to ensure visible (edge-based: only scrolls if off-screen) */
+  /**
+   * Child index to ensure visible. Declarative — the Box fires edge-based
+   * ensure-visible when this value CHANGES (or on mount). Re-renders with
+   * the same value are no-ops; content-height changes do not re-trigger
+   * the ensure-visible pass.
+   *
+   * This "fire on change" semantic prevents viewport jumps when a visible
+   * child grows (e.g. user clicks to expand a collapsible row): the Box no
+   * longer re-anchors on every render. Matches the convention used by
+   * `@tanstack/virtual`, `react-window`, iOS `UIScrollView.setContentOffset`
+   * — imperative intent is separate from declarative anchor state.
+   *
+   * To re-fire ensure-visible against the SAME target (e.g. "scroll to
+   * cursor, even though cursor didn't change"), toggle the value via undefined
+   * first, or drive scroll via the explicit `scrollOffset` prop.
+   */
   scrollTo?: number
   /** Explicit scroll offset in rows (used when scrollTo is undefined for frozen scroll state) */
   scrollOffset?: number
@@ -578,6 +593,20 @@ export interface AgNode {
     offset: number
     /** Previous scroll offset from last render (for incremental rendering) */
     prevOffset: number
+    /**
+     * The `scrollTo` prop value processed in the previous frame.
+     *
+     * Used to distinguish "new intent" (scrollTo changed — user pressed a key
+     * or an external setter moved the target) from "same intent" (scrollTo
+     * unchanged — this frame is just a re-render caused by content growth or
+     * style changes).
+     *
+     * Edge-based ensure-visible fires for NEW intent. Same intent skips
+     * re-anchoring when the target's top edge is still in the viewport —
+     * otherwise growing a visible item would shift the viewport down and
+     * push content above it out of view ("the whole page jumps on click").
+     */
+    prevScrollTo?: number
     /** Total content height (all children) */
     contentHeight: number
     /** Visible height (container height minus borders/padding) */

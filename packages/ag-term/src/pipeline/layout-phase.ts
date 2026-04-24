@@ -627,11 +627,41 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
   // 2. If scrollOffset is defined: use explicit offset (for frozen scroll state)
   // 3. Otherwise: use previous offset or default to 0
   const prevOffset = node.scrollState?.offset
+  const prevScrollTo = node.scrollState?.prevScrollTo
   const explicitOffset = props.scrollOffset
   let scrollOffset = explicitOffset ?? prevOffset ?? 0
   const scrollTo = props.scrollTo
 
-  if (scrollTo !== undefined && scrollTo >= 0 && scrollTo < childPositions.length) {
+  // Distinguish "new intent" from "same intent":
+  //
+  //   NEW intent  — scrollTo changed since last frame (user pressed a key,
+  //                 cursor moved, external setter jumped target). Fire the
+  //                 full edge-based ensure-visible so the new target lands
+  //                 inside the viewport. First render is also NEW intent
+  //                 (prevScrollTo === undefined, scrollTo is defined → differ).
+  //
+  //   SAME intent — scrollTo unchanged from last frame. This render was
+  //                 triggered by something else (state change, content
+  //                 growth, theme flip, wheel scroll, etc.). Skip ensure-
+  //                 visible entirely — the offset persists from prevOffset
+  //                 (or explicitOffset wins). This is the critical guard
+  //                 that prevents "viewport jumps on click-to-expand" —
+  //                 growing a visible item must not shift the viewport.
+  //
+  // This mirrors the already-landed fix in `useVirtualizer` (commit
+  // 50d13d41 — `scrollToChanged` guard). Box's ensure-visible is the
+  // sibling layer; same pattern, same rationale.
+  //
+  // For imperative "scroll to this index NOW (even if it's the same value)",
+  // callers should toggle scrollTo off and on, or use an imperative API.
+  const scrollToChanged = prevScrollTo !== scrollTo
+
+  if (
+    scrollTo !== undefined &&
+    scrollTo >= 0 &&
+    scrollTo < childPositions.length &&
+    scrollToChanged
+  ) {
     // Find the target child
     const target = childPositions.find((c) => c.index === scrollTo)
     if (target) {
@@ -894,6 +924,10 @@ function calculateScrollState(node: AgNode, props: BoxProps, skipStateUpdates: b
   node.scrollState = {
     offset: scrollOffset,
     prevOffset: prevOffset ?? scrollOffset,
+    // Remember the scrollTo value we processed this frame so next frame can
+    // distinguish "new intent" (scrollTo changed) from "same intent" (same
+    // value, re-render for another reason). See the guard above.
+    prevScrollTo: scrollTo,
     contentHeight,
     viewportHeight,
     firstVisibleChild: firstVisible,
