@@ -8,6 +8,21 @@
  * misconfiguration and silent fallback would just defer the failure to the
  * first `scope.use(...)` / `scope.defer(...)` call.
  *
+ * **Fiber walk via React context.** React resolves contexts by walking the
+ * fiber `.return` chain at read time, so `useContext(ScopeContext)` already
+ * is the ancestor-fiber walk the design calls for — there is no separate
+ * react-reconciler internal we have to reach for. Components without a
+ * `<ScopeProvider>` between them and the root therefore see the root
+ * directly via `AppScopeContext`.
+ *
+ * **Lazy fiber-local allocation.** Components that need a *finer* lifetime
+ * than the enclosing scope use `useScopeEffect((scope) => …, deps)`, which
+ * lazily allocates `parent.child()` after commit and disposes it on dep
+ * change / unmount. Components that only call `useScope()` and never
+ * `useScopeEffect()` allocate nothing — they observe the ancestor scope
+ * read-only and rely on the reconciler's host-config disposal for any
+ * scope attached to their host instance via `attachNodeScope`.
+ *
  * Render-phase rule: **never call `scope.use / defer / child /
  * [Symbol.asyncDispose]` from a component body**. The hook returns the
  * scope so you can pass it to event handlers, but acquisition belongs in

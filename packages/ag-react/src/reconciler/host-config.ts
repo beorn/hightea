@@ -12,6 +12,7 @@ import {
   DiscreteEventPriority,
   NoEventPriority,
 } from "react-reconciler/constants.js"
+import { reportDisposeError, type Scope } from "@silvery/scope"
 import type { BoxProps, AgNode, AgNodeType, TextProps } from "@silvery/ag/types"
 import {
   trackContentDirty,
@@ -67,6 +68,87 @@ let onNodeRemovedCallback: ((removedNode: AgNode) => void) | null = null
  */
 export function setOnNodeRemoved(callback: ((removedNode: AgNode) => void) | null): void {
   onNodeRemovedCallback = callback
+}
+
+// ============================================================================
+// Fiber-Local Scope Slot
+// ============================================================================
+//
+// Every host instance (AgNode) gets an optional Scope slot — kept off the
+// AgNode shape itself so that @silvery/ag stays free of an upward
+// dependency on @silvery/scope. The slot is owned by the reconciler:
+//
+//   - hooks (useScope) attach a fiber-local scope on first access via
+//     `attachNodeScope`,
+//   - the unmount paths below (removeChild, removeChildFromContainer,
+//     clearContainer, detachDeletedInstance) walk the doomed subtree and
+//     fire-and-forget `scope[Symbol.asyncDispose]()`,
+//   - any rejection routes through `reportDisposeError(error, { phase:
+//     "react-unmount", scope })`. Disposal is unavoidable — there is no
+//     path that swallows the slot without disposing.
+//
+// A WeakMap means a node that's eligible for GC drops its scope reference
+// even if the dispose was already kicked off; the dispose itself keeps the
+// scope alive for the duration of the teardown via its own closures.
+
+const nodeScopes = new WeakMap<AgNode, Scope>()
+
+/**
+ * Attach a fiber-local scope to a host instance. Called from `useScope` /
+ * `useScopeEffect` when a component first asks for a scope. Idempotent
+ * within a single mount: replacing an attached scope without first
+ * disposing it would leak the predecessor, so this throws instead.
+ */
+export function attachNodeScope(node: AgNode, scope: Scope): void {
+  const existing = nodeScopes.get(node)
+  if (existing && existing !== scope) {
+    throw new Error(
+      "attachNodeScope: node already has a different scope attached. " +
+        "Detach (or dispose) the existing scope before attaching another.",
+    )
+  }
+  nodeScopes.set(node, scope)
+}
+
+/** Read the fiber-local scope (or `undefined`) for a host instance. */
+export function getNodeScope(node: AgNode): Scope | undefined {
+  return nodeScopes.get(node)
+}
+
+/**
+ * Detach the slot without disposing — used by hooks whose own
+ * `useEffect` cleanup ran first (so the scope is already disposed and the
+ * unmount path must not double-dispose).
+ */
+export function detachNodeScope(node: AgNode): Scope | undefined {
+  const scope = nodeScopes.get(node)
+  if (scope) nodeScopes.delete(node)
+  return scope
+}
+
+/**
+ * Dispose any scope attached to `node` and to every descendant. Called
+ * from the reconciler's unmount paths. Fire-and-forget per the design
+ * contract: react commit is synchronous, scope dispose is async, so we
+ * kick off the promise and route rejections through `reportDisposeError`.
+ *
+ * Walks the subtree synchronously so all slots are detached *before* any
+ * dispose promise resolves — this prevents a re-entrant render from
+ * observing a partially torn-down tree with live scope slots.
+ */
+function disposeSubtreeScopes(node: AgNode): void {
+  // Detach first, dispose second — so an exception in dispose doesn't
+  // leave the slot pointing at a half-disposed scope.
+  const scope = nodeScopes.get(node)
+  if (scope) {
+    nodeScopes.delete(node)
+    void scope[Symbol.asyncDispose]().catch((error) =>
+      reportDisposeError(error, { phase: "react-unmount", scope }),
+    )
+  }
+  for (const child of node.children) {
+    disposeSubtreeScopes(child)
+  }
 }
 
 // ============================================================================
@@ -372,6 +454,11 @@ export const hostConfig = {
     if (index !== -1) {
       // Notify focus manager before detaching (needs parent chain intact for subtree check)
       onNodeRemovedCallback?.(child)
+      // Dispose any fiber-local scopes in the doomed subtree. Must happen
+      // before we splice — disposeSubtreeScopes walks `child.children`,
+      // and we want the walk to see the same tree the focus manager just
+      // observed.
+      disposeSubtreeScopes(child)
       parentInstance.children.splice(index, 1)
       if (parentInstance.layoutNode && child.layoutNode) {
         parentInstance.layoutNode.removeChild(child.layoutNode)
@@ -397,6 +484,7 @@ export const hostConfig = {
     if (index !== -1) {
       // Notify focus manager before detaching
       onNodeRemovedCallback?.(child)
+      disposeSubtreeScopes(child)
       container.root.children.splice(index, 1)
       if (container.root.layoutNode && child.layoutNode) {
         container.root.layoutNode.removeChild(child.layoutNode)
@@ -685,6 +773,10 @@ export const hostConfig = {
     for (const child of container.root.children) {
       onNodeRemovedCallback?.(child)
     }
+    // Dispose any fiber-local scopes in the cleared subtrees, plus any
+    // attached to the root itself (withScope-style root scopes attach
+    // here). The root's slot is detached first; descendants follow.
+    disposeSubtreeScopes(container.root)
     for (const child of container.root.children) {
       if (container.root.layoutNode && child.layoutNode) {
         container.root.layoutNode.removeChild(child.layoutNode)
@@ -738,8 +830,16 @@ export const hostConfig = {
     return null
   },
 
-  detachDeletedInstance() {
-    // No-op
+  detachDeletedInstance(node: AgNode) {
+    // Final-cleanup hook fired after React commits a deletion. The
+    // per-subtree disposal already happened in removeChild /
+    // removeChildFromContainer / clearContainer (those run during commit
+    // with the parent chain intact). This catches any fiber-local scope
+    // still attached at this point — a re-entrant attach during dispose,
+    // or a fiber path that bypassed the structural removeChild flow.
+    // Idempotent: disposeSubtreeScopes detaches before disposing, so a
+    // node that's already been processed becomes a no-op.
+    disposeSubtreeScopes(node)
   },
 
   // React 19 / react-reconciler 0.33+ required methods

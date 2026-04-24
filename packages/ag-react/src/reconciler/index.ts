@@ -22,6 +22,9 @@ export {
   _resetBoxInsideTextWarning,
   setInkStrictValidation,
   setOnNodeRemoved,
+  attachNodeScope,
+  detachNodeScope,
+  getNodeScope,
 } from "./host-config"
 
 // ============================================================================
