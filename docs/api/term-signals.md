@@ -140,9 +140,22 @@ term.signals.on("SIGINT", flush)
 
 ## Not in scope
 
-`apps/km-tui/src/state/raw-signals.ts::restoreTerminal` and similar **emergency last-ditch crash handlers** stay outside `term.signals`. They register on `uncaughtException` and must run even if the Term (and its Signals) has already been disposed. The owner is for the structured cleanup path; the emergency handler is the safety net for cases where the structured path can't run.
+**Emergency last-ditch crash handlers** stay outside `term.signals`. They register on `uncaughtException` and must run even if the Term (and its Signals) has already been disposed — typically only to attempt a synchronous `stdin.setRawMode(false)` so the user's terminal isn't left wedged. The owner is for the structured cleanup path; the emergency handler is the safety net for cases where the structured path can't run.
+
+## Composing with `Scope`
+
+The return value of `term.signals.on(...)` is a `Disposable & AsyncDisposable`, which means it composes directly with the [scope tree](/guide/scope):
+
+```ts
+useScopeEffect((scope) => {
+  scope.use(term.signals.on("SIGINT", () => flush()))
+}, [])
+```
+
+When the component unmounts (or the scope otherwise disposes), the SIGINT handler is removed without firing. The same shape works at the app root via `withScope()`, which auto-wires SIGINT/SIGTERM to root-scope dispose when composed after `withTerminal`.
 
 ## See also
 
+- [Scope — structured concurrency for resources](/guide/scope) — how `term.signals.on(...)` composes with `useScopeEffect` and `withScope()`
 - [term.modes](/api/term-modes) — most cleanup handlers ultimately tear down a mode (alt screen, raw mode)
 - [Term — the I/O umbrella](/guide/term)
