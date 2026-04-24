@@ -1572,17 +1572,27 @@ function ListViewInner<T>(
      * cue where the track ends, appearing/hiding with the same auto-hide
      * timer as the thumb. */}
     {showScrollbar && (() => {
-      const thumbTopFloat = scrollbarFrac * trackRemainder
+      // Snap near-1 frac to exactly 1 so the thumb reaches the track end.
+      // The setScrollbarFrac threshold (Math.abs < 0.001) can leave frac at
+      // 0.9999… which then propagates through the float math as a thumb
+      // that's 0.008 rows short of the track bottom — visible as a 1-cell
+      // gap because the fractional-bottom branch renders a partial block
+      // instead of "█".
+      const frac = scrollbarFrac > 0.999 ? 1 : scrollbarFrac < 0.001 ? 0 : scrollbarFrac
+      const thumbTopFloat = frac * trackRemainder
       const thumbBottomFloat = thumbTopFloat + thumbHeight
       const firstRow = Math.floor(thumbTopFloat)
       const lastRow = Math.min(trackHeight - 1, Math.ceil(thumbBottomFloat) - 1)
       const EIGHTHS = "▁▂▃▄▅▆▇█"
+      // Epsilon compare for fractional edges — a floating-point near-equal
+      // shouldn't render a partial glyph.
+      const EPS = 0.001
       const rows: React.ReactNode[] = []
       for (let r = firstRow; r <= lastRow; r++) {
         const isFirst = r === firstRow
         const isLast = r === lastRow
-        const fractionalTop = isFirst && thumbTopFloat !== firstRow
-        const fractionalBottom = isLast && thumbBottomFloat !== lastRow + 1
+        const fractionalTop = isFirst && Math.abs(thumbTopFloat - firstRow) > EPS
+        const fractionalBottom = isLast && Math.abs(thumbBottomFloat - (lastRow + 1)) > EPS
         if (fractionalTop) {
           // Portion of this cell filled (from the bottom). Use lower-N-eighths
           // glyphs which paint a bar rising from the bottom of the cell.
