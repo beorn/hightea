@@ -90,6 +90,22 @@ export interface TextAreaProps {
   focusBorderColor?: string
   /** Test ID for focus system identification */
   testID?: string
+  /**
+   * Called when an arrow key is pressed AT the buffer boundary (where the key
+   * would otherwise be a no-op or clamp). Enables cross-widget focus handoff
+   * for composite editors.
+   *
+   * - `"top"` fires when Up is pressed at `cursorRow === 0`
+   * - `"bottom"` fires when Down is pressed at `cursorRow === lastRow`
+   * - `"left"` fires when Left is pressed at the start of the buffer
+   * - `"right"` fires when Right is pressed at the end of the buffer
+   *
+   * Return `true` to consume the key (cursor doesn't move). Return `false` or
+   * omit the handler to let the TextArea clamp the cursor normally.
+   *
+   * Not fired when Shift is held (shift+arrow extends selection instead).
+   */
+  onEdge?: (edge: "top" | "bottom" | "left" | "right") => boolean
 }
 
 /** Selection range as [start, end) character offsets */
@@ -128,6 +144,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     borderColor: borderColorProp = "$border-default",
     focusBorderColor = "$border-focus",
     testID,
+    onEdge,
   },
   ref,
 ) {
@@ -157,6 +174,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
     scrollMargin,
     disabled,
     maxLength,
+    onEdge,
   })
 
   // Imperative handle

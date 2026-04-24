@@ -87,6 +87,13 @@ export interface UseTextAreaOptions {
   disabled?: boolean
   /** Maximum number of characters allowed */
   maxLength?: number
+  /**
+   * Called when an arrow key is pressed AT the buffer boundary (where the key
+   * would otherwise be a no-op or clamp). Return `true` to consume the key
+   * (cursor doesn't move). Return `false` or omit the handler for normal clamp
+   * behavior. Not fired when Shift is held.
+   */
+  onEdge?: (edge: "top" | "bottom" | "left" | "right") => boolean
 }
 
 export interface UseTextAreaResult {
@@ -163,6 +170,7 @@ export function useTextArea({
   scrollMargin = 1,
   disabled,
   maxLength,
+  onEdge,
 }: UseTextAreaOptions): UseTextAreaResult {
   const isControlled = controlledValue !== undefined
   const [uncontrolledValue, setUncontrolledValue] = useState(defaultValue)
@@ -171,6 +179,10 @@ export function useTextArea({
   const stickyXRef = useRef<number | null>(null)
 
   const yankStateRef = useRef<YankState | null>(null)
+
+  // Stable ref to onEdge so handlers see the latest version without re-binding.
+  const onEdgeRef = useRef(onEdge)
+  onEdgeRef.current = onEdge
 
   // Selection: anchor is where the selection started, cursor is the moving end.
   // When anchor is non-null, the selected range is [min(anchor, cursor), max(anchor, cursor)).
@@ -439,6 +451,7 @@ export function useTextArea({
 
       // =================================================================
       // Multi-line: Up/Down with stickyX (non-shift: collapse selection)
+      // onEdge fires when at the top/bottom row (where the arrow would clamp).
       // =================================================================
       if (key.upArrow) {
         if (cRow > 0) {
@@ -453,6 +466,10 @@ export function useTextArea({
             )
           }
         } else {
+          if (onEdgeRef.current?.("top")) {
+            yankStateRef.current = null
+            return
+          }
           clearSelection()
         }
         yankStateRef.current = null
@@ -472,10 +489,34 @@ export function useTextArea({
             )
           }
         } else {
+          if (onEdgeRef.current?.("bottom")) {
+            yankStateRef.current = null
+            return
+          }
           clearSelection()
         }
         yankStateRef.current = null
         return
+      }
+
+      // =================================================================
+      // Left/Right at buffer boundary: fire onEdge before falling through
+      // to the readline handler (which would otherwise clamp).
+      // Skipped when Shift is held — those go through the shift+arrow paths
+      // above and extend selection instead.
+      // =================================================================
+      if (key.leftArrow && !key.shift && !key.ctrl && !key.meta && cursor === 0) {
+        if (onEdgeRef.current?.("left")) {
+          yankStateRef.current = null
+          return
+        }
+      }
+
+      if (key.rightArrow && !key.shift && !key.ctrl && !key.meta && cursor === value.length) {
+        if (onEdgeRef.current?.("right")) {
+          yankStateRef.current = null
+          return
+        }
       }
 
       // =================================================================
