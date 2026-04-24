@@ -35,6 +35,9 @@ export { useApp, type UseAppResult } from "./useApp"
 // Exit (throws outside runtime — use useApp().exit for static-safe variant)
 export { useExit } from "./useExit"
 
+// Dispose — one-hook lifecycle cleanup (SIGINT + SIGTERM + React unmount)
+export { useDispose, type UseDisposeOptions } from "./useDispose"
+
 // Stdio
 export { useStdout, type UseStdoutResult } from "./useStdout"
 export { useStderr, type UseStderrResult } from "./useStderr"
