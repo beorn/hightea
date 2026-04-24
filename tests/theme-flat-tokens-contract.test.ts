@@ -1,23 +1,22 @@
 /**
  * Contract: every Sterling flat token resolves to a non-empty string value
- * in every shipped theme AND in every fallback path.
+ * in every shipped theme AND in every detection path.
  *
  * Background — user's 31/32-empty-bg-tokens rabbit hole (2026-04-22):
  * On a terminal where `detectTheme` couldn't probe the palette (confidence=0),
- * the returned Theme was missing almost every `bg-*` Sterling flat token. The
- * two paths where this can still leak:
+ * the returned Theme was missing almost every `bg-*` Sterling flat token.
+ * Root cause: Sterling derivation lived in `@silvery/theme` while `deriveTheme`
+ * and detection lived in `@silvery/ansi`. Callers using `@silvery/ansi`
+ * directly got a "partial" Theme with no flat tokens — $bg-surface-overlay,
+ * $bg-cursor, $bg-accent-hover etc. resolved to undefined → empty cells.
  *
- *   1. `@silvery/ansi`'s `detectTheme` / orchestrator's fallback branch returns
- *      a theme _without_ running `inlineSterlingTokens`. Callers who use
- *      `@silvery/ansi` directly (not the `@silvery/theme` wrapper) get a Theme
- *      with no flat tokens at all.
- *   2. The shipped `ansi16DarkTheme` / `ansi16LightTheme` / `defaultDarkTheme` /
- *      `defaultLightTheme` from `@silvery/theme/schemes` DO bake Sterling flats
- *      in. These are the source of truth for `getActiveTheme()` fallback.
+ * Fix (2026-04-24, Design A): moved Sterling INTO `@silvery/ansi` so every
+ * entry point — `deriveTheme`, `loadTheme`, `deriveAnsi16Theme`, `detectTheme`,
+ * `detectScheme`, `detectSchemeTheme`, shipped Theme constants — inlines
+ * Sterling flat tokens. One canonical Theme shape. No "partial" path left.
  *
- * This contract test locks (2) in place — and will regress loudly if anyone
- * re-introduces a partial shape. For (1), see the Sterling-aware detect
- * wrappers in packages/theme/src/detect.ts which the pipeline uses.
+ * This contract test locks that in: any entry point that regresses to a
+ * partial shape fires here loudly.
  *
  * Tracking bead: km-silvery.fallback-theme-empty-bg-tokens.
  */
@@ -32,7 +31,16 @@ import {
   getThemeByName,
   STERLING_FLAT_TOKENS,
 } from "@silvery/theme"
-import { defaultDarkScheme } from "@silvery/ansi"
+import {
+  defaultDarkScheme,
+  defaultLightScheme,
+  deriveTheme as deriveThemeAnsi,
+  loadTheme as loadThemeAnsi,
+  deriveAnsi16Theme as deriveAnsi16ThemeAnsi,
+  detectTheme as detectThemeAnsi,
+  detectScheme as detectSchemeAnsi,
+  detectSchemeTheme as detectSchemeThemeAnsi,
+} from "@silvery/ansi"
 import {
   detectScheme as detectSchemeSterling,
   detectTheme as detectThemeSterling,
@@ -113,11 +121,11 @@ describe("contract: Sterling flat tokens populated through every detection path"
     assertAllFlatTokensPopulated("detectScheme(sterling, override)", theme as unknown as Record<string, unknown>)
   })
 
-  it("silvery runtime (wrap-with-themed-provider) uses the Sterling-aware path", async () => {
-    // Sanity: the runtime's `wrap-with-themed-provider.tsx` imports `detectScheme`
-    // from `@silvery/theme`, NOT `@silvery/ansi`. If it ever goes back to
-    // importing from `@silvery/ansi` directly, the fallback-branch Theme loses
-    // its Sterling flat tokens and every `$bg-*` token paints empty cells.
+  it("silvery runtime (wrap-with-themed-provider) produces a Sterling-baked theme", async () => {
+    // Post-unification (Design A, 2026-04-24): both `@silvery/ansi` and
+    // `@silvery/theme` detection paths return Sterling-baked themes. The
+    // runtime wrapper can import from either; this test just asserts the
+    // file exists and compiles (it's covered by the path-agnostic tests above).
     const runtimeSource = await import("node:fs").then((fs) =>
       fs.promises.readFile(
         new URL(
@@ -127,9 +135,108 @@ describe("contract: Sterling flat tokens populated through every detection path"
         "utf-8",
       ),
     )
-    // The canonical import line — if this assertion fires, someone reverted to
-    // the non-Sterling path. Read packages/theme/src/detect.ts for why that's a bug.
-    expect(runtimeSource).toMatch(/from "@silvery\/theme"/)
-    expect(runtimeSource).not.toMatch(/import {\s*detectScheme[^}]*}\s*from\s*"@silvery\/ansi"/s)
+    expect(runtimeSource).toMatch(/detectScheme/)
+  })
+})
+
+describe("contract: @silvery/ansi entry points all produce Sterling-baked themes", () => {
+  // Post-unification (Design A, 2026-04-24) these are THE canonical entry points —
+  // Sterling lives inside `@silvery/ansi` now, and every derivation /
+  // detection path inlines flat tokens. If any of these regresses, consumers
+  // reading `$bg-surface-overlay` / `$bg-cursor` / `$bg-accent-hover` etc.
+  // see empty-string cells.
+
+  it("deriveTheme(defaultDarkScheme) produces every flat token", () => {
+    const theme = deriveThemeAnsi(defaultDarkScheme)
+    assertAllFlatTokensPopulated("deriveTheme(defaultDarkScheme)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("deriveTheme(defaultLightScheme) produces every flat token", () => {
+    const theme = deriveThemeAnsi(defaultLightScheme)
+    assertAllFlatTokensPopulated("deriveTheme(defaultLightScheme)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("loadTheme(defaultDarkScheme) produces every flat token", () => {
+    const theme = loadThemeAnsi(defaultDarkScheme)
+    assertAllFlatTokensPopulated("loadTheme(defaultDarkScheme)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("deriveAnsi16Theme(defaultDarkScheme) produces every flat token", () => {
+    const theme = deriveAnsi16ThemeAnsi(defaultDarkScheme)
+    assertAllFlatTokensPopulated("deriveAnsi16Theme(defaultDarkScheme)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectTheme (no TTY → fallback) produces every flat token", async () => {
+    // Exact path the user's "31/32 empty bg tokens" bug came from. Must
+    // resolve even from the bare @silvery/ansi import path now.
+    const theme = await detectThemeAnsi()
+    assertAllFlatTokensPopulated("@silvery/ansi detectTheme (fallback)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectScheme (no TTY → fallback) produces every flat token", async () => {
+    const { theme, source, confidence } = await detectSchemeAnsi()
+    expect(source).toBe("fallback")
+    expect(confidence).toBe(0)
+    assertAllFlatTokensPopulated("@silvery/ansi detectScheme (fallback)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectSchemeTheme (fallback) produces every flat token", async () => {
+    const theme = await detectSchemeThemeAnsi()
+    assertAllFlatTokensPopulated("@silvery/ansi detectSchemeTheme (fallback)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectScheme with explicit override produces every flat token", async () => {
+    const { theme, source } = await detectSchemeAnsi({ override: defaultDarkScheme })
+    expect(source).toBe("override")
+    assertAllFlatTokensPopulated("@silvery/ansi detectScheme (override)", theme as unknown as Record<string, unknown>)
+  })
+})
+
+describe("contract: user's specific 246×122 complaint — explicit bg tokens all resolve", () => {
+  // Regression test for the exact tokens the user reported as empty on their
+  // fallback-detection machine (2026-04-23). These MUST resolve to non-empty
+  // hex strings on every detection path — fallback included.
+  const REPORTED_EMPTY_TOKENS = [
+    "bg-surface-overlay",
+    "bg-cursor",
+    "bg-accent-hover",
+    "bg-muted",
+    "bg-accent-active",
+  ] as const
+
+  // "$color8" is a palette token (color ring), populated via the palette array
+  // projection — not a Sterling flat token. It's tested separately.
+
+  function assertReportedTokensPopulated(label: string, theme: Record<string, unknown>): void {
+    const missing: string[] = []
+    for (const token of REPORTED_EMPTY_TOKENS) {
+      const v = theme[token]
+      if (typeof v !== "string" || v.length === 0) {
+        missing.push(`${token}=${JSON.stringify(v)}`)
+      }
+    }
+    if (missing.length) {
+      throw new Error(`${label}: user-reported empty bg tokens still empty: ${missing.join(", ")}`)
+    }
+  }
+
+  it("deriveTheme(defaultDarkScheme): all user-reported bg tokens resolve", () => {
+    const theme = deriveThemeAnsi(defaultDarkScheme)
+    assertReportedTokensPopulated("deriveTheme(defaultDarkScheme)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectTheme fallback: all user-reported bg tokens resolve", async () => {
+    const theme = await detectThemeAnsi()
+    assertReportedTokensPopulated("@silvery/ansi detectTheme (fallback)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/ansi detectScheme fallback: all user-reported bg tokens resolve", async () => {
+    const { theme } = await detectSchemeAnsi()
+    assertReportedTokensPopulated("@silvery/ansi detectScheme (fallback)", theme as unknown as Record<string, unknown>)
+  })
+
+  it("@silvery/theme detectTheme fallback: all user-reported bg tokens resolve", async () => {
+    const theme = await detectThemeSterling()
+    assertReportedTokensPopulated("@silvery/theme detectTheme (fallback)", theme as unknown as Record<string, unknown>)
   })
 })
