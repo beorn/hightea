@@ -28,6 +28,7 @@ import { TextArea } from "silvery"
 | `borderColor`      | `string`                                  | `"$border"`      | Border color when unfocused                              |
 | `focusBorderColor` | `string`                                  | `"$focusborder"` | Border color when focused                                |
 | `testID`           | `string`                                  | --               | Test ID for focus system identification                  |
+| `onEdge`           | `(edge) => boolean`                       | --               | Fires when arrow key pressed AT buffer boundary          |
 
 ### Ref: TextAreaHandle
 
@@ -75,6 +76,66 @@ const [value, setValue] = useState('')
   height={10}
   placeholder="Type here..."
 />
+```
+
+## Edge Callbacks: `onEdge`
+
+`onEdge` fires when an arrow key is pressed AT the buffer boundary — where the key would otherwise be a no-op or clamp. It enables cross-widget focus handoff for composite editors that stack multiple `TextArea`s and want arrow keys to flow between them.
+
+```ts
+type Edge = "top" | "bottom" | "left" | "right"
+onEdge?: (edge: Edge) => boolean
+```
+
+| Edge       | Fires when                                              |
+| ---------- | ------------------------------------------------------- |
+| `"top"`    | Up is pressed at `cursorRow === 0`                      |
+| `"bottom"` | Down is pressed at the last row                         |
+| `"left"`   | Left is pressed at the start of the buffer (`offset 0`) |
+| `"right"`  | Right is pressed at the end of the buffer               |
+
+- **Return `true`** to consume the key — the cursor stays put and the arrow event is fully handled.
+- **Return `false`** (or omit the handler) to fall through to the default clamp behavior.
+- Not fired when Shift is held — `Shift+Arrow` extends selection instead and is reserved for future use.
+
+### Example: two-pane composite editor
+
+```tsx
+const [topValue, setTopValue] = useState("")
+const [botValue, setBotValue] = useState("")
+const [focused, setFocused] = useState<"top" | "bot">("top")
+
+return (
+  <Box flexDirection="column">
+    <TextArea
+      value={topValue}
+      onChange={setTopValue}
+      isActive={focused === "top"}
+      height={5}
+      onEdge={(edge) => {
+        if (edge === "bottom") {
+          setFocused("bot")
+          return true // consume — focus moved to the lower pane
+        }
+        return false
+      }}
+    />
+    <Divider />
+    <TextArea
+      value={botValue}
+      onChange={setBotValue}
+      isActive={focused === "bot"}
+      height={5}
+      onEdge={(edge) => {
+        if (edge === "top") {
+          setFocused("top")
+          return true
+        }
+        return false
+      }}
+    />
+  </Box>
+)
 ```
 
 ## See Also
