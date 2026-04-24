@@ -320,15 +320,13 @@ const KINETIC_FRAME_MS = 16
 const RELEASE_TIMEOUT_MS = 60
 /** How long (ms) the scrollbar stays visible after the last scroll activity. */
 const SCROLLBAR_FADE_AFTER_MS = 800
-/** How long (ms) the edge-bump indicator shows after hitting a boundary. */
-const EDGE_BUMP_SHOW_MS = 300
-/** Pulse period for the edge-bump indicator (ms per half-cycle). */
-const EDGE_BUMP_PULSE_MS = 50
-/** Cooldown (ms) after a bump: further edge-pushes within this window do NOT
- * re-fire the indicator. Without a cooldown, a continuous wheel gesture at the
- * edge re-arms the 300 ms fuse on every wheel event, stuttering the flash for
- * the duration of the gesture. One flash per gesture is the intended UX. */
-const EDGE_BUMP_COOLDOWN_MS = 1500
+/** Per-half-cycle toggle for the initial attention flash. */
+const EDGE_BUMP_PULSE_MS = 60
+/** Number of on/off transitions during the attention flash. Odd number so the
+ * sequence ends on "on" (steady-state visible). 5 transitions = ~300 ms of
+ * flashing, then the indicator stays on until the user scrolls away OR the
+ * scrollbar-idle timer fires. */
+const EDGE_BUMP_FLASH_CYCLES = 5
 
 // =============================================================================
 // Measurement
@@ -476,8 +474,7 @@ function ListViewInner<T>(
   // step would have scrolled past the boundary. Auto-hides via timer — a
   // transient "you've hit the end" cue, NOT a permanent at-edge marker.
   const [bumpedEdge, setBumpedEdge] = useState<"top" | "bottom" | null>(null)
-  const bumpHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const bumpCooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // Pulse state — toggles every EDGE_BUMP_PULSE_MS while bumpedEdge is
   // active. The indicator Box renders only when isPulseOn is true, so the
   // line appears as a dim on/off flash. Against static chrome (e.g. an
@@ -521,58 +518,56 @@ function ListViewInner<T>(
       // should not outlive the scrollbar. Keyboard-triggered bumps don't
       // touch `isScrolling`, so they fall through to their own 600 ms timer.
       setBumpedEdge(null)
-      if (bumpHideTimerRef.current !== null) {
-        clearTimeout(bumpHideTimerRef.current)
-        bumpHideTimerRef.current = null
+      if (flashIntervalRef.current !== null) {
+        clearInterval(flashIntervalRef.current)
+        flashIntervalRef.current = null
       }
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
 
   // Flash the edge-bump indicator. Called when a scroll attempt was
-  // clamped at a boundary — transient "you've hit the end" cue. NOT
-  // called when the viewport merely rests at the edge without a push.
+  // clamped at a boundary.
   //
-  // IMPORTANT: the hide timer is NOT rescheduled on repeat bumps. If the user
-  // keeps scrolling against the edge (wheel events every ~30–50 ms), each
-  // event would otherwise reset the 300 ms timer, stretching the flash to
-  // several seconds. We want the flash bounded to EDGE_BUMP_SHOW_MS from the
-  // FIRST bump of a streak. The `bumpHideTimerRef.current !== null` guard
-  // means: if a hide timer is already scheduled, leave it alone.
+  // Lifecycle:
+  //   1. Immediately set bumpedEdge + isPulseOn=true (visible on next frame).
+  //   2. Run a brief on/off flash (EDGE_BUMP_FLASH_CYCLES toggles).
+  //   3. After the flash, the indicator stays STEADY ON.
+  //   4. Cleared by:
+  //      (a) the at-edge render gate (scrolling away from the edge hides it
+  //          even while bumpedEdge is still non-null),
+  //      (b) scheduleScrollbarHide's callback (scrollbar idle-hide also
+  //          clears bumpedEdge),
+  //      (c) moveTo (keyboard / click navigation).
+  //
+  // Repeat bumps while the flash is in flight are ignored (guard on
+  // flashIntervalRef). Repeat bumps AFTER the flash finishes re-fire only
+  // if bumpedEdge has been cleared — i.e. user left the edge and came back.
   const flashEdgeBump = useCallback((edge: "top" | "bottom") => {
-    // Cooldown guard: one flash per gesture. If a bump fired within the
-    // cooldown window, subsequent pushes against the same edge are silenced.
-    // The cooldown timer is the single authoritative "can flash" gate.
-    if (bumpCooldownTimerRef.current !== null) return
+    if (flashIntervalRef.current !== null) return // flash already in flight
     setBumpedEdge(edge)
     setIsPulseOn(true)
-    if (bumpHideTimerRef.current !== null) clearTimeout(bumpHideTimerRef.current)
-    bumpHideTimerRef.current = setTimeout(() => {
-      setBumpedEdge(null)
-      bumpHideTimerRef.current = null
-    }, EDGE_BUMP_SHOW_MS)
-    // Arm the cooldown: blocks further flashes for EDGE_BUMP_COOLDOWN_MS.
-    // Exit cooldown by clearing the ref — next edge push after this fires.
-    bumpCooldownTimerRef.current = setTimeout(() => {
-      bumpCooldownTimerRef.current = null
-    }, EDGE_BUMP_COOLDOWN_MS)
-  }, [])
-
-  // Drive the dim on/off pulse while the bump indicator is active.
-  useEffect(() => {
-    if (bumpedEdge === null) return undefined
-    const id = setInterval(() => {
+    let toggleCount = 0
+    flashIntervalRef.current = setInterval(() => {
+      toggleCount += 1
+      if (toggleCount >= EDGE_BUMP_FLASH_CYCLES) {
+        // End of flash — leave steady ON.
+        setIsPulseOn(true)
+        if (flashIntervalRef.current !== null) {
+          clearInterval(flashIntervalRef.current)
+          flashIntervalRef.current = null
+        }
+        return
+      }
       setIsPulseOn((on) => !on)
     }, EDGE_BUMP_PULSE_MS)
-    return () => clearInterval(id)
-  }, [bumpedEdge])
+  }, [])
 
   // Cleanup on unmount.
   useEffect(() => () => {
     stopKinetic()
     clearReleaseTimer()
     if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
-    if (bumpHideTimerRef.current !== null) clearTimeout(bumpHideTimerRef.current)
-    if (bumpCooldownTimerRef.current !== null) clearTimeout(bumpCooldownTimerRef.current)
+    if (flashIntervalRef.current !== null) clearInterval(flashIntervalRef.current)
   }, [stopKinetic, clearReleaseTimer])
 
   // Low-level cursor update — does NOT touch wheel/scroll state. Used by
@@ -1494,7 +1489,7 @@ function ListViewInner<T>(
   // pre-clamped — no rubber-band overshoot). `effectiveRowsAbove` remains
   // unused here because showScrollbar is only true after wheel activity,
   // during which scrollbarFrac is always fresh.
-  void effectiveRowsAbove
+  // effectiveRowsAbove is consumed below by the edge-bump render gate.
   const showScrollbar = isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
 
   return (
@@ -1722,12 +1717,16 @@ function ListViewInner<T>(
       * at the bottom. Thicker than SGR overline/underline but visually
       * positioned identically (flush to the cell edge), so the bump reads
       * as "edge of viewport" not "middle of this row is highlighted". */}
-    {bumpedEdge === "top" && isPulseOn && (
+    {/* At-edge render gate: the indicator only paints while the viewport
+      * is STILL at the corresponding edge. When the user scrolls away from
+      * the edge, effectiveRowsAbove moves and the indicator disappears
+      * even though bumpedEdge hasn't been cleared yet. */}
+    {bumpedEdge === "top" && isPulseOn && effectiveRowsAbove <= 0 && (
       <Box position="absolute" top={0} right={1} flexDirection="row">
         <Text color="$fg">▔▔▔▔▔▔▔▔▔▔</Text>
       </Box>
     )}
-    {bumpedEdge === "bottom" && isPulseOn && (
+    {bumpedEdge === "bottom" && isPulseOn && effectiveRowsAbove >= scrollableRows && (
       <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
         <Text color="$fg">▁▁▁▁▁▁▁▁▁▁</Text>
       </Box>
