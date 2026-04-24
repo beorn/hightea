@@ -25,7 +25,11 @@ import { runWithMeasurer } from "../unicode"
 import { createBuffer } from "./create-buffer"
 import { isAnyDirty } from "@silvery/ag/epoch"
 import { IncrementalRenderMismatchError } from "../scheduler"
-import { createSearchState, renderSearchBar, type SearchMatch } from "../search-overlay"
+import {
+  createSearchState,
+  renderSearchBarPlain,
+  type SearchMatch,
+} from "../search-overlay"
 import {
   applySelectionToBuffer,
   composeSearchHighlightCells,
@@ -583,19 +587,59 @@ export function renderVirtualScrollbackView(opts: VirtualScrollbackViewOptions):
 // in `applySearchHighlightsToPaintBuffer` above — highlights are stamped
 // into the painted clone's cells so the diff engine tracks lifecycle.
 
-export interface SearchBarOverlayOptions {
+export interface SearchBarPaintOptions {
   searchState: SearchState
-  target: RenderTarget
+  /**
+   * Buffer to mutate with the search-bar text. MUST be a clone of the
+   * post-render buffer — see `SelectionPaintOptions.paintBuffer`.
+   */
+  paintBuffer: Buffer
 }
 
-export function renderSearchBarOverlay(opts: SearchBarOverlayOptions): void {
-  const { searchState, target } = opts
+/**
+ * Stamp the search bar (when active) onto the last row of a paint buffer.
+ *
+ * The bar lives at row `height-1` (the bottom of the screen). Each cell
+ * carries the bar's character + the inverse attribute so the terminal
+ * displays it as inverse video. When `searchState.active` flips to false,
+ * subsequent paint frames don't call this function — the clone's last row
+ * carries whatever the React tree wrote there, and the diff engine repaints
+ * the row clean.
+ *
+ * Replaces the legacy `renderSearchBarOverlay` which wrote inverse ANSI to
+ * `\x1b[${rows};1H` past the buffer — the canonical buffer's last row
+ * stayed unchanged across frames, so when the bar closed the terminal
+ * screen kept the stale bar text until something else forced a row repaint.
+ *
+ * Tracking: km-silvery.delete-search-overlay-ansi (Phase 2)
+ */
+export function applySearchBarToPaintBuffer(opts: SearchBarPaintOptions): void {
+  const { searchState, paintBuffer } = opts
   if (!searchState.active) return
-  const dims = target.getDims()
-  const bar = renderSearchBar(searchState, dims.cols)
-  // Position at the last row
-  target.write(`\x1b[${dims.rows};1H${bar}`)
+  const cols = paintBuffer._buffer.width
+  const rows = paintBuffer._buffer.height
+  if (rows < 1 || cols < 1) return
+
+  const barText = renderSearchBarPlain(searchState, cols)
+  const row = rows - 1
+  for (let col = 0; col < cols; col++) {
+    const ch = barText[col] ?? " "
+    const cell = paintBuffer._buffer.getCell(col, row)
+    paintBuffer._buffer.setCell(col, row, {
+      ...cell,
+      char: ch,
+      attrs: { ...cell.attrs, inverse: true },
+    })
+  }
 }
+
+// Legacy `renderSearchBarOverlay` (ANSI past the buffer) deleted in
+// km-silvery.delete-search-overlay-ansi (Phase 2). The compose+apply path
+// lives in `applySearchBarToPaintBuffer` above — the bar's chars + inverse
+// attr are stamped into the painted clone's last row so the diff engine
+// tracks the bar's open/close lifecycle. With the legacy ANSI path, the
+// bar's terminal-screen state stayed visible after `searchState.active`
+// flipped to false because the canonical buffer's last row never changed.
 
 /**
  * Build a `searchScrollback(query)` fn bound to the given scrollback.

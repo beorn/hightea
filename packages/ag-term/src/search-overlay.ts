@@ -211,10 +211,15 @@ export function searchUpdate(
 }
 
 /**
- * Render the search bar as an ANSI string.
- * Format: " / query  [2/15]" or " / query  [no matches]"
+ * Render the search bar as a plain (no ANSI) string padded to `cols` width.
+ * Format: " / query  [2/15]" or " / query  [no matches]" — padded with spaces.
+ *
+ * Caller decides how to display it — wrap with `\x1b[7m...\x1b[27m` for the
+ * legacy overlay path, or stamp into a buffer's cells with the inverse
+ * attribute for the compose+apply path
+ * (see `applySearchBarToPaintBuffer` in `runtime/renderer.ts`).
  */
-export function renderSearchBar(state: SearchState, cols: number): string {
+export function renderSearchBarPlain(state: SearchState, cols: number): string {
   const prefix = " / "
   const matchInfo =
     state.matches.length > 0
@@ -224,8 +229,17 @@ export function renderSearchBar(state: SearchState, cols: number): string {
         : ""
 
   const content = prefix + state.query + matchInfo
-  const padded = content.padEnd(cols)
+  return content.padEnd(cols)
+}
 
+/**
+ * Render the search bar as an ANSI string with inverse video wrapping.
+ * Format: " / query  [2/15]" or " / query  [no matches]"
+ *
+ * Used by the legacy `renderSearchBarOverlay` path. Prefer the compose+apply
+ * path via `applySearchBarToPaintBuffer` for new callers.
+ */
+export function renderSearchBar(state: SearchState, cols: number): string {
   // Inverse video: ESC[7m ... ESC[27m
-  return `\x1b[7m${padded}\x1b[27m`
+  return `\x1b[7m${renderSearchBarPlain(state, cols)}\x1b[27m`
 }
