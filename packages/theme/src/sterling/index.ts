@@ -1,51 +1,50 @@
 /**
- * Sterling — silvery's canonical design system.
+ * `@silvery/theme/sterling` subpath — re-export from `@silvery/ansi`.
  *
- * @example
- * ```ts
- * import { sterling, nord } from "@silvery/theme"
- *
- * const theme = sterling.deriveFromScheme(nord)
- * theme.accent.bg              // "#88C0D0"
- * theme["bg-accent"]           // "#88C0D0" — same reference
- * theme["bg-accent-hover"]     // OKLCH +0.04L on accent.bg
- * ```
- *
- * Phase 2a: lives under @silvery/theme/sterling. Will move to @silvery/design
- * in Phase 3b.
+ * Sterling (silvery's canonical design system) lives in `@silvery/ansi` so
+ * `deriveTheme`, `loadTheme`, and shipped Theme constants automatically bake
+ * its flat tokens. This subpath exists for backward compatibility — prefer
+ * importing from `@silvery/ansi` directly.
  */
+
+export {
+  sterling,
+  defineDesignSystem,
+  sterlingDeriveTheme as deriveTheme,
+  sterlingDeriveRoles as deriveRoles,
+  sterlingMergePartial as mergePartial,
+  inlineSterlingTokens,
+  STERLING_FLAT_TOKENS,
+  sterlingDefaultScheme as defaultScheme,
+  WCAG_AA,
+  sterlingAutoLift as autoLift,
+  sterlingCheckAA as checkAA,
+  SterlingContrastError as ContrastError,
+  bakeFlat,
+  defaultFlattenRule,
+} from "@silvery/ansi"
 
 export type {
   AccentRole,
   BorderRole,
-  ColorScheme,
-  ContrastMode,
+  SterlingContrastMode as ContrastMode,
+  SterlingContrastViolation as ContrastViolation,
   CursorRole,
-  DeepPartial,
-  DerivationStep,
-  DerivationTrace,
-  DeriveOptions,
+  SterlingDeepPartial as DeepPartial,
+  SterlingDerivationStep as DerivationStep,
+  SterlingDerivationTrace as DerivationTrace,
+  SterlingDeriveOptions as DeriveOptions,
   DesignSystem,
   FlatToken,
   FlatTokens,
+  FlattenRule,
+  InlinedTheme,
   InteractiveRole,
   MutedRole,
-  Roles,
+  SterlingRoles as Roles,
   StatePair,
   SurfaceRole,
-  Theme,
+  SterlingTheme as Theme,
   ThemeShape,
-} from "./types.ts"
-
-export { sterling } from "./sterling.ts"
-export { defineDesignSystem } from "./define.ts"
-export { deriveTheme, deriveRoles, mergePartial } from "./derive.ts"
-export { STERLING_FLAT_TOKENS } from "./flat-tokens.ts"
-export { defaultScheme } from "./defaults.ts"
-export { WCAG_AA, autoLift, checkAA, ContrastError, type ContrastViolation } from "./contrast.ts"
-
-// Re-export the generic flat-projection helper for Sterling users who want
-// it directly (e.g. to bake their own one-off Theme). This is the same
-// function `defineDesignSystem({ flatten: true })` applies under the hood.
-export { bakeFlat, defaultFlattenRule } from "@silvery/ansi"
-export type { FlattenRule } from "@silvery/ansi"
+  ColorScheme,
+} from "@silvery/ansi"

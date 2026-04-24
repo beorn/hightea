@@ -31,7 +31,7 @@
  * both are flattened.
  */
 
-import { bakeFlat, type FlattenRule } from "@silvery/ansi"
+import { bakeFlat, type FlattenRule } from "../flatten.ts"
 import type { DesignSystem, Theme } from "./types.ts"
 
 type FlattenFn = (theme: Theme) => Theme

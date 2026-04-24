@@ -325,3 +325,50 @@ export type { BgModeDetector, BgModeDetectorOptions, BgMode } from "./color-sche
 export { fromColors, assignPrimaryToSlot } from "./theme/generators"
 export { autoGenerateTheme } from "./theme/auto-generate"
 export { generateTheme } from "./theme/generate"
+
+// =============================================================================
+// Sterling — silvery's canonical design system
+//
+// Lives here (not in @silvery/theme) so `deriveTheme`, `loadTheme`, and
+// every shipped Theme constant inline Sterling flat tokens
+// (`$bg-accent`, `$bg-surface-overlay`, `$border-default`, `$fg-muted`, …)
+// out of the box. Consumers never see a "partial" Theme that's missing
+// flat tokens — there is one Theme shape, and `@silvery/ansi` produces it.
+// =============================================================================
+
+export {
+  sterling,
+  defineDesignSystem,
+  deriveTheme as sterlingDeriveTheme,
+  deriveRoles as sterlingDeriveRoles,
+  mergePartial as sterlingMergePartial,
+  inlineSterlingTokens,
+  STERLING_FLAT_TOKENS,
+  defaultScheme as sterlingDefaultScheme,
+  WCAG_AA,
+  autoLift as sterlingAutoLift,
+  checkAA as sterlingCheckAA,
+  ContrastError as SterlingContrastError,
+} from "./sterling/index"
+export type {
+  AccentRole,
+  BorderRole,
+  ContrastMode as SterlingContrastMode,
+  ContrastViolation as SterlingContrastViolation,
+  CursorRole,
+  DeepPartial as SterlingDeepPartial,
+  DerivationStep as SterlingDerivationStep,
+  DerivationTrace as SterlingDerivationTrace,
+  DeriveOptions as SterlingDeriveOptions,
+  DesignSystem,
+  FlatToken,
+  FlatTokens,
+  InlinedTheme,
+  InteractiveRole,
+  MutedRole,
+  Roles as SterlingRoles,
+  StatePair,
+  SurfaceRole,
+  Theme as SterlingTheme,
+  ThemeShape,
+} from "./sterling/index"

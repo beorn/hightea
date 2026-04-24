@@ -13,7 +13,7 @@
  */
 
 import type { Theme } from "@silvery/ansi"
-import { STERLING_FLAT_TOKENS } from "./sterling/flat-tokens.ts"
+import { STERLING_FLAT_TOKENS } from "@silvery/ansi"
 
 /**
  * Convert a Theme to CSS custom properties.

@@ -26,7 +26,7 @@
  */
 
 import { blend, hexToOklch, oklchToHex, relativeLuminance } from "@silvery/color"
-import type { ColorScheme } from "@silvery/ansi"
+import type { ColorScheme } from "../theme/types.ts"
 import type {
   AccentRole,
   BorderRole,

@@ -19,7 +19,7 @@
  */
 
 import { blend } from "@silvery/color"
-import type { ColorScheme } from "@silvery/ansi"
+import type { ColorScheme } from "../theme/types.ts"
 import type { DeepPartial, DeriveOptions, DesignSystem, Theme, ThemeShape } from "./types.ts"
 import { deriveTheme, mergePartial } from "./derive.ts"
 import { STERLING_FLAT_TOKENS } from "./flat-tokens.ts"

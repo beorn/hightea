@@ -20,6 +20,7 @@ import {
   type InvariantViolation,
 } from "./invariants.ts"
 import { deriveFields } from "./derived.ts"
+import { inlineSterlingTokens } from "../sterling/inline.ts"
 
 export interface ThemeAdjustment {
   token: string
@@ -31,13 +32,21 @@ export interface ThemeAdjustment {
   ratioAfter: number
 }
 
+/**
+ * Derive a Theme from a ColorScheme, with Sterling flat tokens baked in.
+ *
+ * Every Theme `@silvery/ansi` produces passes through `inlineSterlingTokens`
+ * so consumers can read `$bg-accent`, `$bg-surface-overlay`, `$border-default`,
+ * `$fg-muted`, etc. directly off the returned object. This is the one
+ * canonical Theme shape in silvery — there is no separate "partial" Theme.
+ */
 export function deriveTheme(
   palette: ColorScheme,
   mode: "ansi16" | "truecolor" = "truecolor",
   adjustments?: ThemeAdjustment[],
 ): Theme {
-  if (mode === "ansi16") return deriveAnsi16Theme(palette)
-  return deriveTruecolorTheme(palette, adjustments)
+  const theme = mode === "ansi16" ? deriveAnsi16ThemeRaw(palette) : deriveTruecolorTheme(palette, adjustments)
+  return inlineSterlingTokens(theme, palette)
 }
 
 export interface LoadThemeOptions {
@@ -234,6 +243,10 @@ function deriveTruecolorTheme(p: ColorScheme, adjustments?: ThemeAdjustment[]): 
 }
 
 export function deriveAnsi16Theme(p: ColorScheme): Theme {
+  return inlineSterlingTokens(deriveAnsi16ThemeRaw(p), p)
+}
+
+function deriveAnsi16ThemeRaw(p: ColorScheme): Theme {
   const dark = p.dark ?? true
   const primaryColor = dark ? p.yellow : p.blue
   const accentColor = p.cyan

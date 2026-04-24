@@ -1,25 +1,27 @@
 /**
  * Sterling flat-token inlining — merges Sterling flat tokens onto a Theme.
  *
- * Public consumers don't call this directly. It's invoked implicitly at theme
- * construction by:
- *   - packages/theme/src/schemes/index.ts  (every shipped default theme)
- *   - packages/theme/src/detect.ts         (Sterling-aware detect* wrappers)
+ * Invoked implicitly by `deriveTheme`, `loadTheme`, and `deriveAnsi16Theme`
+ * so every Theme `@silvery/ansi` produces has Sterling flat tokens baked in.
+ * Callers do not need to call this directly.
  *
  * Behavior:
  *   - Preserves every existing Theme field unchanged
  *   - Writes Sterling flat tokens (`bg-accent`, `fg-on-accent`, `border-focus`, …)
- *     only when the key isn't already present as a string (so user pins win)
+ *     only when the key isn't already present as a string (so author pins /
+ *     palette-provided values win)
  *   - Not frozen (theme overlays mutate in a few callers)
  *
  * A ColorScheme can be supplied for full fidelity. When omitted, Sterling
  * derives from a ColorScheme reconstructed from the theme's own palette —
  * lossy for ANSI slot colors but sufficient for Sterling's 6-slot surface.
  *
- * This file is NOT exported from the `@silvery/theme` barrel.
+ * Exported from `@silvery/ansi` for advanced users who author Theme objects
+ * by hand and want to ensure the flat tokens are populated; for scheme →
+ * Theme construction `deriveTheme`/`loadTheme` handle this automatically.
  */
 
-import type { ColorScheme, Theme } from "@silvery/ansi"
+import type { ColorScheme, Theme } from "../theme/types.ts"
 import { deriveRoles } from "./derive.ts"
 import type { FlatToken } from "./types.ts"
 
