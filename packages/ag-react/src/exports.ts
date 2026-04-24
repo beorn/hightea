@@ -490,6 +490,16 @@ export { useMouseCursor } from "./hooks/useMouseCursor"
 
 export { useTerm, shallow } from "./hooks/useTerm"
 export { useWindowSize } from "./hooks/useWindowSize"
+export { useHover } from "./hooks/useHover"
+export type { UseHoverReturn } from "./hooks/useHover"
+export {
+  PopoverProvider,
+  usePopover,
+  usePopoverHandlers,
+  HOVER_SHOW_DELAY_MS,
+  HIDE_DELAY_MS,
+} from "./components/Popover"
+export type { PopoverAnchor, PopoverContent } from "./components/Popover"
 export { useConsole } from "./hooks/useConsole"
 export {
   useCursor,
