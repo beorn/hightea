@@ -320,13 +320,6 @@ const KINETIC_FRAME_MS = 16
 const RELEASE_TIMEOUT_MS = 60
 /** How long (ms) the scrollbar stays visible after the last scroll activity. */
 const SCROLLBAR_FADE_AFTER_MS = 800
-/** Total duration (ms) of the attention flash strobe. After this the
- * indicator goes steady-on until the user scrolls away or the scrollbar
- * idle-hides. */
-const EDGE_BUMP_TOTAL_MS = 200
-/** Per-toggle interval inside the strobe window. ~30ms = ~33 Hz — fast
- * enough to read as a single rapid shimmer rather than distinct blinks. */
-const EDGE_BUMP_TOGGLE_MS = 30
 
 // =============================================================================
 // Measurement
@@ -471,16 +464,13 @@ function ListViewInner<T>(
   const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const scrollbarHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Edge-bump indicator: flips to "top" or "bottom" when a wheel / momentum
-  // step would have scrolled past the boundary. Auto-hides via timer — a
-  // transient "you've hit the end" cue, NOT a permanent at-edge marker.
+  // step would have scrolled past the boundary. Renders as a steady corner
+  // tick while the viewport is AT the edge; cleared by leaving the edge or
+  // by the scrollbar-idle timer. No flash / strobe — an earlier version had
+  // a time-bounded flash but every attempt leaked timer state across React
+  // re-renders and produced "stuck flashing" reports. The indicator simply
+  // appearing in one frame IS the attention-grab; no animation needed.
   const [bumpedEdge, setBumpedEdge] = useState<"top" | "bottom" | null>(null)
-  const flashIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const flashEndTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // Pulse state — toggles every EDGE_BUMP_PULSE_MS while bumpedEdge is
-  // active. The indicator Box renders only when isPulseOn is true, so the
-  // line appears as a dim on/off flash. Against static chrome (e.g. an
-  // inverted top bar), movement is far easier to see than a static line.
-  const [isPulseOn, setIsPulseOn] = useState(true)
   // Latest item count — the wheel/kinetic paths close over a stale items.length
   // on each frame otherwise.
   const itemCountRef = useRef(items.length)
@@ -518,58 +508,19 @@ function ListViewInner<T>(
       // too — the user has stopped scrolling, so the "you hit the end" cue
       // should not outlive the scrollbar. Keyboard-triggered bumps don't
       // touch `isScrolling`, so they fall through to their own 600 ms timer.
+      // Scrollbar auto-hides after idle → overscroll indicator goes with it.
+      // The user has stopped scrolling; the "you hit the end" cue is stale.
       setBumpedEdge(null)
-      if (flashIntervalRef.current !== null) {
-        clearInterval(flashIntervalRef.current)
-        flashIntervalRef.current = null
-      }
-      if (flashEndTimerRef.current !== null) {
-        clearTimeout(flashEndTimerRef.current)
-        flashEndTimerRef.current = null
-      }
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
 
-  // Flash the edge-bump indicator. Called when a scroll attempt was
-  // clamped at a boundary.
-  //
-  // Lifecycle:
-  //   1. Immediately set bumpedEdge + isPulseOn=true (visible on next frame).
-  //   2. Run a brief on/off flash (EDGE_BUMP_FLASH_CYCLES toggles).
-  //   3. After the flash, the indicator stays STEADY ON.
-  //   4. Cleared by:
-  //      (a) the at-edge render gate (scrolling away from the edge hides it
-  //          even while bumpedEdge is still non-null),
-  //      (b) scheduleScrollbarHide's callback (scrollbar idle-hide also
-  //          clears bumpedEdge),
-  //      (c) moveTo (keyboard / click navigation).
-  //
-  // Repeat bumps while the flash is in flight are ignored (guard on
-  // flashIntervalRef). Repeat bumps AFTER the flash finishes re-fire only
-  // if bumpedEdge has been cleared — i.e. user left the edge and came back.
+  // Show the edge-bump indicator. Called when a scroll attempt was clamped
+  // at a boundary. The indicator stays visible (at-edge render gate) until
+  // the user scrolls away OR the scrollbar-idle timer fires. No flash /
+  // strobe — plain appear-and-stay. Prior animated-flash designs couldn't
+  // survive React reconciler re-runs cleanly (see bumpedEdge comment above).
   const flashEdgeBump = useCallback((edge: "top" | "bottom") => {
-    // Rapid strobe for EDGE_BUMP_TOTAL_MS (200 ms), then steady ON.
-    // Two-timer model: one interval toggles fast; one setTimeout ends
-    // the strobe at T+TOTAL_MS by clearing the interval + forcing ON.
-    // The end-timer is authoritative — no way for the strobe to outrun
-    // its own 200 ms lease even if repeat bumps or reconciler re-runs
-    // stack new intervals on top.
     setBumpedEdge(edge)
-    setIsPulseOn(true)
-    // Clear any in-flight strobe. Repeat bumps restart cleanly.
-    if (flashIntervalRef.current !== null) clearInterval(flashIntervalRef.current)
-    if (flashEndTimerRef.current !== null) clearTimeout(flashEndTimerRef.current)
-    flashIntervalRef.current = setInterval(() => {
-      setIsPulseOn((on) => !on)
-    }, EDGE_BUMP_TOGGLE_MS)
-    flashEndTimerRef.current = setTimeout(() => {
-      if (flashIntervalRef.current !== null) {
-        clearInterval(flashIntervalRef.current)
-        flashIntervalRef.current = null
-      }
-      flashEndTimerRef.current = null
-      setIsPulseOn(true) // steady ON
-    }, EDGE_BUMP_TOTAL_MS)
   }, [])
 
   // Cleanup on unmount.
@@ -577,8 +528,6 @@ function ListViewInner<T>(
     stopKinetic()
     clearReleaseTimer()
     if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
-    if (flashIntervalRef.current !== null) clearInterval(flashIntervalRef.current)
-    if (flashEndTimerRef.current !== null) clearTimeout(flashEndTimerRef.current)
   }, [stopKinetic, clearReleaseTimer])
 
   // Low-level cursor update — does NOT touch wheel/scroll state. Used by
@@ -1685,62 +1634,25 @@ function ListViewInner<T>(
         </Box>
       )
     })()}
-    {/* Overscroll indicator — spans the entire ListView width: a
-      * transparent SGR overlay on the first line (top) or the last
-      * visible line (bottom). Transient: the flash timer auto-hides
-      * after EDGE_BUMP_SHOW_MS, BUT we also gate on the scroll position
-      * still being at the corresponding edge. If the user scrolls away
-      * from the edge before the timer fires, the indicator vanishes
-      * immediately — it's meaningless when the edge line isn't on
-      * screen anymore.
+    {/* Overscroll indicator — 10-char block char in the right corner of
+      * the top or bottom row. Top uses ▔ (U+2594 UPPER ONE EIGHTH BLOCK,
+      * flush to the top of the cell); bottom uses ▁ (U+2581 LOWER ONE
+      * EIGHTH BLOCK, flush to the bottom). Color $muted matches the
+      * scrollbar thumb — same chrome vocabulary.
       *
-      * Rendered OUTSIDE the scrollbar branch because the scrollbar auto-
-      * hides on `isScrolling` and keyboard nav (j/k/ArrowDown/ArrowUp)
-      * doesn't currently flip `isScrolling`. The indicator has its own
-      * EDGE_BUMP_SHOW_MS lifecycle and must render regardless of the
-      * scrollbar's visibility.
-      *
-      * Edge asymmetry (top = overline, bottom = underline):
-      * SGR 53 (overline) draws the line ABOVE the character cell; SGR 4
-      * (underline) draws BELOW. The top indicator uses overline so the
-      * line sits against the very top of the first row — "you're bumped
-      * against the top" — instead of reading as "this row's content is
-      * underlined". The bottom indicator uses underline for the mirror
-      * reason. Bead: km-silvery.overline-attr.
-      *
-      * Rendering: the Box has no `backgroundColor`, only the attr prop,
-      * so mergeAttrsInRect (km-silvery.text-box-attr-props) layers the
-      * SGR on every cell in the row WITHOUT overwriting the text glyph /
-      * fg / bg underneath. */}
-    {/* Edge-bump indicator — a small 10-char pulsed line in the corner
-      * opposite the direction you pushed. Top-bump puts the line in the
-      * top-right; bottom-bump puts it in the bottom-right. Full-width
-      * lines were too busy and fought with row content. Corner placement
-      * is a peripheral-vision cue — visible enough to catch the eye,
-      * subtle enough not to overlay the reading area.
-      *
-      * Top uses SGR 53 (overline, draws line ABOVE the cell); bottom uses
-      * SGR 4 (underline, BELOW the cell). Against an inverted-bg chrome
-      * line (e.g. a status bar), the thin attr-line + $fg pulse is legible
-      * without bolding the text underneath. */}
-    {/* Flush-to-edge block characters — ▔ (U+2594 UPPER ONE EIGHTH BLOCK)
-      * paints at the top of the cell, ▁ (U+2581 LOWER ONE EIGHTH BLOCK)
-      * at the bottom. Thicker than SGR overline/underline but visually
-      * positioned identically (flush to the cell edge), so the bump reads
-      * as "edge of viewport" not "middle of this row is highlighted". */}
-    {/* At-edge render gate: the indicator only paints while the viewport
-      * is STILL at the corresponding edge. When the user scrolls away from
-      * the edge, effectiveRowsAbove moves and the indicator disappears
-      * even though bumpedEdge hasn't been cleared yet. */}
-    {/* Indicator color matches the scrollbar thumb ($muted) — it's a
-      * peripheral signal that lives in the same chrome vocabulary as the
-      * scrollbar, not a semantic $fg element. */}
-    {bumpedEdge === "top" && isPulseOn && effectiveRowsAbove <= 0 && (
+      * No animation — the indicator simply appears when bumpedEdge is set
+      * and disappears when the user leaves the edge or the scrollbar-idle
+      * timer fires. The AT-EDGE RENDER GATE (effectiveRowsAbove checks)
+      * hides the indicator the moment the user scrolls away, even if
+      * bumpedEdge is still non-null. Rendered OUTSIDE the scrollbar
+      * branch so keyboard nav (which doesn't set isScrolling) still sees
+      * the bump. */}
+    {bumpedEdge === "top" && effectiveRowsAbove <= 0 && (
       <Box position="absolute" top={0} right={1} flexDirection="row">
         <Text color="$muted">▔▔▔▔▔▔▔▔▔▔</Text>
       </Box>
     )}
-    {bumpedEdge === "bottom" && isPulseOn && effectiveRowsAbove >= scrollableRows && (
+    {bumpedEdge === "bottom" && effectiveRowsAbove >= scrollableRows && (
       <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
         <Text color="$muted">▁▁▁▁▁▁▁▁▁▁</Text>
       </Box>
