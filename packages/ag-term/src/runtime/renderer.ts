@@ -477,8 +477,10 @@ export interface SelectionPaintOptions {
 /**
  * Default selection-highlight color — a desaturated blue-grey that reads as
  * a uniform highlight across the full selection range, including trailing
- * whitespace. Used until `$selectionbg` / `$selectionfg` theme tokens are
- * plumbed through (tracked in km-silvery.selection-theme-tokens).
+ * whitespace. Stopgap until the existing `selectionbg` theme token (defined
+ * in `packages/theme/src/validate-theme.ts` and derived per-palette in
+ * `packages/ansi/src/theme/derive.ts`) is plumbed through paintFrame.
+ * Tracked in `km-silvery.selection-theme-tokens`.
  *
  * Why a fixed color instead of the SGR-7 inverse-attr fallback:
  * - Inverse works correctly for ANSI16 — the terminal swaps the 16-color
@@ -562,7 +564,14 @@ export function applySearchHighlightsToPaintBuffer(opts: SearchHighlightsPaintOp
       endCol: Math.min(match.endCol, cols - 1),
     },
   ]
-  const changes = composeSearchHighlightCells(paintBuffer._buffer, highlights)
+  // Same theme as selection — uniform highlight color across content cells
+  // and any non-content cells the match range happens to cover. Avoids the
+  // two-tone artifact described on DEFAULT_SELECTION_THEME above.
+  const changes = composeSearchHighlightCells(
+    paintBuffer._buffer,
+    highlights,
+    DEFAULT_SELECTION_THEME,
+  )
   applySelectionToBuffer(paintBuffer._buffer, changes)
 }
 
