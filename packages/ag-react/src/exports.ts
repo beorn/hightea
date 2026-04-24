@@ -430,6 +430,17 @@ export { useApp } from "./hooks/useApp"
 export { useExit } from "./hooks/useExit"
 export { useDispose, type UseDisposeOptions } from "./hooks/useDispose"
 
+// Scope — structured-concurrency lifetime ownership (Phase 1)
+export { useScope } from "./hooks/useScope"
+export { useAppScope } from "./hooks/useAppScope"
+export {
+  useScopeEffect,
+  type ScopeEffectCleanup,
+  type ScopeEffectSetup,
+} from "./hooks/useScopeEffect"
+export { ScopeProvider, type ScopeProviderProps } from "./ScopeProvider"
+export { ScopeContext, AppScopeContext } from "./scope-context"
+
 export { useStdout } from "./hooks/useStdout"
 export { useStderr } from "./hooks/useStderr"
 export { useFocusManager } from "./hooks/useFocusManager"

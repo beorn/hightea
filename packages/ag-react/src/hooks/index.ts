@@ -38,6 +38,15 @@ export { useExit } from "./useExit"
 // Dispose — one-hook lifecycle cleanup (SIGINT + SIGTERM + React unmount)
 export { useDispose, type UseDisposeOptions } from "./useDispose"
 
+// Scope — structured-concurrency lifetime ownership (Phase 1)
+export { useScope } from "./useScope"
+export { useAppScope } from "./useAppScope"
+export {
+  useScopeEffect,
+  type ScopeEffectCleanup,
+  type ScopeEffectSetup,
+} from "./useScopeEffect"
+
 // Stdio
 export { useStdout, type UseStdoutResult } from "./useStdout"
 export { useStderr, type UseStderrResult } from "./useStderr"
