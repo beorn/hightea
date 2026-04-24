@@ -23,6 +23,8 @@
  * @packageDocumentation
  */
 
+import { _trackCreate, _trackDispose } from "./trace.js"
+
 // =============================================================================
 // Scope
 // =============================================================================
@@ -37,6 +39,7 @@ export class Scope extends AsyncDisposableStack {
     super()
     this.name = name
     this.#parent = parent
+    _trackCreate(this, "scope", name)
 
     const controller = new AbortController()
     this.signal = controller.signal
@@ -91,6 +94,8 @@ export class Scope extends AsyncDisposableStack {
     // 3. Remove self from parent so early disposal releases the reference
     if (this.#parent) this.#parent.#children.delete(this)
 
+    _trackDispose(this)
+
     if (errors.length === 1) throw errors[0]
     if (errors.length > 1) {
       throw errors.reduce((suppressed, e) => new SuppressedError(e, suppressed, "multiple dispose errors"))
@@ -143,13 +148,16 @@ export function disposable(
   value: object,
   dispose: (v: object) => void | Promise<void>,
 ): object {
+  _trackCreate(value, "disposable")
   // Attach both symbol methods so either `using` or `await using` works.
   // The caller's overload selects the static type; runtime accepts both.
   return Object.assign(value, {
     [Symbol.dispose]() {
+      _trackDispose(value)
       void dispose(value)
     },
     [Symbol.asyncDispose]() {
+      _trackDispose(value)
       return Promise.resolve(dispose(value))
     },
   })
