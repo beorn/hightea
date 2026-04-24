@@ -410,6 +410,16 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
   const scrollOffsetRef = useRef(selectedIndexRef.current)
   const [, setScrollOffset] = useState(() => scrollOffsetRef.current)
 
+  // Track the previous scrollTo value so we can distinguish "cursor moved"
+  // from "cursor stayed; some visible item's HEIGHT changed". The latter
+  // must not trigger edge-based re-scroll or clicked-to-expand jumps the
+  // viewport (the growing cursor row now exceeds visibleEndExclusive and
+  // gets anchored to the bottom). Net effect felt to the user: "the line
+  // I clicked flies off-screen when I expand it." See bead km-silvery.
+  const prevScrollToRef = useRef<number | undefined>(scrollTo)
+  const scrollToChanged = scrollTo !== prevScrollToRef.current
+  prevScrollToRef.current = scrollTo
+
   if (scrollTo !== undefined) {
     const clampedIndex = Math.max(0, Math.min(scrollTo, count - 1))
     selectedIndexRef.current = clampedIndex
@@ -420,16 +430,24 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     // User-visible: pressing →/l in a multi-column board would scroll the
     // board on every keypress, leaving the cursor "stuck" in column 0.
     // Bead: km-tui.cursor-stuck-col-0-h-scrolls.
-    const currentOffset = scrollOffsetRef.current
-    const visibleEndExclusive = currentOffset + estimatedVisibleCount
-    if (clampedIndex < currentOffset) {
-      // Off-screen to the left/above: scroll so target becomes leftmost/topmost.
-      scrollOffsetRef.current = clampedIndex
-    } else if (clampedIndex >= visibleEndExclusive) {
-      // Off-screen to the right/below: scroll so target becomes rightmost/bottommost.
-      scrollOffsetRef.current = Math.max(0, clampedIndex - estimatedVisibleCount + 1)
+    //
+    // Additional guard: also only run on CURSOR-MOVE renders, not on
+    // height-change renders. If `scrollTo` didn't change since last render,
+    // the cursor index didn't move — skip the off-screen adjustment even
+    // if item sizes shifted. Without this, expanding the cursor row (or
+    // any item whose size change reduces `estimatedVisibleCount` below
+    // the cursor's visible position) re-anchors the viewport to bottom.
+    if (scrollToChanged) {
+      const currentOffset = scrollOffsetRef.current
+      const visibleEndExclusive = currentOffset + estimatedVisibleCount
+      if (clampedIndex < currentOffset) {
+        // Off-screen above: scroll so target becomes topmost.
+        scrollOffsetRef.current = clampedIndex
+      } else if (clampedIndex >= visibleEndExclusive) {
+        // Off-screen below: scroll so target becomes bottommost.
+        scrollOffsetRef.current = Math.max(0, clampedIndex - estimatedVisibleCount + 1)
+      }
     }
-    // else: clampedIndex is in [currentOffset, visibleEndExclusive) — no scroll.
   }
 
   const effectiveScrollOffset = scrollOffsetRef.current
