@@ -321,12 +321,12 @@ const RELEASE_TIMEOUT_MS = 60
 /** How long (ms) the scrollbar stays visible after the last scroll activity. */
 const SCROLLBAR_FADE_AFTER_MS = 800
 /** Per-half-cycle toggle for the initial attention flash. */
-const EDGE_BUMP_PULSE_MS = 60
-/** Number of on/off transitions during the attention flash. Odd number so the
- * sequence ends on "on" (steady-state visible). 5 transitions = ~300 ms of
- * flashing, then the indicator stays on until the user scrolls away OR the
- * scrollbar-idle timer fires. */
-const EDGE_BUMP_FLASH_CYCLES = 5
+const EDGE_BUMP_PULSE_MS = 100
+/** Number of on/off transitions during the attention flash. 2 = one blink
+ * (on→off→on), then steady. Total flash time = 200 ms — near-imperceptible
+ * subliminal motion cue. The steady phase after is what conveys "you're
+ * at the edge"; the blink just catches peripheral vision once. */
+const EDGE_BUMP_FLASH_CYCLES = 2
 
 // =============================================================================
 // Measurement
@@ -546,20 +546,24 @@ function ListViewInner<T>(
     if (flashIntervalRef.current !== null) return // flash already in flight
     setBumpedEdge(edge)
     setIsPulseOn(true)
+    // Capture our interval id locally so the closure uses THIS interval's
+    // reference — not whatever flashIntervalRef.current might be at tick time
+    // if a subsequent flashEdgeBump ran. The guard above makes this defensive
+    // only, but defensive matters: 2-3s "stuck flashing" reports were caused
+    // by interval-id drift under React reconciler weirdness.
+    let intervalId: ReturnType<typeof setInterval> | null = null
     let toggleCount = 0
-    flashIntervalRef.current = setInterval(() => {
+    intervalId = setInterval(() => {
       toggleCount += 1
       if (toggleCount >= EDGE_BUMP_FLASH_CYCLES) {
-        // End of flash — leave steady ON.
-        setIsPulseOn(true)
-        if (flashIntervalRef.current !== null) {
-          clearInterval(flashIntervalRef.current)
-          flashIntervalRef.current = null
-        }
+        setIsPulseOn(true) // end of flash — steady ON
+        if (intervalId !== null) clearInterval(intervalId)
+        if (flashIntervalRef.current === intervalId) flashIntervalRef.current = null
         return
       }
       setIsPulseOn((on) => !on)
     }, EDGE_BUMP_PULSE_MS)
+    flashIntervalRef.current = intervalId
   }, [])
 
   // Cleanup on unmount.
@@ -1721,14 +1725,17 @@ function ListViewInner<T>(
       * is STILL at the corresponding edge. When the user scrolls away from
       * the edge, effectiveRowsAbove moves and the indicator disappears
       * even though bumpedEdge hasn't been cleared yet. */}
+    {/* Indicator color matches the scrollbar thumb ($muted) — it's a
+      * peripheral signal that lives in the same chrome vocabulary as the
+      * scrollbar, not a semantic $fg element. */}
     {bumpedEdge === "top" && isPulseOn && effectiveRowsAbove <= 0 && (
       <Box position="absolute" top={0} right={1} flexDirection="row">
-        <Text color="$fg">▔▔▔▔▔▔▔▔▔▔</Text>
+        <Text color="$muted">▔▔▔▔▔▔▔▔▔▔</Text>
       </Box>
     )}
     {bumpedEdge === "bottom" && isPulseOn && effectiveRowsAbove >= scrollableRows && (
       <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
-        <Text color="$fg">▁▁▁▁▁▁▁▁▁▁</Text>
+        <Text color="$muted">▁▁▁▁▁▁▁▁▁▁</Text>
       </Box>
     )}
     </Box>
