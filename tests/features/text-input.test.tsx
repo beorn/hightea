@@ -408,3 +408,49 @@ describe("TextInput shifted punctuation", () => {
     expect(app.text).toContain("val:Task #1 (done!)")
   })
 })
+
+describe("TextInput modifier-gated keys never insert", () => {
+  // Regression: readline's insert branch (`char >= " "`) used to accept
+  // Ctrl+letter events, so host apps binding Ctrl+O / Ctrl+Y / Ctrl+R
+  // saw the letter appended to the input every toggle. The workaround
+  // host-side was a microtask strip-trailing-letter hack. Now readline
+  // drops Ctrl/Meta/Alt/Super-gated events, same as it always did for
+  // pure Super.
+  test("Ctrl+O does not insert 'o'", async () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<ControlledInput />)
+    await app.press("ctrl+o")
+    // val: line shows the buffer; if 'o' leaked in, it reads "val:o".
+    expect(app.text).toContain("val:")
+    expect(app.text).not.toContain("val:o")
+  })
+
+  test("Ctrl+Y does not insert 'y'", async () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<ControlledInput />)
+    await app.press("ctrl+y")
+    expect(app.text).not.toContain("val:y")
+  })
+
+  test("Ctrl+R does not insert 'r'", async () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<ControlledInput />)
+    await app.press("ctrl+r")
+    expect(app.text).not.toContain("val:r")
+  })
+
+  test("Ctrl+N does not insert 'n'", async () => {
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<ControlledInput />)
+    await app.press("ctrl+n")
+    expect(app.text).not.toContain("val:n")
+  })
+
+  test("plain 'o' still inserts", async () => {
+    // Regression-safety for the opposite direction.
+    const render = createRenderer({ cols: 40, rows: 5 })
+    const app = render(<ControlledInput />)
+    await app.press("o")
+    expect(app.text).toContain("val:o")
+  })
+})

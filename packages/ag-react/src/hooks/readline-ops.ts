@@ -240,12 +240,24 @@ export function handleReadlineKey(
   // Regular Character Input
   // =========================================================================
 
-  // Cmd/Super-modified keystrokes (Cmd+K, Cmd+Shift+K, etc.) are almost always
-  // app-level shortcuts owned by the host (command palette, save, quit, etc.).
-  // Never treat them as text insertion — drop them here so the parent useInput
-  // listeners further up the tree can handle them. Bare keys and Shift-only
-  // keys still insert normally (shifted punctuation, uppercase, etc.).
-  if (key.super) {
+  // Cmd/Super, Ctrl, Meta, Alt — all modifier-gated keystrokes other than
+  // pure Shift are app-level shortcuts owned by the host (command palette,
+  // save, quit, permission-inbox toggle, etc.). Never treat them as text
+  // insertion — drop them so the parent useInput listeners further up the
+  // tree can handle them. Bare keys and Shift-only keys still insert
+  // normally (shifted punctuation, uppercase, etc.).
+  //
+  // The known Ctrl shortcuts this hook DOES consume (Ctrl+T transpose,
+  // Ctrl+H/D delete, Ctrl+B/F/A/E/K/U/W/Y cursor+kill) are checked
+  // above; any Ctrl+letter that falls through to this point is by
+  // definition "not ours" and belongs to the host.
+  //
+  // Prior behaviour: Ctrl-unknown and Meta-unknown leaked through to the
+  // `char >= " "` branch and got inserted as plain letters — forcing
+  // host apps to hack around it with microtask strip-trailing-letter
+  // workarounds. Repro: silvercode's Ctrl+O binding used to insert "o"
+  // into the command input every toggle.
+  if (key.super || key.ctrl || key.meta || key.alt) {
     return null
   }
 
