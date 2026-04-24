@@ -27,7 +27,7 @@
  * can't both invoke it and get the app into a weird double-dispose state.
  */
 
-import { useEffect } from "react"
+import { useEffect, useRef } from "react"
 import { useTerm } from "./useTerm"
 
 export interface UseDisposeOptions {
@@ -64,13 +64,29 @@ export function useDispose(
   options: UseDisposeOptions = {},
 ): void {
   const term = useTerm()
+  // Keep the latest dispose in a ref so the effect below doesn't need to
+  // depend on it. Without this, a caller that passes an inline arrow
+  // (`useDispose(() => controller.closeAll())`) re-runs the effect on every
+  // render — and each re-run fires the previous effect's cleanup, which
+  // synchronously runs dispose(). The subprocess dies 117ms into app
+  // startup, before the first user message can reach it.
+  const disposeRef = useRef(dispose)
+  disposeRef.current = dispose
+
+  // Same for options fields — callers shouldn't need to memoize them.
+  const priorityRef = useRef(options.priority ?? 5)
+  priorityRef.current = options.priority ?? 5
+  const nameRef = useRef(options.name ?? "app-dispose")
+  nameRef.current = options.name ?? "app-dispose"
+  const signalsKey = (options.signals ?? ["SIGINT", "SIGTERM"]).join(",")
+
   useEffect(() => {
     let disposed = false
     function runOnce(): void {
       if (disposed) return
       disposed = true
       try {
-        const maybe = dispose()
+        const maybe = disposeRef.current()
         if (maybe && typeof (maybe as Promise<void>).catch === "function") {
           void (maybe as Promise<void>).catch(() => {
             /* async dispose errors are swallowed — we're tearing down */
@@ -80,15 +96,14 @@ export function useDispose(
         /* sync dispose errors are swallowed — we're tearing down */
       }
     }
-    const signals = options.signals ?? (["SIGINT", "SIGTERM"] as const)
+    const signals = (signalsKey.split(",") as NodeJS.Signals[]).filter((s) => s.length > 0)
     const unregs: Array<() => void> = []
-    const baseName = options.name ?? "app-dispose"
     for (const sig of signals) {
       const unreg = term.signals?.on(sig, runOnce, {
-        priority: options.priority ?? 5,
+        priority: priorityRef.current,
         // Names must be unique across the signals registry — suffix with
         // the signal so the same base name can hook multiple signals.
-        name: `${baseName}-${sig}`,
+        name: `${nameRef.current}-${sig}`,
       })
       if (unreg) unregs.push(unreg)
     }
@@ -96,5 +111,5 @@ export function useDispose(
       for (const u of unregs) u()
       runOnce()
     }
-  }, [term, dispose, options.priority, options.name, options.signals])
+  }, [term, signalsKey])
 }
