@@ -125,7 +125,13 @@ describe("withInputChain", () => {
     expect(seen).toEqual([])
   })
 
-  test("modifier-only event (empty input + shift) is not delivered", () => {
+  test("modifier-only event (isModifierOnly: true) is not delivered", () => {
+    // Modifier-only is driven by `key.isModifierOnly === true`, set by
+    // @silvery/ag/keys `parseKey()` when the key NAME is one of the
+    // dedicated Kitty modifier codepoints (leftshift, leftctrl, etc.).
+    // Deriving "modifier-only" from `input === "" && key.shift` is wrong
+    // — Shift+Tab, Shift+Enter, Shift+Arrow all have empty input but
+    // carry a real payload and must reach useInput.
     const app = mkApp()
     const seen: string[] = []
     app.input.register(() => {
@@ -134,9 +140,29 @@ describe("withInputChain", () => {
     app.dispatch({
       type: "input:key",
       input: "",
-      key: { shift: true, eventType: "press" } as KeyShape,
+      key: { shift: true, isModifierOnly: true, eventType: "press" } as KeyShape,
     })
     expect(seen).toEqual([])
+  })
+
+  test("Shift+Tab-shape event (empty input + shift, NOT modifier-only) IS delivered", () => {
+    // Regression: prior `isModifierOnly(input,key)` heuristic short-circuited
+    // on `input === "" && (shift|ctrl|...)`, silently swallowing Shift+Tab,
+    // Ctrl+Tab, Shift+Enter, Shift+Arrow-keys, etc. — all of which carry a
+    // real payload via dedicated flags, not via `input`.
+    const app = mkApp()
+    const seen: string[] = []
+    app.input.register((input, key) => {
+      seen.push(`${input}|shift=${!!key.shift}|eventType=${key.eventType ?? "press"}`)
+    })
+    app.dispatch({
+      type: "input:key",
+      input: "",
+      // Mirrors what @silvery/ag/keys.parseKey emits for CSI 9;2u
+      // (Shift+Tab with Kitty keyboard protocol).
+      key: { shift: true, eventType: "press" } as KeyShape,
+    })
+    expect(seen).toEqual(["|shift=true|eventType=press"])
   })
 
   test("a throwing handler does not stop subsequent handlers", () => {

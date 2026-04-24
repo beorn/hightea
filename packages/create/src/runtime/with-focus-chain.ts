@@ -89,10 +89,11 @@ export interface FocusChainStore {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isModifierOnly(input: string, key: KeyShape | undefined): boolean {
-  if (!key) return false
-  if (input && input.length > 0) return false
-  return !!(key.ctrl || key.shift || key.meta || key.super || key.alt || key.hyper)
+function isModifierOnly(_input: string, key: KeyShape | undefined): boolean {
+  // Authoritative flag — set by @silvery/ag/keys `parseKey()` for
+  // dedicated modifier-only codepoints. See the longer note in
+  // with-input-chain.ts; same bug, same fix.
+  return key?.isModifierOnly === true
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +114,6 @@ export function withFocusChain(
     const prev = app.apply
     app.apply = (op: Op): ApplyResult => {
       if (op.type !== "input:key") return prev(op)
-      if (!options.hasActiveFocus()) return prev(op)
       const input = (op as { input?: string }).input ?? ""
       const key = (op as { key?: KeyShape }).key
       const isRelease = key?.eventType === "release"
@@ -121,6 +121,15 @@ export function withFocusChain(
       if ((isRelease || modOnly) && !options.dispatchReleaseAndModifierOnly) {
         return prev(op)
       }
+      // `dispatchKey` is responsible for both the focused-element event
+      // dispatch (which is gated on `hasActiveFocus` inside the caller,
+      // typically `handleFocusNavigation`) AND focus-navigation fallbacks
+      // like "Tab focuses the first focusable when nothing is active".
+      // Previously this plugin short-circuited via `!hasActiveFocus()`,
+      // which wrongly suppressed the Tab-seeds-first-focus behaviour.
+      // `hasActiveFocus` is retained on the options type for callers who
+      // still inspect it, but we always invoke `dispatchKey` — the caller
+      // decides what to consume.
       let consumed = false
       try {
         consumed = !!options.dispatchKey(input, key ?? ({} as KeyShape))

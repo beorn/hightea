@@ -68,12 +68,15 @@ export interface InputStore {
 // Helpers
 // ---------------------------------------------------------------------------
 
-function isModifierOnly(input: string, key: KeyShape | undefined): boolean {
-  if (!key) return false
-  // A pure modifier event has no "payload" input character and one of
-  // the modifier flags set.
-  if (input && input.length > 0) return false
-  return !!(key.ctrl || key.shift || key.meta || key.super || key.alt || key.hyper)
+function isModifierOnly(_input: string, key: KeyShape | undefined): boolean {
+  // Authoritative flag — set by @silvery/ag/keys `parseKey()` when the
+  // key name is one of the dedicated Kitty modifier codepoints
+  // (leftshift, leftctrl, …). Deriving from `input === ""` plus a
+  // modifier flag is WRONG: Shift+Tab, Shift+Enter, Shift+Arrow,
+  // Ctrl+Tab, etc. all have empty `input` but carry a real payload via
+  // the `tab` / `return` / `upArrow` flags. See
+  // `MODIFIER_ONLY_NAMES` in @silvery/ag/keys.
+  return key?.isModifierOnly === true
 }
 
 // ---------------------------------------------------------------------------

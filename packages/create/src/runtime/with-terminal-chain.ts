@@ -67,6 +67,15 @@ export interface TerminalStore {
  *
  * Deliberately structural (not imported from ag-term's `Key`) so this
  * package stays free of terminal imports. Any compatible shape works.
+ *
+ * `isModifierOnly` is the authoritative modifier-only flag — set by
+ * `parseKey()` in @silvery/ag/keys when the key name is one of
+ * `leftshift`, `leftctrl`, … (the dedicated modifier-key codepoints in
+ * the Kitty keyboard protocol). Heuristics like "input is empty and
+ * some modifier flag is set" are incorrect — they misclassify
+ * Shift+Tab, Shift+Enter, Shift+Arrow, Ctrl+Tab, etc. (input is empty
+ * but the event carries a real payload via the `tab` / `return` /
+ * `upArrow` / ... flags, not via `input`).
  */
 export interface KeyShape {
   ctrl?: boolean
@@ -76,6 +85,12 @@ export interface KeyShape {
   hyper?: boolean
   alt?: boolean
   eventType?: "press" | "repeat" | "release" | undefined
+  /**
+   * True iff the key itself is a modifier key (Shift, Ctrl, …) pressed
+   * in isolation. Authoritative — do NOT derive from `input === ""` +
+   * modifier flags; those are simultaneously true for e.g. Shift+Tab.
+   */
+  isModifierOnly?: boolean
 }
 
 /** Options accepted by {@link withTerminalChain}. */
