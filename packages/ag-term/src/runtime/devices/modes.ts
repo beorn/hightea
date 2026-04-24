@@ -92,6 +92,15 @@ export const KittyFlags = {
 } as const
 
 /**
+ * Mode names that can be passed to `modes.enable(...)`. These cover every
+ * toggleable mode on the `Modes` owner. `kittyKeyboard` accepts a bitfield
+ * rather than `true` and is handled via the per-mode signal directly (see
+ * the `kittyKeyboard` signal below) — it's intentionally excluded from
+ * `enable()` because the "on" value is not a single fixed boolean.
+ */
+export type ModeName = "rawMode" | "altScreen" | "bracketedPaste" | "mouse" | "focusReporting"
+
+/**
  * Terminal protocol modes sub-owner.
  *
  * Each property is a callable alien-signals `Signal`:
@@ -103,6 +112,10 @@ export const KittyFlags = {
  * drives the same effects to emit the disable ANSI. Mode signals that were
  * never touched stay `false` — no ANSI is emitted for them, matching the
  * shared-stdin safety contract.
+ *
+ * For scope-style ownership (`scope.use(modes.enable("altScreen"))`), use
+ * `enable()` — it returns a `Disposable` that restores the mode to whatever
+ * it was before the call, independent of the owner's full `dispose()`.
  */
 export interface Modes extends Disposable {
   /**
@@ -132,6 +145,24 @@ export interface Modes extends Disposable {
 
   /** Focus-in / focus-out reporting (DEC 1004). */
   readonly focusReporting: Signal<boolean>
+
+  /**
+   * Enable a mode and return a `Disposable` that restores the mode to its
+   * prior value on disposal. Complements the per-mode signals for callers
+   * that want scope-style ownership:
+   *
+   * ```ts
+   * scope.use(term.modes.enable("altScreen"))
+   * // …later, when the scope disposes, altScreen flips back to its
+   * // pre-enable value.
+   * ```
+   *
+   * Idempotent across repeated `enable(name)` calls (alien-signals equality
+   * short-circuits same-value writes). Disposing the returned handle twice
+   * is a no-op. The kitty keyboard bitfield is intentionally not covered —
+   * write `modes.kittyKeyboard(flags)` directly for that shape.
+   */
+  enable(name: ModeName): Disposable
 }
 
 /**
@@ -315,6 +346,30 @@ export function createModes(opts: CreateModesOptions): Modes {
     stopFocusEffect()
   }
 
+  // Map ModeName → the matching boolean signal. Used by `enable()` to avoid
+  // a switch with six nearly-identical arms.
+  const booleanModes: Record<ModeName, Signal<boolean>> = {
+    rawMode,
+    altScreen,
+    bracketedPaste,
+    mouse,
+    focusReporting,
+  }
+
+  function enable(name: ModeName): Disposable {
+    const sig = booleanModes[name]
+    const prior = sig()
+    sig(true)
+    let disposed = false
+    return {
+      [Symbol.dispose]() {
+        if (disposed) return
+        disposed = true
+        sig(prior)
+      },
+    }
+  }
+
   return {
     rawMode,
     altScreen,
@@ -322,6 +377,7 @@ export function createModes(opts: CreateModesOptions): Modes {
     kittyKeyboard,
     mouse,
     focusReporting,
+    enable,
     [Symbol.dispose]: dispose,
   }
 }

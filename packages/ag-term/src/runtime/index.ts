@@ -43,6 +43,7 @@ export {
   createModes,
   KittyFlags,
   type Modes,
+  type ModeName,
   type CreateModesOptions,
 } from "./devices/modes"
 
@@ -54,6 +55,7 @@ export {
   type Signals,
   type SignalName,
   type SignalOnOptions,
+  type SignalUnregister,
   type CreateSignalsOptions,
 } from "./devices/signals"
 

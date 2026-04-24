@@ -30,6 +30,11 @@
  * reference handler `name`s. `dispose()` runs every registered handler in
  * topological order, catches errors, and is idempotent.
  *
+ * The return value of `on()` is both callable (`unregister()`) and
+ * `Disposable` (`using sub = term.signals.on(...)` and
+ * `scope.use(term.signals.on(...))`). All three forms unregister the handler
+ * without firing it.
+ *
  * ## Not covered by this owner
  *
  * - `apps/km-tui/src/state/raw-signals.ts::restoreTerminal` stays as the
@@ -84,6 +89,15 @@ export interface SignalOnOptions {
 }
 
 /**
+ * Unregister function returned by `signals.on(...)`. Callable as a plain
+ * function (backward-compat: `unregister()`) and also implements
+ * `Symbol.dispose` (forward-compat: `using sub = signals.on(...)` or
+ * `scope.use(signals.on(...))`). Both forms remove the handler from the
+ * owner's registry without firing it.
+ */
+export type SignalUnregister = (() => void) & Disposable
+
+/**
  * Signals sub-owner.
  *
  * One per Term. Mediates every `process.on(signalName, …)` registration for
@@ -92,15 +106,16 @@ export interface SignalOnOptions {
  */
 export interface Signals extends Disposable {
   /**
-   * Register a handler for a process signal or lifecycle event. Returns an
-   * unregister function; calling it removes the handler from this owner's
-   * registry (does not fire the handler).
+   * Register a handler for a process signal or lifecycle event. Returns a
+   * `SignalUnregister` — a callable `Disposable`. Either `unregister()` or
+   * `unregister[Symbol.dispose]()` (implicitly via `using` / `scope.use`)
+   * removes the handler from this owner's registry (does not fire the handler).
    *
    * The first registration for a given signal installs a shared
    * `process.on(signal, …)` listener; subsequent registrations reuse it.
    * `dispose()` removes the shared listener.
    */
-  on(signal: SignalName, handler: () => void | Promise<void>, opts?: SignalOnOptions): () => void
+  on(signal: SignalName, handler: () => void | Promise<void>, opts?: SignalOnOptions): SignalUnregister
 
   /**
    * Synchronous teardown. Runs every registered handler (with `onDispose:
@@ -176,6 +191,20 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
 
   function makeId(): string {
     return `signals-${++nextId}`
+  }
+
+  /**
+   * Wrap an unregister function so it's both callable and `Disposable`. This
+   * keeps every existing `const off = signals.on(...); off()` caller working
+   * while also enabling `using sub = signals.on(...)` and
+   * `scope.use(signals.on(...))`.
+   */
+  function makeUnregister(fn: () => void): SignalUnregister {
+    return Object.assign(fn, {
+      [Symbol.dispose]() {
+        fn()
+      },
+    })
   }
 
   function entriesFor(signal: SignalName): Entry[] {
@@ -307,11 +336,11 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
     signal: SignalName,
     handler: () => void | Promise<void>,
     options: SignalOnOptions = {},
-  ): () => void {
+  ): SignalUnregister {
     if (disposed) {
       // After dispose, registrations are a no-op — callers that keep a stale
       // owner reference shouldn't accidentally re-install listeners.
-      return () => {}
+      return makeUnregister(() => {})
     }
     const id = makeId()
     const name = options.name ?? id
@@ -338,7 +367,7 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
     byName.set(name, id)
     if (entry.onSignal) installIfNeeded(signal)
 
-    return () => {
+    return makeUnregister(() => {
       const existing = entries.get(id)
       if (!existing) return
       entries.delete(id)
@@ -349,7 +378,7 @@ export function createSignals(opts: CreateSignalsOptions = {}): Signals {
       if (!entriesFor(signal).some((e) => e.onSignal)) {
         uninstall(signal)
       }
-    }
+    })
   }
 
   function dispose(): void {

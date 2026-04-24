@@ -337,6 +337,91 @@ describe("createSignals — Symbol.dispose", () => {
   })
 })
 
+// =============================================================================
+// Phase 2 — signals.on(...) returns a Disposable
+// =============================================================================
+
+describe("createSignals — on() returns a Disposable unregister", () => {
+  it("calling the returned function unregisters (backward compat)", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const unregister = signals.on("SIGINT", () => {})
+    expect(signals.size).toBe(1)
+    // Legacy call form — must still work.
+    unregister()
+    expect(signals.size).toBe(0)
+    expect(proc.listenerCount("SIGINT")).toBe(0)
+  })
+
+  it("returned value carries Symbol.dispose that unregisters", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const sub = signals.on("SIGINT", () => {})
+    expect(typeof sub).toBe("function")
+    expect(typeof sub[Symbol.dispose]).toBe("function")
+    expect(signals.size).toBe(1)
+
+    sub[Symbol.dispose]()
+    expect(signals.size).toBe(0)
+    expect(proc.listenerCount("SIGINT")).toBe(0)
+  })
+
+  it("using-statement unregisters on block exit (without firing handler)", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const spy = vi.fn()
+    {
+      using _sub = signals.on("SIGINT", spy)
+      expect(signals.size).toBe(1)
+    } // <- Symbol.dispose fires here
+
+    // Handler must NOT have been invoked — unregister only removes the entry.
+    expect(spy).not.toHaveBeenCalled()
+    expect(signals.size).toBe(0)
+    expect(proc.listenerCount("SIGINT")).toBe(0)
+  })
+
+  it("double-dispose via (fn() + Symbol.dispose) is a no-op", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const sub = signals.on("SIGINT", () => {})
+    sub()
+    expect(() => sub[Symbol.dispose]()).not.toThrow()
+    expect(signals.size).toBe(0)
+  })
+
+  it("Post-dispose owner returns a Disposable unregister that is a safe no-op", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+    signals.dispose()
+
+    const sub = signals.on("SIGINT", () => {})
+    expect(typeof sub[Symbol.dispose]).toBe("function")
+    expect(() => sub()).not.toThrow()
+    expect(() => sub[Symbol.dispose]()).not.toThrow()
+  })
+
+  it("composes with DisposableStack via .use(...)", () => {
+    const proc = createFakeProcess()
+    const signals = createSignals({ process: proc })
+
+    const spy = vi.fn()
+    {
+      using stack = new DisposableStack()
+      stack.use(signals.on("SIGINT", spy))
+      stack.use(signals.on("SIGTERM", spy))
+      expect(signals.size).toBe(2)
+    } // <- stack disposes both subscriptions (not the handlers)
+
+    expect(spy).not.toHaveBeenCalled()
+    expect(signals.size).toBe(0)
+  })
+})
+
 describe("createTerm exposes signals on the Term interface", () => {
   it("headless Term: term.signals is a working Signals instance", () => {
     const term = createTerm({ cols: 80, rows: 24 })

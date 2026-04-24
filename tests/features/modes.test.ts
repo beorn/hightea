@@ -340,3 +340,91 @@ describe("createModes — dispose", () => {
     expect(writes.length).toBe(after)
   })
 })
+
+// =============================================================================
+// Phase 2 — modes.enable(name) returns a Disposable
+// =============================================================================
+
+describe("createModes — enable() returns a Disposable", () => {
+  it("enables the named mode and returns a Disposable", () => {
+    const { stdin } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    const handle = modes.enable("altScreen")
+    expect(modes.altScreen()).toBe(true)
+    expect(typeof handle[Symbol.dispose]).toBe("function")
+
+    handle[Symbol.dispose]()
+    expect(modes.altScreen()).toBe(false)
+  })
+
+  it("using-statement scopes a mode to a block and restores on exit", () => {
+    const { stdin, state } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    expect(state.isRaw).toBe(false)
+    {
+      using _raw = modes.enable("rawMode")
+      expect(modes.rawMode()).toBe(true)
+      expect(state.isRaw).toBe(true)
+    }
+
+    expect(modes.rawMode()).toBe(false)
+    expect(state.isRaw).toBe(false)
+  })
+
+  it("restores to the prior value (not just false)", () => {
+    const { stdin } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    // Pre-enable the mode directly — a later nested enable() should restore
+    // to `true`, not `false`.
+    modes.altScreen(true)
+    expect(modes.altScreen()).toBe(true)
+
+    const handle = modes.enable("altScreen")
+    expect(modes.altScreen()).toBe(true)
+    handle[Symbol.dispose]()
+    expect(modes.altScreen()).toBe(true) // stays true — prior value preserved
+  })
+
+  it("double-dispose is a no-op", () => {
+    const { stdin } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    const handle = modes.enable("mouse")
+    handle[Symbol.dispose]()
+    expect(modes.mouse()).toBe(false)
+    // Force mouse back on after first dispose; a second dispose must NOT
+    // clobber the new state.
+    modes.mouse(true)
+    handle[Symbol.dispose]()
+    expect(modes.mouse()).toBe(true)
+  })
+
+  it("composes with DisposableStack via .use(...)", () => {
+    const { stdin, state } = createMockStdin()
+    const { write } = createRecordingWrite()
+    const modes = createModes({ write, stdin })
+
+    {
+      using stack = new DisposableStack()
+      stack.use(modes.enable("altScreen"))
+      stack.use(modes.enable("mouse"))
+      stack.use(modes.enable("bracketedPaste"))
+      expect(modes.altScreen()).toBe(true)
+      expect(modes.mouse()).toBe(true)
+      expect(modes.bracketedPaste()).toBe(true)
+    }
+
+    expect(modes.altScreen()).toBe(false)
+    expect(modes.mouse()).toBe(false)
+    expect(modes.bracketedPaste()).toBe(false)
+    // rawMode was never touched.
+    expect(state.isRaw).toBe(false)
+  })
+})
