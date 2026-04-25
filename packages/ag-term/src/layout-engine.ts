@@ -202,6 +202,6 @@ export async function ensureDefaultLayoutEngine(engineType?: LayoutEngineType): 
   } else {
     // 'flexily' (default) uses zero-allocation engine with CSS-correct defaults
     const { createFlexilyZeroEngine } = await import("./adapters/flexily-zero-adapter.js")
-    setLayoutEngine(createFlexilyZeroEngine("css"))
+    setLayoutEngine(createFlexilyZeroEngine())
   }
 }

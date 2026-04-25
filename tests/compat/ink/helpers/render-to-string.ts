@@ -10,7 +10,7 @@ import {
   isLayoutEngineInitialized,
   setLayoutEngine,
 } from "../../../../packages/ag-term/src/layout-engine"
-import { createFlexilyZeroEngine } from "../../../../packages/ag-term/src/adapters/flexily-zero-adapter"
+import { createFlexilyZeroEngineForInkCompat } from "../../../../packages/ag-term/src/adapters/flexily-zero-adapter"
 import { createTerm } from "../../../../packages/ag-term/src/ansi"
 import { TermContext } from "../../../../packages/ag-react/src/context"
 import { currentChalkLevel, restoreColonFormatSGR } from "../../../../packages/ink/src/ink"
@@ -31,8 +31,8 @@ async function ensureEngine(): Promise<void> {
   }
   // Ink-compat tests use Yoga preset (alignContent:flex-start, no auto-min-size)
   // to match Ink/Yoga semantics. Production silvery uses CSS preset by default;
-  // Ink-compat is the explicit Yoga-flavored escape hatch.
-  setLayoutEngine(createFlexilyZeroEngine("yoga"))
+  // the ForInkCompat factory is the only sanctioned Yoga-flavored escape hatch.
+  setLayoutEngine(createFlexilyZeroEngineForInkCompat())
   engineReady = true
 }
 

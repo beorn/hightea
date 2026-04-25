@@ -240,7 +240,7 @@ function initCanvasRenderer(config: CanvasAdapterConfig): void {
   // Re-init if monospace mode changed (adapter + measurer need to match)
   if (initialized && lastMonospace === monospace) return
 
-  setLayoutEngine(createFlexilyZeroEngine("css"))
+  setLayoutEngine(createFlexilyZeroEngine())
   currentAdapter = createCanvasAdapter(config)
   setRenderAdapter(currentAdapter)
 

@@ -349,15 +349,8 @@ export class FlexilyZeroLayoutEngine implements LayoutEngine {
     MEASURE_MODE_AT_MOST: MEASURE_MODE_AT_MOST as MeasureModeValue,
   }
 
-  /** Defaults preset captured in closure — passed to every Node.create(). */
-  private readonly _defaults: "css" | "yoga" | undefined
-
-  constructor(defaults?: "css" | "yoga") {
-    this._defaults = defaults
-  }
-
   createNode(): LayoutNode {
-    return new FlexilyZeroNodeAdapter(FlexilyNode.create({ defaults: this._defaults }))
+    return new FlexilyZeroNodeAdapter(FlexilyNode.create({ defaults: "css" }))
   }
 
   get constants(): LayoutConstants {
@@ -369,23 +362,54 @@ export class FlexilyZeroLayoutEngine implements LayoutEngine {
   }
 }
 
+/**
+ * Internal-only Yoga-preset variant of FlexilyZeroLayoutEngine.
+ *
+ * Production silvery uses CSS-correct defaults via the standard
+ * {@link FlexilyZeroLayoutEngine}. The Ink-compat layer (which mimics
+ * Ink/Yoga semantics — `flexShrink:0`, `alignContent:flex-start`, no auto
+ * min-size on flex items) needs Yoga-preset Nodes. This subclass is the
+ * only sanctioned way to opt into Yoga semantics from inside silvery; do
+ * not export from the public barrel and do not use in app code.
+ */
+class FlexilyZeroLayoutEngineYoga extends FlexilyZeroLayoutEngine {
+  override createNode(): LayoutNode {
+    return new FlexilyZeroNodeAdapter(FlexilyNode.create({ defaults: "yoga" }))
+  }
+}
+
 // ============================================================================
-// Initialization Helper
+// Initialization Helpers
 // ============================================================================
 
 /**
- * Create a Flexily zero-allocation layout engine.
- * Unlike Yoga, Flexily doesn't require async initialization.
+ * Create a Flexily zero-allocation layout engine with CSS-correct defaults.
  *
- * @param defaults - Optional defaults preset for all Nodes created by this engine.
- *   - `"css"` — `flexShrink: 1`, `alignContent: stretch` (browser-correct,
- *     multi-target). Recommended for silvery (web/canvas/multi-target).
- *   - `"yoga"` — `flexShrink: 0`, `alignContent: flex-start` (Yoga-compat).
- *   - `undefined` — uses flexily's `DEFAULT_PRESET` (currently `"yoga"`).
+ * silvery's standard layout engine. Sets `flexShrink: 1`,
+ * `alignContent: stretch`, and CSS §4.5 flex-item auto min-size on every
+ * Node, matching browser flexbox semantics. Unlike Yoga, Flexily doesn't
+ * require async initialization.
  *
- *   Pass `"css"` to opt silvery into CSS-correct defaults without relying on
- *   the global flexily DEFAULT_PRESET. Closure-captured (no module state).
+ * Yoga-flavored semantics are deliberately not exposed here — consumers
+ * needing Yoga compat should use `createFlexily({ defaults: "yoga" })` from
+ * flexily directly. The Ink-compat layer is the single internal user that
+ * stays on Yoga; it imports the unexported {@link createFlexilyZeroEngineForInkCompat}.
  */
-export function createFlexilyZeroEngine(defaults?: "css" | "yoga"): FlexilyZeroLayoutEngine {
-  return new FlexilyZeroLayoutEngine(defaults)
+export function createFlexilyZeroEngine(): FlexilyZeroLayoutEngine {
+  return new FlexilyZeroLayoutEngine()
+}
+
+/**
+ * Yoga-preset variant for Ink-compat tests only.
+ *
+ * Do not use in production silvery code. The Ink-compat layer (`packages/ink`)
+ * mimics Ink semantics, which match Yoga (`flexShrink:0`, `alignContent:flex-start`,
+ * no auto min-size). When silvery's auto-generated Ink-compat tests render
+ * through silvery's layout pipeline, they need Yoga-preset Nodes — that's
+ * the one and only purpose of this factory.
+ *
+ * @internal Visible to silvery tests/compat/ink/helpers and packages/ink internals.
+ */
+export function createFlexilyZeroEngineForInkCompat(): FlexilyZeroLayoutEngine {
+  return new FlexilyZeroLayoutEngineYoga()
 }
