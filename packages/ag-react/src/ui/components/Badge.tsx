@@ -42,9 +42,6 @@ export type BadgeVariant =
   | "destructive"
   | "primary"
 
-/** @deprecated Use `BadgeVariant`. Retained one cycle. */
-export type BadgeTone = BadgeVariant
-
 export interface BadgeProps extends Omit<TextProps, "children"> {
   /** Badge text */
   label: string
@@ -54,8 +51,6 @@ export interface BadgeProps extends Omit<TextProps, "children"> {
    * `primary` stays as a synonym during Phase 2b/2c.
    */
   variant?: BadgeVariant
-  /** @deprecated Use `variant`. Kept for one cycle. */
-  tone?: BadgeVariant
 }
 
 // =============================================================================
@@ -81,10 +76,8 @@ const VARIANT_COLORS: Record<BadgeVariant, string> = {
 // Component
 // =============================================================================
 
-export function Badge({ label, variant, tone, color, ...rest }: BadgeProps): React.ReactElement {
-  // `variant` wins over deprecated `tone` when both are set.
-  const effectiveVariant: BadgeVariant = variant ?? tone ?? "default"
-  const resolvedColor = color ?? VARIANT_COLORS[effectiveVariant]
+export function Badge({ label, variant = "default", color, ...rest }: BadgeProps): React.ReactElement {
+  const resolvedColor = color ?? VARIANT_COLORS[variant]
 
   return (
     <Text color={resolvedColor} bold {...rest}>

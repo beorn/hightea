@@ -1,12 +1,12 @@
 /**
- * Badge + Toast tone surface (Sterling Phase 2b).
+ * Badge + Toast variant surface (Sterling Phase 2b).
  *
- * Covers the expanded `tone` surface for status-bearing components:
+ * Covers the `variant` surface for status-bearing components:
  *   - accent / error / warning / success / info
  *   - destructive (intent alias for error — D1)
- *   - primary / variant (legacy synonyms accepted during 2b/2c)
+ *   - primary (legacy synonym accepted during 2b/2c)
  *
- * Each tone must resolve to the matching Sterling flat token on the Text
+ * Each variant must resolve to the matching Sterling flat token on the Text
  * node's `color` prop. No visual render assertion — the prop itself is
  * the public contract and the pipeline test passes stress it further.
  *
@@ -28,7 +28,7 @@ function colorOf(text: string, app: ReturnType<typeof render>): string | undefin
   return (node?.props as StyleProps | undefined)?.color as string | undefined
 }
 
-describe("Badge tone surface", () => {
+describe("Badge variant surface", () => {
   const cases: Array<[string, string]> = [
     ["default", "$fg"],
     ["accent", "$fg-accent"],
@@ -40,22 +40,17 @@ describe("Badge tone surface", () => {
     ["primary", "$fg-accent"], // legacy synonym for accent
   ]
 
-  for (const [tone, expected] of cases) {
-    test(`tone="${tone}" → ${expected}`, () => {
-      const label = `T-${tone}`
-      const app = render(<Badge label={label} tone={tone as never} />)
+  for (const [variant, expected] of cases) {
+    test(`variant="${variant}" → ${expected}`, () => {
+      const label = `T-${variant}`
+      const app = render(<Badge label={label} variant={variant as never} />)
       expect(colorOf(label, app)).toBe(expected)
     })
   }
 
-  test("deprecated tone prop still works (one-cycle alias)", () => {
-    const app = render(<Badge label="legacy" tone="success" />)
-    expect(colorOf("legacy", app)).toBe("$fg-success")
-  })
-
-  test("variant wins over deprecated tone when both are set (Option B)", () => {
-    const app = render(<Badge label="both" variant="error" tone="success" />)
-    expect(colorOf("both", app)).toBe("$fg-error")
+  test("variant defaults to 'default' when omitted", () => {
+    const app = render(<Badge label="bare" />)
+    expect(colorOf("bare", app)).toBe("$fg")
   })
 
   test("explicit color prop overrides variant mapping", () => {
@@ -64,7 +59,7 @@ describe("Badge tone surface", () => {
   })
 })
 
-describe("Toast tone surface", () => {
+describe("Toast variant surface", () => {
   const cases: Array<[string, string, string]> = [
     // [variant, expected Sterling token, icon glyph]
     ["default", "$fg", "i"],
@@ -89,7 +84,7 @@ describe("Toast tone surface", () => {
         />,
       )
       // Toast renders the icon as `[<glyph>]`. Locate that node and check its
-      // color prop — the icon is the only Text that carries the tone color.
+      // color prop — the icon is the only Text that carries the variant color.
       const node = app.getByText(`[${icon}]`).resolve()
       expect(node, `could not find icon [${icon}] for variant ${variant}`).not.toBeNull()
       expect((node!.props as StyleProps).color).toBe(expected)

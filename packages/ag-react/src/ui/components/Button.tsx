@@ -21,9 +21,6 @@
  * `color` remains supported for callers that need a raw palette entry;
  * `variant` takes precedence when both are set, matching the Badge/Toast
  * pattern.
- *
- * The `tone` prop is accepted as a one-cycle deprecated alias for `variant`
- * — emit a console warning at dev time.
  */
 import React from "react"
 import { useFocusable } from "../../hooks/useFocusable"
@@ -52,8 +49,6 @@ export interface ButtonProps extends Omit<BoxProps, "children"> {
    * When both `variant` and `color` are set, `variant` wins.
    */
   variant?: Variant
-  /** @deprecated Use `variant`. Kept for one cycle. */
-  tone?: Variant
   /**
    * Raw color override. Kept for backward compatibility with callers that
    * reach around the variant axis (e.g. per-category coloring). Ignored when
@@ -77,7 +72,6 @@ export function Button({
   onPress,
   isActive,
   variant,
-  tone,
   color,
   ...rest
 }: ButtonProps): React.ReactElement {
@@ -97,14 +91,13 @@ export function Button({
 
   // Resolve variant → Sterling flat tokens. `variant` wins over `color`;
   // `color` stays as the escape hatch for callers that want a raw palette
-  // entry. `tone` is a one-cycle deprecated alias for `variant`.
-  const effectiveVariant: Variant =
-    variant ?? tone ?? (color ? ("accent" as const) : ("accent" as const))
+  // entry.
+  const effectiveVariant: Variant = variant ?? "accent"
   const tokens = variantFillTokens(effectiveVariant)
 
   // When a raw `color` is supplied AND no variant is set, fall back to the
   // legacy single-color rendering (no bg fill) — preserves existing callers.
-  const legacyColorMode = color !== undefined && variant === undefined && tone === undefined
+  const legacyColorMode = color !== undefined && variant === undefined
 
   if (legacyColorMode) {
     return (

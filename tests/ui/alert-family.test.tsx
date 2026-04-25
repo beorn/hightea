@@ -1,7 +1,7 @@
 /**
- * Alert family tone + urgency tests (Sterling Phase 2b).
+ * Alert family variant + urgency tests (Sterling Phase 2b).
  *
- * Three components, same `tone` surface, three different urgency levels
+ * Three components, same `variant` surface, three different urgency levels
  * conveyed by component choice (NOT a priority prop):
  *
  *   <InlineAlert>   low      passive in-flow
@@ -29,22 +29,22 @@ const render = createRenderer({ cols: 80, rows: 24 })
 // =============================================================================
 
 describe("InlineAlert", () => {
-  test("renders text + tone-colored icon + message", () => {
-    const app = render(<InlineAlert tone="error">Type-check failed</InlineAlert>)
+  test("renders text + variant-colored icon + message", () => {
+    const app = render(<InlineAlert variant="error">Type-check failed</InlineAlert>)
     expect(app.containsText("Type-check failed")).toBe(true)
-    // Icon (Text node with glyph) must carry the tone color.
+    // Icon (Text node with glyph) must carry the variant color.
     const icon = app.getByText("x").resolve()
-    expect(icon, "icon node for error tone").not.toBeNull()
+    expect(icon, "icon node for error variant").not.toBeNull()
     expect((icon!.props as StyleProps).color).toBe("$fg-error")
   })
 
-  test("destructive tone aliases to error tokens", () => {
-    const app = render(<InlineAlert tone="destructive">Delete repo</InlineAlert>)
+  test("destructive variant aliases to error tokens", () => {
+    const app = render(<InlineAlert variant="destructive">Delete repo</InlineAlert>)
     const icon = app.getByText("x").resolve()
     expect((icon!.props as StyleProps).color).toBe("$fg-error")
   })
 
-  test("default tone is info", () => {
+  test("default variant is info", () => {
     const app = render(<InlineAlert>Heads up</InlineAlert>)
     const icon = app.getByText("i").resolve()
     expect((icon!.props as StyleProps).color).toBe("$fg-info")
@@ -52,7 +52,7 @@ describe("InlineAlert", () => {
 
   test("showIcon=false suppresses the icon", () => {
     const app = render(
-      <InlineAlert tone="warning" showIcon={false}>
+      <InlineAlert variant="warning" showIcon={false}>
         Quiet
       </InlineAlert>,
     )
@@ -68,10 +68,10 @@ describe("InlineAlert", () => {
 // =============================================================================
 
 describe("Banner", () => {
-  test("renders with subtle background and tone foreground", () => {
-    const app = render(<Banner tone="warning">Deprecated API</Banner>)
+  test("renders with subtle background and variant foreground", () => {
+    const app = render(<Banner variant="warning">Deprecated API</Banner>)
     expect(app.containsText("Deprecated API")).toBe(true)
-    // Root Banner box carries $bg-warning-subtle; the tone fg appears on text.
+    // Root Banner box carries $bg-warning-subtle; the variant fg appears on text.
     const warningIcon = app.getByText("! ").resolve()
     expect(warningIcon, "warning icon node").not.toBeNull()
     expect((warningIcon!.props as StyleProps).color).toBe("$fg-warning")
@@ -80,7 +80,7 @@ describe("Banner", () => {
   test("onDismiss fires on Escape", async () => {
     const onDismiss = vi.fn()
     const app = render(
-      <Banner tone="info" onDismiss={onDismiss}>
+      <Banner variant="info" onDismiss={onDismiss}>
         Retrying
       </Banner>,
     )
@@ -92,13 +92,13 @@ describe("Banner", () => {
   })
 
   test("non-dismissible banner has no affordance text", () => {
-    const app = render(<Banner tone="info">Quiet notice</Banner>)
+    const app = render(<Banner variant="info">Quiet notice</Banner>)
     expect(app.containsText("Quiet notice")).toBe(true)
     expect(app.containsText("dismiss")).toBe(false)
   })
 
-  test("destructive tone aliases to error subtle tokens", () => {
-    const app = render(<Banner tone="destructive">Delete in progress</Banner>)
+  test("destructive variant aliases to error subtle tokens", () => {
+    const app = render(<Banner variant="destructive">Delete in progress</Banner>)
     // destructive icon matches error icon ("x")
     const icon = app.getByText("x ").resolve()
     expect(icon, "destructive→error icon").not.toBeNull()
@@ -113,7 +113,7 @@ describe("Banner", () => {
 describe("Alert", () => {
   test("renders title + body when open", () => {
     const app = render(
-      <Alert tone="error" open onClose={() => {}} width={50}>
+      <Alert variant="error" open onClose={() => {}} width={50}>
         <Alert.Title>Delete repository?</Alert.Title>
         <Alert.Body>This action cannot be undone.</Alert.Body>
       </Alert>,
@@ -122,13 +122,13 @@ describe("Alert", () => {
     expect(app.containsText("This action cannot be undone.")).toBe(true)
     // Tone icon is present next to the title (error → "x").
     const icon = app.getByText("x").resolve()
-    expect(icon, "error tone icon").not.toBeNull()
+    expect(icon, "error variant icon").not.toBeNull()
     expect((icon!.props as StyleProps).color).toBe("$fg-error")
   })
 
   test("renders nothing when open=false", () => {
     const app = render(
-      <Alert tone="error" open={false} onClose={() => {}}>
+      <Alert variant="error" open={false} onClose={() => {}}>
         <Alert.Title>Hidden</Alert.Title>
       </Alert>,
     )
@@ -138,7 +138,7 @@ describe("Alert", () => {
   test("onClose fires on Escape", async () => {
     const onClose = vi.fn()
     const app = render(
-      <Alert tone="warning" open onClose={onClose}>
+      <Alert variant="warning" open onClose={onClose}>
         <Alert.Title>Confirm</Alert.Title>
       </Alert>,
     )
@@ -147,9 +147,9 @@ describe("Alert", () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  test("destructive tone renders error tokens", () => {
+  test("destructive variant renders error tokens", () => {
     const app = render(
-      <Alert tone="destructive" open onClose={() => {}}>
+      <Alert variant="destructive" open onClose={() => {}}>
         <Alert.Title>Delete?</Alert.Title>
       </Alert>,
     )
@@ -162,12 +162,12 @@ describe("Alert", () => {
     // file was causing the Actions row to wrap the snug-content sizing.
     const localRender = createRenderer({ cols: 80, rows: 24 })
     const app = localRender(
-      <Alert tone="error" open onClose={() => {}} width={50}>
+      <Alert variant="error" open onClose={() => {}} width={50}>
         <Alert.Title>Delete?</Alert.Title>
         <Alert.Body>Are you sure?</Alert.Body>
         <Alert.Actions>
-          <Button label="Delete" tone="destructive" onPress={() => {}} />
-          <Button label="Cancel" tone="accent" onPress={() => {}} />
+          <Button label="Delete" variant="destructive" onPress={() => {}} />
+          <Button label="Cancel" variant="accent" onPress={() => {}} />
         </Alert.Actions>
       </Alert>,
     )

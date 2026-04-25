@@ -2,7 +2,7 @@
  * Banner Component — medium-urgency dismissible row
  *
  * Sterling Phase 2b — the middle tier of the Alert family. Renders as a
- * full-width row with a tinted background (`$bg-<role>-subtle`), tone-colored
+ * full-width row with a tinted background (`$bg-<role>-subtle`), variant-colored
  * icon + text, and an optional dismiss affordance.
  *
  * Urgency pairing (Sterling design-system.md §"Urgency is not a design-system
@@ -14,15 +14,15 @@
  *
  * Why "subtle" background (not solid fill): Banners sit in-flow above
  * primary content; a saturated fill would overwhelm the page. The subtle
- * role token reads as "this row carries a tone" without taking visual
+ * role token reads as "this row carries a variant" without taking visual
  * priority from the content being announced. Escalation to "loud" is what
  * `<Alert>` (modal, solid fill) is for.
  *
  * Usage:
  * ```tsx
- * <Banner tone="warning" onDismiss={close}>Deprecated API — migrate to useBoxRect</Banner>
- * <Banner tone="info">System maintenance at 02:00 UTC</Banner>
- * <Banner tone="error" onDismiss={close} dismissLabel="×">
+ * <Banner variant="warning" onDismiss={close}>Deprecated API — migrate to useBoxRect</Banner>
+ * <Banner variant="info">System maintenance at 02:00 UTC</Banner>
+ * <Banner variant="error" onDismiss={close} dismissLabel="×">
  *   <Text>Connection lost — <Text underline>retry</Text></Text>
  * </Banner>
  * ```
@@ -31,7 +31,7 @@ import React from "react"
 import { useInput } from "../../hooks/useInput"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
-import { type Variant, variantSubtleTokens, variantIcon } from "./_variant"
+import { variantSubtleTokens, variantIcon } from "./_variant"
 
 // =============================================================================
 // Types
@@ -48,8 +48,6 @@ export interface BannerProps extends Omit<BoxProps, "children"> {
    * Sterling status variant. Defaults to `info` — the neutral banner variant.
    */
   variant?: BannerVariant
-  /** @deprecated Use `variant`. Retained one cycle. */
-  tone?: Variant
   /** Banner content. */
   children: React.ReactNode
   /**
@@ -71,15 +69,14 @@ export interface BannerProps extends Omit<BoxProps, "children"> {
 // =============================================================================
 
 /**
- * Dismissible tone banner — medium-urgency message row.
+ * Dismissible variant banner — medium-urgency message row.
  *
  * Width defaults to "100%" so the banner spans its parent. Consumers that
  * want a narrower banner can set `width` directly; the subtle bg fill will
  * respect the explicit width.
  */
 export function Banner({
-  variant,
-  tone,
+  variant = "info",
   children,
   onDismiss,
   dismissLabel = "dismiss ×",
@@ -87,9 +84,8 @@ export function Banner({
   icon,
   ...boxProps
 }: BannerProps): React.ReactElement {
-  const effectiveVariant: Variant = (variant ?? tone ?? "info") as Variant
-  const tokens = variantSubtleTokens(effectiveVariant)
-  const glyph = icon ?? variantIcon(effectiveVariant)
+  const tokens = variantSubtleTokens(variant)
+  const glyph = icon ?? variantIcon(variant)
 
   // Escape dismisses when a handler is supplied. Scoped to the component via
   // `useInput`'s default active scope; apps that render a Banner outside a

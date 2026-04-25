@@ -2,7 +2,7 @@
  * Alert Component — high-urgency modal
  *
  * Sterling Phase 2b — the highest-urgency member of the Alert family. Built
- * on top of ModalDialog with tone-aware border and title styling. Blocks
+ * on top of ModalDialog with variant-aware border and title styling. Blocks
  * flow; the user must acknowledge/dismiss.
  *
  * Urgency pairing (Sterling design-system.md §"Urgency is not a design-system
@@ -18,16 +18,16 @@
  *
  * Usage:
  * ```tsx
- * <Alert tone="error" open onClose={close}>
+ * <Alert variant="error" open onClose={close}>
  *   <Alert.Title>Delete repository?</Alert.Title>
  *   <Alert.Body>This action cannot be undone.</Alert.Body>
  *   <Alert.Actions>
- *     <Button tone="destructive" label="Delete" onPress={confirmDelete} />
- *     <Button tone="accent" label="Cancel" onPress={close} />
+ *     <Button variant="destructive" label="Delete" onPress={confirmDelete} />
+ *     <Button variant="accent" label="Cancel" onPress={close} />
  *   </Alert.Actions>
  * </Alert>
  *
- * <Alert tone="warning" open onClose={close}>
+ * <Alert variant="warning" open onClose={close}>
  *   <Alert.Title>Unsaved changes</Alert.Title>
  *   <Alert.Body>You have unsaved changes. Save before closing?</Alert.Body>
  * </Alert>
@@ -38,7 +38,7 @@ import { useInput } from "../../hooks/useInput"
 import { Box, type BoxProps } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { ModalDialog } from "./ModalDialog"
-import { type Variant, variantFgToken, variantIcon } from "./_variant"
+import { variantFgToken, variantIcon } from "./_variant"
 
 // =============================================================================
 // Types
@@ -58,15 +58,13 @@ export interface AlertProps extends Omit<
   /**
    * Sterling status variant. Defaults to `error` — the prototypical
    * high-urgency case (destructive confirmation, fatal error). Callers ask
-   * for `warning` / `info` / `success` when the modal conveys those tones
+   * for `warning` / `info` / `success` when the modal conveys those variants
    * instead.
    *
    * Note: action-intent variants (`destructive`, `accent`) belong on
    * `<Button>` inside `<Alert.Actions>`, not on `<Alert>` itself.
    */
   variant?: AlertVariant
-  /** @deprecated Use `variant`. Retained one cycle. Accepts the broader Variant union for back-compat. */
-  tone?: Variant
   /** Whether the alert is open. Render nothing when `false`. */
   open?: boolean
   /** Called when the user dismisses (Escape key). */
@@ -125,12 +123,11 @@ function AlertActions({ children }: AlertActionsProps): React.ReactElement {
  * Modal high-urgency alert — blocks the user's flow until dismissed.
  *
  * Uses ModalDialog under the hood for the double border, backdrop fade, and
- * layout conventions. Adds tone-aware border + title-icon styling so the
+ * layout conventions. Adds variant-aware border + title-icon styling so the
  * modal reads as the matching status (error / warning / success / info).
  */
 function AlertRoot({
-  variant,
-  tone,
+  variant = "error",
   open = true,
   onClose,
   children,
@@ -139,11 +136,9 @@ function AlertRoot({
   width,
   ...boxProps
 }: AlertProps): React.ReactElement | null {
-  // `variant` wins over deprecated `tone`. Default `error` (prototypical
-  // high-urgency Alert).
-  const effectiveVariant: Variant = (variant ?? tone ?? "error") as Variant
-  const fgToken = variantFgToken(effectiveVariant)
-  const glyph = icon ?? variantIcon(effectiveVariant)
+  // Default `error` (prototypical high-urgency Alert).
+  const fgToken = variantFgToken(variant)
+  const glyph = icon ?? variantIcon(variant)
 
   useInput(
     (_input, key) => {

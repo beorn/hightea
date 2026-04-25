@@ -266,30 +266,15 @@ export type {
 
 // Shared variant surface (Variant + resolvers) — building block for
 // variant-bearing components. Apps writing their own variant components can
-// reuse these helpers. Renamed from `tone` 2026-04-25 (Option B); deprecated
-// `tone*` aliases retained one cycle.
+// reuse these helpers.
 export {
   variantFillTokens,
   variantSubtleTokens,
   variantFgToken,
   variantIcon,
   VARIANT_ICONS,
-  // Deprecated aliases:
-  toneFillTokens,
-  toneSubtleTokens,
-  toneFgToken,
-  toneIcon,
-  TONE_ICONS,
 } from "./ui/components"
-export type {
-  Variant,
-  VariantFillTokens,
-  VariantSubtleTokens,
-  // Deprecated aliases:
-  ToneKey,
-  ToneFillTokens,
-  ToneSubtleTokens,
-} from "./ui/components"
+export type { Variant, VariantFillTokens, VariantSubtleTokens } from "./ui/components"
 
 // Command Palette
 export { CommandPalette } from "./ui/components"
