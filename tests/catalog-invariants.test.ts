@@ -68,47 +68,15 @@ const WCAG_EXEMPT: Record<string, Set<string>> = {
 // Rules that are exempt across ALL schemes. Use sparingly — these are for
 // cases where Sterling's design intent overrides a WCAG requirement.
 //
-// ## Sterling border tokens (tracked as km-silvery.sterling-border-contrast)
-//
-// Sterling derives `border-default` as `blend(bg, fg, 0.18)` and
-// `border-muted` as `blend(bg, fg, 0.10)` — aesthetic subtlety by design.
-// WCAG 1.4.11 wants 3:1 for non-text chrome and Sterling doesn't currently
-// auto-lift these (the guard() call is invoked without an `against` target).
-// Post-unification of Sterling into @silvery/ansi (2026-04-24) these rules
-// now execute across every scheme — previously they silently skipped because
-// the flat tokens didn't exist on partial Themes. The audit failures were
-// latent; making them visible is progress, but tightening them is a Sterling
-// derivation change with visual impact that belongs in its own bead.
-//
-// ## fg-muted/bg-muted
-//
-// Sterling derives muted text against muted bg. On some schemes the derivation
-// lands at ~2.7:1 instead of the 3:1 LARGE_RATIO. Tracked same bead.
-//
-// ## fg-cursor/bg-cursor
-//
-// A handful of schemes ship cursor colors that were AA-tested against `bg`
-// but not `bg-cursor`. Sterling routes cursor.fg through scheme.cursorText;
-// where the cursorText choice doesn't meet AA on cursorColor, this surfaces.
-// Tracked same bead.
-//
-// ## fg/bg-surface-overlay
-//
-// Two schemes land at ~4.4:1 rather than 4.5:1 AA on the overlay surface.
-// A Sterling tuning pass would fix it; exempting for now.
-//
-// ## visibility:cursor
-//
-// Edge case where the cursor.bg delta from bg is just above threshold on
-// two schemes. Pre-existing.
-const GLOBAL_EXEMPT: ReadonlySet<string> = new Set([
-  "contrast:border-default/bg",
-  "contrast:border-muted/bg",
-  "contrast:fg-muted/bg-muted",
-  "contrast:fg-cursor/bg-cursor",
-  "contrast:fg/bg-surface-overlay",
-  "visibility:cursor",
-])
+// As of 2026-04-24 (km-silvery.sterling-{borders,cursor,surface}-adaptive)
+// Sterling applies adaptive lift to border-default, border-muted, cursor.bg
+// (visibility) + cursor.fg (AA), bg-surface-overlay/hover (AA against the
+// post-lift theme.fg), and fg-muted (AA against the worst-case bg-muted).
+// Every shipped catalog scheme passes the corresponding contrast / visibility
+// invariants without exemption. The set is intentionally empty so a future
+// regression in Sterling derivation surfaces as a CI failure on the offending
+// scheme rather than being silently absorbed.
+const GLOBAL_EXEMPT: ReadonlySet<string> = new Set([])
 
 // ── Test suite ────────────────────────────────────────────────────────
 

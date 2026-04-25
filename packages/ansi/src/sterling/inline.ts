@@ -165,14 +165,20 @@ export function inlineSterlingTokens(theme: Theme, scheme?: ColorScheme): Inline
     setIfAbsent("border-accent", roles.accent.border)
   }
 
-  // Surface levels
+  // Surface levels — Sterling owns the surface ramp. We OVERWRITE rather than
+  // setIfAbsent because the legacy `theme/derived.ts` emits a stop-gap
+  // `bg-surface-hover` (= applyShift(surfacebg, 0.04)) that pre-dates Sterling
+  // and bypasses the contrast guardrails — leaving it in place would leak a
+  // sub-AA bg through to apps even when Sterling's adaptive lift produced an
+  // AA-passing surface. Other surface levels are not emitted by legacy at all,
+  // so the overwrite is functionally identical to setIfAbsent for them.
   const surf = roles.surface
   if (surf) {
-    setIfAbsent("bg-surface-default", surf.default)
-    setIfAbsent("bg-surface-subtle", surf.subtle)
-    setIfAbsent("bg-surface-raised", surf.raised)
-    setIfAbsent("bg-surface-overlay", surf.overlay)
-    setIfAbsent("bg-surface-hover", surf.hover)
+    out["bg-surface-default"] = surf.default
+    out["bg-surface-subtle"] = surf.subtle
+    out["bg-surface-raised"] = surf.raised
+    out["bg-surface-overlay"] = surf.overlay
+    out["bg-surface-hover"] = surf.hover
   }
 
   const b = roles.border

@@ -218,15 +218,10 @@ describe("deriveTheme contrast guarantees", () => {
     })
 
     it("fg / bg-surface-overlay >= AA (4.5:1)", () => {
-      // Sterling's surface.overlay = blend(bg, fg, 0.12) without repair.
-      // Three schemes (tokyo-night-day, everforest-light, material-light)
-      // near-miss at ~4.3:1 vs the 4.5 target. The legacy popoverbg used
-      // blend(bg, fg, 0.08) + ensureContrast repair. Sterling gap tracked
-      // under `km-silvery.sterling-surface-adaptive`.
-      const r = ratio(theme.fg, tok(theme, "bg-surface-overlay"))
-      // Allow a 0.25 tolerance below AA to accommodate the three
-      // near-miss schemes above, while still catching gross regressions.
-      expect(r).toBeGreaterThanOrEqual(AA - 0.25)
+      // Sterling now applies adaptive lift on surface.overlay against the
+      // post-derivation theme.fg (km-silvery.sterling-surface-adaptive,
+      // 2026-04-24). Strict AA across every catalog palette.
+      expect(ratio(theme.fg, tok(theme, "bg-surface-overlay"))).toBeGreaterThanOrEqual(AA - 0.01)
     })
 
     it("fg-muted / bg >= DIM (3:1)", () => {
@@ -235,16 +230,15 @@ describe("deriveTheme contrast guarantees", () => {
       expect(ratio(tok(theme, "fg-muted"), theme.bg)).toBeGreaterThanOrEqual(DIM - 0.01)
     })
 
-    // Sterling's border tokens (`border-default`, `border-muted`) are blended
-    // at fixed 0.18 / 0.10 alpha without ensureContrast guardrails, so they
-    // fall below the WCAG non-text chrome thresholds (1.4.11) for most
-    // shipped schemes. Skipped pending Sterling's adaptive border derivation.
-    // Tracked under `km-silvery.sterling-borders-adaptive`.
-    it.skip("border-default / bg >= CONTROL (3.0:1)", () => {
+    // Sterling now applies adaptive lift on border-default / border-muted
+    // against bg (km-silvery.sterling-borders-adaptive, 2026-04-24).
+    // border-default lifts to CONTROL (3:1, WCAG 1.4.11 non-text chrome);
+    // border-muted lifts to FAINT (1.5:1, structural divider floor).
+    it("border-default / bg >= CONTROL (3.0:1)", () => {
       expect(ratio(tok(theme, "border-default"), theme.bg)).toBeGreaterThanOrEqual(CONTROL - 0.01)
     })
 
-    it.skip("border-muted / bg >= FAINT (1.5:1)", () => {
+    it("border-muted / bg >= FAINT (1.5:1)", () => {
       expect(ratio(tok(theme, "border-muted"), theme.bg)).toBeGreaterThanOrEqual(FAINT - 0.01)
     })
 
@@ -264,13 +258,10 @@ describe("deriveTheme contrast guarantees", () => {
       })
     }
 
-    // Sterling's cursor derivation passes `scheme.cursorText` / `cursorColor`
-    // through verbatim, bypassing legacy's `ensureContrast` repair pass. For
-    // a handful of schemes (zenburn, tokyo-night-day, serendipity-*, one-light,
-    // one-half-light) the raw cursor pair falls below AA. Skipped pending
-    // Sterling's adaptive cursor derivation + `repairCursorBg` port.
-    // Tracked under `km-silvery.sterling-cursor-adaptive`.
-    it.skip("fg-cursor / bg-cursor >= AA (4.5:1)", () => {
+    // Sterling now applies adaptive `repairCursorBg` (ΔE-based visibility lift
+    // on cursor.bg vs bg) plus a contrast guard on cursor.fg vs the repaired
+    // cursor.bg at AA (km-silvery.sterling-cursor-adaptive, 2026-04-24).
+    it("fg-cursor / bg-cursor >= AA (4.5:1)", () => {
       expect(ratio(tok(theme, "fg-cursor"), tok(theme, "bg-cursor"))).toBeGreaterThanOrEqual(
         AA - 0.01,
       )

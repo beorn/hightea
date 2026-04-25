@@ -25,7 +25,14 @@
  * auto-lift; they're written verbatim onto the Theme.
  */
 
-import { blend, hexToOklch, oklchToHex, relativeLuminance } from "@silvery/color"
+import {
+  blend,
+  deltaE as oklchDeltaE,
+  ensureContrast,
+  hexToOklch,
+  oklchToHex,
+  relativeLuminance,
+} from "@silvery/color"
 import type { ColorScheme } from "../theme/types.ts"
 import type {
   AccentRole,
@@ -419,19 +426,11 @@ export function deriveRoles(
   // Blend at 0.4 toward bg (less muted than 0.5 midpoint) so schemes with
   // low fg/bg contrast still clear the 3:1 floor.
   //
-  // Tightening this to AA (and covering fg-muted on all surface backgrounds)
-  // is tracked in km-silvery.invariant-matrix-gaps — it's a larger design
-  // question: how much can muted be muted before it stops reading? Not
-  // on the critical path for the cursor-contrast fix.
-  const mutedFg = guard(
-    "muted.fg",
-    "fg-muted",
-    "blend(fg, bg, 0.4)",
-    [fg, bg],
-    blend(fg, bg, 0.4),
-    bg,
-    3.0,
-  )
+  // We derive `mutedBg` first, then guard `mutedFg` against `mutedBg` (the
+  // worst-case surface — `mutedBg` is shifted toward `fg`, so muted text on
+  // muted bg has the tightest contrast). Lifting against the worst pair
+  // implies passing on `bg` too. Tightening fg-muted to AA across every
+  // surface is tracked in km-silvery.invariant-matrix-gaps.
   const mutedBg = guard(
     "muted.bg",
     "bg-muted",
@@ -439,9 +438,39 @@ export function deriveRoles(
     [bg, fg],
     blend(bg, fg, 0.08),
   )
+  const mutedFg = guard(
+    "muted.fg",
+    "fg-muted",
+    "blend(fg, bg, 0.4)",
+    [fg, bg],
+    blend(fg, bg, 0.4),
+    mutedBg,
+    3.0,
+  )
   const muted: MutedRole = { fg: mutedFg, bg: mutedBg }
 
   // ── Surface ──────────────────────────────────────────────────────────────
+  //
+  // Surface backgrounds carry body text (`fg`) at AA. The base seeds are
+  // small blends toward `fg` (subtle elevation cues) — on most schemes the
+  // 0.05 / 0.08 / 0.10 / 0.12 nudge is small enough that `fg` still clears
+  // 4.5:1, but a few light schemes (tokyo-night-day, everforest-light,
+  // material-light) land at ~4.07-4.31:1 once the bg is shifted halfway
+  // toward fg. Auto-lift via `guard(... fgForSurfaceLift, AA)` pushes the
+  // surface BACK toward `bg` (away from `fg`) until the pair passes AA.
+  //
+  // Lift target is `fgForSurfaceLift` — `scheme.foreground` after replicating
+  // the legacy `theme/derive.ts` fg lift (against `blend(bg, fg, 0.08)` at
+  // AA). The legacy path ships the lifted fg as `theme.fg`, and the post-
+  // derivation invariant audit reads `theme.fg` not `scheme.foreground`. If
+  // Sterling lifted surfaces against `scheme.fg` only, schemes whose `fg`
+  // gets lifted (darker on light schemes) would still fail the audit
+  // because the surface isn't far enough from the post-lift `fg`. Anchoring
+  // Sterling's surface lift to the same lifted-fg the legacy emits closes
+  // that gap structurally without touching `theme/derive.ts`. `surfaceDefault`
+  // is `bg` verbatim — we don't lift the root surface; `theme.fg` is already
+  // guaranteed AA against it by the legacy ensure().
+  const fgForSurfaceLift = ensureContrast(fg, blend(bg, fg, 0.08), WCAG_AA)
   const surfaceDefault = guard(
     "surface.default",
     "bg-surface-default",
@@ -455,6 +484,8 @@ export function deriveRoles(
     "blend(bg, fg, 0.05)",
     [bg, fg],
     blend(bg, fg, 0.05),
+    fgForSurfaceLift,
+    WCAG_AA,
   )
   const surfaceRaised = guard(
     "surface.raised",
@@ -462,6 +493,8 @@ export function deriveRoles(
     "blend(bg, fg, 0.08)",
     [bg, fg],
     blend(bg, fg, 0.08),
+    fgForSurfaceLift,
+    WCAG_AA,
   )
   const surfaceOverlay = guard(
     "surface.overlay",
@@ -469,6 +502,8 @@ export function deriveRoles(
     "blend(bg, fg, 0.12)",
     [bg, fg],
     blend(bg, fg, 0.12),
+    fgForSurfaceLift,
+    WCAG_AA,
   )
   const surfaceHover = guard(
     "surface.hover",
@@ -476,6 +511,8 @@ export function deriveRoles(
     "blend(bg, fg, 0.10)",
     [bg, fg],
     blend(bg, fg, 0.1),
+    fgForSurfaceLift,
+    WCAG_AA,
   )
   const surface: SurfaceRole = {
     default: surfaceDefault,
@@ -486,12 +523,26 @@ export function deriveRoles(
   }
 
   // ── Border ───────────────────────────────────────────────────────────────
+  //
+  // WCAG 1.4.11 — non-text chrome (borders, dividers, focus rings) needs:
+  //   - 3:1 (CONTROL) for "active" UI chrome (focus rings, default borders)
+  //   - 1.5:1 (FAINT) for purely structural dividers (muted borders)
+  //
+  // The seed blends are aesthetic — small fg nudges that read as a faint
+  // line. On schemes with low fg/bg contrast (default-dark / default-light
+  // are good examples) those nudges land at ~1.2-1.5:1 against bg, which is
+  // below the WCAG floor for a *visible* line. Auto-lift pushes the border
+  // FURTHER toward fg (more contrast) until the floor is met. Borders never
+  // hit AA-text (4.5:1) — they're not text. Constants below match
+  // `theme/invariants.ts` (LARGE_RATIO=3.0, FAINT_RATIO=1.5).
   const borderDefault = guard(
     "border.default",
     "border-default",
     "blend(bg, fg, 0.18)",
     [bg, fg],
     blend(bg, fg, 0.18),
+    bg,
+    3.0,
   )
   const borderFocus = guard("border.focus", "border-focus", "= accent.bg", [accentBg], accentBg, bg)
   const borderMuted = guard(
@@ -500,6 +551,8 @@ export function deriveRoles(
     "blend(bg, fg, 0.10)",
     [bg, fg],
     blend(bg, fg, 0.1),
+    bg,
+    1.5,
   )
   const border: BorderRole = { default: borderDefault, focus: borderFocus, muted: borderMuted }
 
@@ -508,15 +561,26 @@ export function deriveRoles(
   // Terminal cursor colors are configured for a blinky 1-cell indicator,
   // not a large selected-row surface. Many schemes ship `cursorText` /
   // `cursorColor` pairs that fail WCAG AA when used as fg/bg of rendered
-  // text (Espresso: #999 on #d6d6d6 → 1.96:1). Guard both against each
-  // other and auto-lift the fg to AA. bg is pinned to the scheme value
-  // (the author-intended selected-row surface); fg is the one that adapts.
+  // text — and a few ship a `cursorColor` so close to `bg` that the cursor
+  // is invisible (zenburn, tokyo-night-day, serendipity-*, one-light,
+  // one-half-light).
+  //
+  // Adaptive repair pass:
+  //   1. `repairCursorBg` lifts cursor.bg's L away from bg's L until OKLCH
+  //      ΔE ≥ CURSOR_DELTA_E (visibility threshold from theme/invariants.ts).
+  //   2. `guard(cursor.bg)` records the (possibly-repaired) value.
+  //   3. `guard(cursor.fg)` auto-lifts the fg against the repaired bg at AA
+  //      so the cursor row remains readable.
+  //
+  // This mirrors the existing `repairSelectionBg` pass but keys off ΔE
+  // (perceptual distance) rather than ΔL alone — cursor visibility cares
+  // about hue + chroma + L combined, not just lightness.
   const cursorBgRaw = guard(
     "cursor.bg",
     "bg-cursor",
-    "scheme.cursorColor",
-    [scheme.cursorColor],
-    scheme.cursorColor,
+    "scheme.cursorColor (visibility-repaired ΔE ≥ 0.15 vs bg)",
+    [scheme.cursorColor, bg],
+    repairCursorBg(scheme.cursorColor, bg),
   )
   const cursor: CursorRole = {
     fg: guard(
@@ -649,6 +713,54 @@ function repairSelectionBg(selectionBg: string, bg: string): string {
   const direction = oSel.L >= oBg.L ? 1 : -1
   const newL = clamp01(oSel.L + direction * needed)
   return oklchToHex({ L: newL, C: oSel.C, H: oSel.H })
+}
+
+// ── Visibility repair (cursor bg) ─────────────────────────────────────────
+
+const CURSOR_DELTA_E = 0.15
+
+/**
+ * Nudge cursorBg's OKLCH L until it differs from bg by ≥ CURSOR_DELTA_E
+ * (perceptual distance, not just lightness). Preserves hue + chroma but
+ * guarantees the cursor reads against the surrounding bg.
+ *
+ * Uses ΔE (OKLCH perceptual distance) rather than ΔL because two colors at
+ * the same lightness but different hue/chroma are still visibly distinct —
+ * a yellow cursor on a blue bg of equal L is perfectly visible. Only when
+ * ΔE falls below the visibility floor do we lift L to compensate.
+ *
+ * Mirrors `repairSelectionBg` in shape; the repair primitive is L because
+ * shifting hue or chroma would change the author-intended cursor color
+ * identity. L is the "size" knob — bigger ΔL → more visible without
+ * recoloring.
+ *
+ * Non-hex input returns unchanged.
+ */
+function repairCursorBg(cursorBg: string, bg: string): string {
+  const oCur = hexToOklch(cursorBg)
+  const oBg = hexToOklch(bg)
+  if (!oCur || !oBg) return cursorBg
+  if (oklchDeltaE(oCur, oBg) >= CURSOR_DELTA_E) return cursorBg
+
+  // Direction = move L AWAY from bg's L so a lift always increases ΔE.
+  const direction = oCur.L >= oBg.L ? 1 : -1
+  // Binary-search the smallest |ΔL| shift that achieves ΔE ≥ threshold + 0.005
+  // (tiny safety margin; the OKLCH→hex round-trip loses ~0.5e-2 of ΔE
+  // precision, and the visibility invariant uses strict `<` comparison so
+  // landing exactly on the threshold flunks the invariant). Bounded at the
+  // L gamut edge so we don't loop forever on degenerate input.
+  const TARGET = CURSOR_DELTA_E + 0.005
+  let lo = 0
+  let hi = direction > 0 ? 1 - oCur.L : oCur.L
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2
+    const newL = clamp01(oCur.L + direction * mid)
+    const candidate = { L: newL, C: oCur.C, H: oCur.H }
+    if (oklchDeltaE(candidate, oBg) >= TARGET) hi = mid
+    else lo = mid
+  }
+  const newL = clamp01(oCur.L + direction * hi)
+  return oklchToHex({ L: newL, C: oCur.C, H: oCur.H })
 }
 
 // ── Interactive role builder (shared across info/success/warning/error) ────
