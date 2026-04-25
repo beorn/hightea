@@ -61,4 +61,13 @@ export const STERLING_FLAT_TOKENS: readonly FlatToken[] = [
   "fg-on-error",
   "bg-error-hover",
   "bg-error-active",
+  // Selected — highlight surface
+  "bg-selected",
+  "fg-on-selected",
+  "bg-selected-hover",
+  // Inverse — flipped surface (status bar, modal chrome)
+  "bg-inverse",
+  "fg-on-inverse",
+  // Link — hyperlink text color
+  "fg-link",
 ]

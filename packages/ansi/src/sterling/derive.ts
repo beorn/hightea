@@ -36,8 +36,11 @@ import type {
   DeriveOptions,
   DerivationStep,
   InteractiveRole,
+  InverseRole,
+  LinkRole,
   MutedRole,
   Roles,
+  SelectedRole,
   SurfaceRole,
   Theme,
   Variant,
@@ -527,9 +530,125 @@ export function deriveRoles(
     bg: cursorBgRaw,
   }
 
-  const roles: Roles = { accent, info, success, warning, error, muted, surface, border, cursor }
+  // ── Selected ─────────────────────────────────────────────────────────────
+  //
+  // The selection / cursor-row highlight surface. Authored by the scheme as
+  // `selectionBackground` / `selectionForeground` for a literal text-selection
+  // bar; we lift it to a first-class role because the same surface is reused
+  // for the cursor row, search-match highlights, and any "this is the active
+  // item" treatment.
+  //
+  // Visibility repair: if the scheme's selectionBackground is too close to bg
+  // (ΔL < 0.08), shift L away — preserves hue + chroma but guarantees the
+  // highlight reads against any background. fgOn defaults to the scheme's
+  // selectionForeground, with auto-lift to AA against the (possibly repaired)
+  // selection bg.
+  const selectedBg = guard(
+    "selected.bg",
+    "bg-selected",
+    "scheme.selectionBackground (visibility-repaired ΔL ≥ 0.08 vs bg)",
+    [scheme.selectionBackground, bg],
+    repairSelectionBg(scheme.selectionBackground, bg),
+  )
+  const selectedFgOn = guard(
+    "selected.fgOn",
+    "fg-on-selected",
+    "scheme.selectionForeground",
+    [scheme.selectionForeground],
+    scheme.selectionForeground,
+    selectedBg,
+  )
+  const selectedDeltaH = stateDeltas(selectedBg)
+  const selectedHoverBg = guard(
+    "selected.hover.bg",
+    "bg-selected-hover",
+    `OKLCH ${shiftLabel(selectedBg)} ${selectedDeltaH.hover}L on selected.bg`,
+    [selectedBg],
+    shiftL(selectedBg, selectedDeltaH.hover),
+  )
+  const selected: SelectedRole = {
+    bg: selectedBg,
+    fgOn: selectedFgOn,
+    hover: { bg: selectedHoverBg },
+  }
+
+  // ── Inverse ──────────────────────────────────────────────────────────────
+  //
+  // Flipped surface — status bars, modal chrome, "you are here" bands.
+  // `blend(fg, bg, 0.1)` matches the legacy Theme's `inversebg` derivation:
+  // a slight tint of fg over bg, distinct enough to read as a band but not
+  // so loud it competes with `bg-accent`. fgOn picks the contrast partner.
+  const inverseBg = guard(
+    "inverse.bg",
+    "bg-inverse",
+    "blend(fg, bg, 0.1)",
+    [fg, bg],
+    blend(fg, bg, 0.1),
+  )
+  const inverseFgOn = guard(
+    "inverse.fgOn",
+    "fg-on-inverse",
+    "contrast-pick(scheme.fg/bg/BW)",
+    [inverseBg],
+    pickFgOn(inverseBg, scheme),
+    inverseBg,
+  )
+  const inverse: InverseRole = { bg: inverseBg, fgOn: inverseFgOn }
+
+  // ── Link ─────────────────────────────────────────────────────────────────
+  //
+  // Hyperlink text color. Not the same as accent — many design systems want
+  // "link blue" (Material, Polaris, GitHub) distinct from the brand-derived
+  // accent. Default: scheme.brightBlue (dark mode) / scheme.blue (light mode).
+  // Apps that want link === accent can pin `{ "link.fg": "$fg-accent" }`.
+  const linkFg = guard(
+    "link.fg",
+    "fg-link",
+    mode === "dark" ? "scheme.brightBlue" : "scheme.blue",
+    [mode === "dark" ? scheme.brightBlue : scheme.blue],
+    mode === "dark" ? scheme.brightBlue : scheme.blue,
+    bg,
+  )
+  const link: LinkRole = { fg: linkFg }
+
+  const roles: Roles = {
+    accent,
+    info,
+    success,
+    warning,
+    error,
+    muted,
+    surface,
+    border,
+    cursor,
+    selected,
+    inverse,
+    link,
+  }
 
   return { roles, mode, trace, violations }
+}
+
+// ── Visibility repair (selection bg) ──────────────────────────────────────
+
+const SELECTION_DELTA_L = 0.08
+
+/**
+ * Nudge selectionBg's OKLCH L until it differs from bg by ≥ SELECTION_DELTA_L.
+ * Mirrors the legacy theme's repairSelectionBg behavior — preserves hue +
+ * chroma but guarantees the highlight reads against any background. Non-hex
+ * input returns unchanged.
+ */
+function repairSelectionBg(selectionBg: string, bg: string): string {
+  const oSel = hexToOklch(selectionBg)
+  const oBg = hexToOklch(bg)
+  if (!oSel || !oBg) return selectionBg
+  const dL = Math.abs(oSel.L - oBg.L)
+  if (dL >= SELECTION_DELTA_L) return selectionBg
+  const needed = SELECTION_DELTA_L - dL + 0.005
+  const direction = oSel.L >= oBg.L ? 1 : -1
+  const newL = clamp01(oSel.L + direction * needed)
+  return oklchToHex({ L: newL, C: oSel.C, H: oSel.H })
 }
 
 // ── Interactive role builder (shared across info/success/warning/error) ────

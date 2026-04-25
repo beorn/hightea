@@ -110,6 +110,38 @@ export interface MutedRole {
   readonly bg: string
 }
 
+/**
+ * Selected role — the highlight surface for the cursor row, mouse selection,
+ * search-match highlight, and any "this is the active item" treatment.
+ * `fgOn` is the text color drawn on `bg`; `hover.bg` is the +0.04L shift used
+ * by SelectList row hover.
+ */
+export interface SelectedRole {
+  readonly bg: string
+  readonly fgOn: string
+  readonly hover: BgStatePair
+}
+
+/**
+ * Inverse role — flipped surface used for status bars, modal chrome, the
+ * "you are here" inverse band. Subtle blend of fg into bg, with `fgOn`
+ * picked for AA contrast against the resulting surface.
+ */
+export interface InverseRole {
+  readonly bg: string
+  readonly fgOn: string
+}
+
+/**
+ * Link role — hyperlink text color. Distinct from `accent` so apps that want
+ * "link blue" (as opposed to the brand-derived accent) can opt in. Single
+ * `fg` slot — links are text, not surfaces; if a link surface is ever needed,
+ * extend with `bg` + `fgOn` then.
+ */
+export interface LinkRole {
+  readonly fg: string
+}
+
 // ── Roles (the nested form) ────────────────────────────────────────────────
 
 /**
@@ -126,6 +158,9 @@ export interface Roles {
   readonly surface: SurfaceRole
   readonly border: BorderRole
   readonly cursor: CursorRole
+  readonly selected: SelectedRole
+  readonly inverse: InverseRole
+  readonly link: LinkRole
 }
 
 // ── Flat form (the user-facing string-keyed surface) ───────────────────────
@@ -187,6 +222,15 @@ export type FlatToken =
   | "fg-on-error"
   | "bg-error-hover"
   | "bg-error-active"
+  // Selected — highlight surface for cursor / mouse-selection / search-match
+  | "bg-selected"
+  | "fg-on-selected"
+  | "bg-selected-hover"
+  // Inverse — flipped surface (status bar, modal chrome)
+  | "bg-inverse"
+  | "fg-on-inverse"
+  // Link — hyperlink text color
+  | "fg-link"
 
 /** The flat projection — every FlatToken maps to a hex string. */
 export type FlatTokens = {

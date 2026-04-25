@@ -38,6 +38,9 @@ describe("sterling.deriveFromScheme — shape", () => {
     expect(theme.surface).toBeDefined()
     expect(theme.border).toBeDefined()
     expect(theme.cursor).toBeDefined()
+    expect(theme.selected).toBeDefined()
+    expect(theme.inverse).toBeDefined()
+    expect(theme.link).toBeDefined()
 
     // Same-reference invariant for canonical pairs
     expect(theme.accent.bg, `accent.bg`).toBe(theme["bg-accent"])
@@ -79,6 +82,18 @@ describe("sterling.deriveFromScheme — shape", () => {
 
     expect(theme.cursor.fg).toBe(theme["fg-cursor"])
     expect(theme.cursor.bg).toBe(theme["bg-cursor"])
+
+    // Selected — highlight surface (bg + fgOn + hover.bg)
+    expect(theme.selected.bg).toBe(theme["bg-selected"])
+    expect(theme.selected.fgOn).toBe(theme["fg-on-selected"])
+    expect(theme.selected.hover.bg).toBe(theme["bg-selected-hover"])
+
+    // Inverse — flipped surface (bg + fgOn)
+    expect(theme.inverse.bg).toBe(theme["bg-inverse"])
+    expect(theme.inverse.fgOn).toBe(theme["fg-on-inverse"])
+
+    // Link — text color only
+    expect(theme.link.fg).toBe(theme["fg-link"])
   })
 
   test("theme.mode + name metadata is populated", () => {
@@ -112,6 +127,30 @@ describe("sterling.deriveFromScheme — shape", () => {
   test("D2: theme.info.fg equals theme.accent.fg by default (same seed, same rule)", () => {
     const theme = sterling.deriveFromScheme(builtinPalettes["nord"]!)
     expect(theme.info.fg).toBe(theme.accent.fg)
+  })
+
+  test.each(names)(
+    "'%s' — bg-selected has ΔL ≥ 0.08 vs bg (visibility invariant)",
+    async (name) => {
+      const { hexToOklch } = await import("@silvery/color")
+      const theme = sterling.deriveFromScheme(builtinPalettes[name]!)
+      const oSel = hexToOklch(theme["bg-selected"])
+      const oBg = hexToOklch(theme["bg-surface-default"])
+      if (!oSel || !oBg) return // ANSI-named palettes shouldn't reach here, but guard
+      const dL = Math.abs(oSel.L - oBg.L)
+      expect(dL, `${name}: bg-selected (${theme["bg-selected"]}) too close to bg (${theme["bg-surface-default"]})`).toBeGreaterThanOrEqual(0.08)
+    },
+  )
+
+  test("legacy → flat token mapping (inline.ts)", () => {
+    const theme = sterling.deriveFromScheme(builtinPalettes["nord"]!)
+    // Spot-check that the new tokens are populated as hex
+    expect(theme["bg-selected"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["fg-on-selected"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["bg-selected-hover"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["bg-inverse"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["fg-on-inverse"]).toMatch(/^#[0-9a-fA-F]{6}$/)
+    expect(theme["fg-link"]).toMatch(/^#[0-9a-fA-F]{6}$/)
   })
 
   test("deriveFromColor produces a well-formed theme", () => {

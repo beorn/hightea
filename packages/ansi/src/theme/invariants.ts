@@ -226,12 +226,11 @@ export function validateThemeInvariants(
   }
 
   if (checkVisibility) {
-    // Read Sterling flat keys first, fall back to legacy fields. Sterling
-    // doesn't yet ship `bg-selected` or `bg-cursor` as first-class flat
-    // tokens (only `bg-selected-hover`), so the legacy shape `selectionbg`
-    // / `cursorbg` is the authoritative source until Sterling's selection +
-    // cursor flat tokens land. Tracked under
-    // `km-silvery.sterling-selection-tokens`.
+    // Sterling ships `bg-selected` + `bg-cursor` as first-class flat tokens
+    // (since the sterling-selection-tokens work landed). The legacy fallback
+    // to `selectionbg` / `cursorbg` is retained for hand-authored Themes that
+    // don't flow through `inlineSterlingTokens` and for the 0.19.x transition
+    // window — both paths get purged in 0.20.0 (sterling-purge-legacy-tokens).
     const themeAny = theme as unknown as Record<string, string | undefined>
     const selectionBg = themeAny["bg-selected"] ?? themeAny["selectionbg"] ?? ""
     const cursorBg = themeAny["bg-cursor"] ?? themeAny["cursorbg"] ?? ""

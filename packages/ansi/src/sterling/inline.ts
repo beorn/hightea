@@ -167,5 +167,23 @@ export function inlineSterlingTokens(theme: Theme, scheme?: ColorScheme): Inline
     setIfAbsent("bg-muted", m.bg)
   }
 
+  const sel = roles.selected
+  if (sel) {
+    setIfAbsent("bg-selected", sel.bg)
+    setIfAbsent("fg-on-selected", sel.fgOn)
+    setIfAbsent("bg-selected-hover", sel.hover.bg)
+  }
+
+  const inv = roles.inverse
+  if (inv) {
+    setIfAbsent("bg-inverse", inv.bg)
+    setIfAbsent("fg-on-inverse", inv.fgOn)
+  }
+
+  const lnk = roles.link
+  if (lnk) {
+    setIfAbsent("fg-link", lnk.fg)
+  }
+
   return out as unknown as InlinedTheme
 }

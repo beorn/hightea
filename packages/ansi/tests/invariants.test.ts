@@ -58,21 +58,27 @@ describe("validateThemeInvariants — intentionally broken themes", () => {
     expect(violations.some((v) => v.rule.startsWith("contrast:fg"))).toBe(true)
   })
 
-  it("detects selection visibility failure: selectionbg === bg (default)", () => {
+  it("detects selection visibility failure: bg-selected === bg (default)", () => {
+    // Sterling's `bg-selected` is the authoritative selection bg; the legacy
+    // `selectionbg` is the fallback for hand-authored themes. Override both
+    // to drive the visibility invariant past its `bg-selected ?? selectionbg`
+    // resolution chain.
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
+      "bg-selected": defaultDarkScheme.background,
       selectionbg: defaultDarkScheme.background, // no ΔL
-    }
+    } as never
     // Visibility is on by default — no opt-in needed.
     const { violations } = validateThemeInvariants(broken)
     expect(violations.some((v) => v.rule === "visibility:selection")).toBe(true)
   })
 
-  it("detects cursor visibility failure: cursorbg === bg (default)", () => {
+  it("detects cursor visibility failure: bg-cursor === bg (default)", () => {
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
+      "bg-cursor": defaultDarkScheme.background,
       cursorbg: defaultDarkScheme.background, // no ΔE
-    }
+    } as never
     const { violations } = validateThemeInvariants(broken)
     expect(violations.some((v) => v.rule === "visibility:cursor")).toBe(true)
   })
@@ -96,8 +102,9 @@ describe("validateThemeInvariants — intentionally broken themes", () => {
   it("visibility: false skips visibility checks", () => {
     const broken: Theme = {
       ...deriveTheme(defaultDarkScheme),
+      "bg-selected": defaultDarkScheme.background,
       selectionbg: defaultDarkScheme.background,
-    }
+    } as never
     const { ok } = validateThemeInvariants(broken, { visibility: false })
     expect(ok).toBe(true)
   })
@@ -129,8 +136,11 @@ describe("loadTheme — enforcement modes", () => {
 
   it("strict mode throws on an invalid Theme (validated via validateThemeInvariants)", () => {
     // This simulates what loadTheme's strict path does when invariants fail.
+    // Override both Sterling `bg-selected` AND legacy `selectionbg` since the
+    // visibility check resolves Sterling first.
     const badTheme = {
       ...deriveTheme(defaultDarkScheme),
+      "bg-selected": defaultDarkScheme.background,
       selectionbg: defaultDarkScheme.background,
     }
     const { ok, violations } = validateThemeInvariants(badTheme as never)
