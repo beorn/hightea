@@ -16,11 +16,13 @@
  *     with `cursorOffset` BoxProp.
  *   - `useFocus()` — wired the FocusManager + useSyncExternalStore chain
  *     that Phase 4a replaces with `focused` BoxProp.
+ *   - `useSelection()` — wired the SelectionFeature capability bridge +
+ *     `useSyncExternalStore` chain that Phase 4b replaces with the
+ *     `selectionIntent` BoxProp + `findActiveSelectionFragments` walk.
  *
- * Mode: **warn-only** (exit code 0 with a non-empty report). `/pro` Phase 6
- * pre-launches the lint here so seam regressions show up in the diff
- * surface before Phase 4b (selection) ships. The lint will flip to error
- * once consumers migrate. See bead `km-silvery.phase4-split-focus-selection`.
+ * Mode: **warn-only** (exit code 0 with a non-empty report). The lint will
+ * flip to error once consumers migrate. See bead
+ * `km-silvery.phase4-split-focus-selection`.
  *
  * **Allowlist**: callers that genuinely want a snapshot can tag the line
  * with the comment marker `// LAYOUT_READ_AT_RENDER: <reason>`. The lint
@@ -49,6 +51,7 @@ const TARGET_HOOKS = [
   "useScreenRect",
   "useCursor",
   "useFocus",
+  "useSelection",
 ] as const
 
 type TargetHook = (typeof TARGET_HOOKS)[number]
@@ -64,6 +67,7 @@ const ALLOWED_FILES = new Set<string>([
   "packages/ag-react/src/hooks/useFocus.ts",
   "packages/ag-react/src/hooks/useFocusable.ts",
   "packages/ag-react/src/hooks/useCursor.ts",
+  "packages/ag-react/src/hooks/useSelection.ts",
   "packages/ag-react/src/hooks/useLayout.ts",
   "packages/ag-react/src/hooks/useAgNode.ts",
   "packages/ag-react/src/exports.ts",
@@ -121,6 +125,9 @@ function shouldSkipLine(line: string): boolean {
   if (trimmed.startsWith("export ")) return true
   if (trimmed.startsWith("//")) return true
   if (trimmed.startsWith("*")) return true
+  // Single-line JSDoc / block comments: `/** … */` or `/* … */`. The
+  // existing `*` prefix only catches multi-line continuations.
+  if (trimmed.startsWith("/**") || trimmed.startsWith("/*")) return true
   if (line.includes(ALLOWLIST_MARKER)) return true
   return false
 }

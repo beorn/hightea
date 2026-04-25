@@ -8,9 +8,18 @@
  * When installed, returns the current TerminalSelectionState and re-renders
  * reactively on selection changes via useSyncExternalStore.
  *
- * This is the recommended hook for reading selection state. It replaces the
- * older useTerminalSelection/TerminalSelectionProvider pattern with a simpler
- * capability-based lookup.
+ * @deprecated Phase 4b of `km-silvery.view-as-layout-output` introduces
+ * "selection as overlay/decoration": declare semantic selection via the
+ * `selectionIntent` BoxProp (`<Box selectionIntent={{ from, to }}>`) and let
+ * the layout phase write a list of rectangles into
+ * `LayoutSignals.selectionFragments`. The selection-renderer reads from that
+ * signal (via `findActiveSelectionFragments(root)`) without subscribing to a
+ * capability bridge through `useSyncExternalStore`. This hook remains as a
+ * one-cycle back-compat wrapper for callers reading the legacy
+ * `TerminalSelectionState` (mouse-drag range, selecting flag, source). New
+ * code should consume the layout-output signal instead — same shape as
+ * `cursorOffset` / `focused`. Removed in the next major. See bead
+ * `km-silvery.phase4-split-focus-selection`.
  */
 
 import { useContext, useSyncExternalStore } from "react"
@@ -55,6 +64,10 @@ const getUndefined = () => undefined as TerminalSelectionState | undefined
  * - `state.range` — current SelectionRange or null (idle)
  * - `state.selecting` — true while mouse button is held
  * - `state.source` — "mouse" | "keyboard" | null
+ *
+ * @deprecated Use the `selectionIntent` BoxProp + `findActiveSelectionFragments`
+ * tree-walk instead (Phase 4b layout-output path). See module-level
+ * deprecation note above. Removed in the next major.
  */
 export function useSelection(): TerminalSelectionState | undefined {
   const registry = useContext(CapabilityRegistryContext)

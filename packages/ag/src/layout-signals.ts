@@ -32,7 +32,7 @@
  */
 
 import { signal } from "@silvery/signals"
-import type { AgNode, BoxProps, CursorShape, Rect } from "./types"
+import type { AgNode, BoxProps, CursorShape, Rect, SelectionIntent } from "./types"
 import { rectEqual } from "./types"
 
 // ============================================================================
@@ -119,6 +119,37 @@ function cursorRectEqual(a: CursorRect | null, b: CursorRect | null): boolean {
 }
 
 /**
+ * Per-field equality on a list of rects. Used to skip selection-fragment
+ * signal writes when nothing changed — mirrors the rect-tuple equality
+ * pattern used for boxRect/scrollRect/screenRect/contentRect/cursorRect.
+ *
+ * Reference equality is checked first (the common no-op path); only when
+ * lengths match do we walk the entries. An empty array is the canonical
+ * "no fragments" state — the equality path treats `[]` and `[]` as equal
+ * by length-zero, so collapsed/no-selection nodes don't churn the signal.
+ */
+function selectionFragmentsEqual(
+  a: readonly Rect[],
+  b: readonly Rect[],
+): boolean {
+  if (a === b) return true
+  if (a.length !== b.length) return false
+  for (let i = 0; i < a.length; i++) {
+    if (!rectEqual(a[i] ?? null, b[i] ?? null)) return false
+  }
+  return true
+}
+
+/**
+ * Stable empty-rects sentinel — `selectionFragments` defaults to this when a
+ * node has no `selectionIntent` declared. Reusing the same array reference
+ * means subscribers see reference-stable "no selection" frames and can skip
+ * downstream re-computation. The array is frozen so accidental mutation
+ * never corrupts the sentinel.
+ */
+const EMPTY_FRAGMENTS: readonly Rect[] = Object.freeze([])
+
+/**
  * All reactive signals for an AgNode.
  *
  * Combined rect signals (layout outputs) + node signals (content/state).
@@ -172,6 +203,28 @@ export interface LayoutSignals {
    */
   readonly focusedNodeId: WritableSignal<string | null>
 
+  /**
+   * Geometric output of `BoxProps.selectionIntent` — the list of rectangles
+   * (one per visual line spanned) that the selection renderer should paint
+   * with highlight bg this frame. Empty array when the node declares no
+   * `selectionIntent` or when the intent is collapsed (`from === to`).
+   *
+   * Phase 4b of `km-silvery.view-as-layout-output` — peer of `cursorRect`
+   * (caret) and `focusedNodeId` (focus). The selection renderer reads this
+   * signal (and/or `findActiveSelectionFragments(root)`) to paint highlight
+   * styling without going through the legacy `SelectionFeature` capability
+   * + `useSelection` `useSyncExternalStore` chain.
+   *
+   * Per-node by design: each Box that participates in selection carries its
+   * own fragments here. The aggregator (`findActiveSelectionFragments`)
+   * concatenates fragments across all mounted declarers — multi-node
+   * selection composes for free. Stale-cleanup is handled by WeakMap GC +
+   * the per-frame recompute in `syncRectSignals` clearing back to the empty
+   * sentinel when the prop is removed (mirrors cursor invariant 5 + focus
+   * invariant 3). See bead `km-silvery.phase4-split-focus-selection`.
+   */
+  readonly selectionFragments: WritableSignal<readonly Rect[]>
+
   // Scroll state for overflow="scroll" containers (null otherwise, or until
   // first layout pass). Peer of rect signals — synced by syncRectSignals.
   readonly scrollState: WritableSignal<ScrollStateSnapshot | null>
@@ -203,6 +256,7 @@ export function getLayoutSignals(node: AgNode): LayoutSignals {
       contentRect: signal<Rect | null>(computeContentRect(node)),
       cursorRect: signal<CursorRect | null>(computeCursorRect(node)),
       focusedNodeId: signal<string | null>(computeFocusedNodeId(node)),
+      selectionFragments: signal<readonly Rect[]>(computeSelectionFragments(node)),
       scrollState: signal<ScrollStateSnapshot | null>(snapshotScrollState(node)),
       textContent: signal<string | undefined>(node.textContent),
       focused: signal<boolean>(node.interactiveState?.focused ?? false),
@@ -311,6 +365,197 @@ export function computeFocusedNodeId(node: AgNode): string | null {
   return "__focused__"
 }
 
+// ============================================================================
+// Selection fragments (Phase 4b — selection as overlay/decoration)
+// ============================================================================
+
+/**
+ * Collect the textual content of a selection-declaring Box.
+ *
+ * The selection-fragment math operates on the rendered text content of the
+ * owning Box — `selectionIntent.{from,to}` are character offsets into this
+ * string. For Box nodes, the canonical content is the concatenation of
+ * descendant `silvery-text` nodes' `textContent` (in tree order), with `\n`
+ * separators between adjacent Text/Box children that introduce visual line
+ * breaks.
+ *
+ * v1 behaviour (kept intentionally minimal):
+ * - A Box with `silvery-text` children: concatenates `textContent` strings
+ *   from those children. Two adjacent text children produce one logical
+ *   line; if you want a line break, embed `\n` in the text.
+ * - A Box with mixed children: same — only `silvery-text` descendants
+ *   contribute. Nested Box children don't add line breaks (they're treated
+ *   as transparent for content purposes).
+ * - A `silvery-text` node directly carrying the prop: its own `textContent`
+ *   is the content.
+ *
+ * This keeps the v1 model honest: declare `selectionIntent` on a Box (or
+ * Text) whose text content is the source of truth for the selection. Apps
+ * that want per-line semantics can split the selection across multiple
+ * intent declarations.
+ */
+function collectSelectionText(node: AgNode): string {
+  if (node.type === "silvery-text") {
+    return node.textContent ?? ""
+  }
+  // Box (or root): concatenate descendant text. Walk DFS, gather
+  // `silvery-text` content in tree order.
+  let out = ""
+  const stack: AgNode[] = [node]
+  while (stack.length) {
+    const cur = stack.pop()!
+    // Push children in reverse so DFS visits them in order.
+    for (let i = cur.children.length - 1; i >= 0; i--) {
+      const child = cur.children[i]
+      if (child) stack.push(child)
+    }
+    if (cur === node) continue
+    if (cur.type === "silvery-text" && cur.textContent !== undefined) {
+      out += cur.textContent
+    }
+  }
+  return out
+}
+
+/**
+ * Map a 0-based character offset into a multi-line string to its
+ * `(lineIndex, columnInLine)` position. Splits on `\n` only — wrap-aware
+ * mapping (soft wrap at the content-rect width) awaits a registered wrap
+ * measurer in `@silvery/ag` (Phase 4c overlay-anchor work). v1 covers
+ * embedded-newline selections, which is the common case for editable
+ * components.
+ */
+function offsetToLineCol(text: string, offset: number): { line: number; col: number } {
+  let line = 0
+  let lineStart = 0
+  // Clamp to safe bounds — `from`/`to` may exceed text.length on rapid
+  // edits between layout passes; clamp instead of crash.
+  const clamped = Math.max(0, Math.min(offset, text.length))
+  for (let i = 0; i < clamped; i++) {
+    if (text.charCodeAt(i) === 10 /* \n */) {
+      line++
+      lineStart = i + 1
+    }
+  }
+  return { line, col: clamped - lineStart }
+}
+
+/**
+ * Compute the visual length (column count) of a specific logical line in
+ * `text`. Used to size the right edge of multi-line fragments. v1 uses raw
+ * character count (one char = one column); wide-character / grapheme
+ * awareness arrives with the wrap measurer.
+ */
+function lineLengthAt(text: string, lineIndex: number): number {
+  let line = 0
+  let lineStart = 0
+  for (let i = 0; i < text.length; i++) {
+    if (text.charCodeAt(i) === 10 /* \n */) {
+      if (line === lineIndex) return i - lineStart
+      line++
+      lineStart = i + 1
+    }
+  }
+  // Last line (no trailing newline).
+  if (line === lineIndex) return text.length - lineStart
+  return 0
+}
+
+/**
+ * Compute the geometric fragments for a node's `selectionIntent` — the list
+ * of rectangles (one per visual line spanned) that the selection renderer
+ * should paint with highlight bg this frame.
+ *
+ * Returns:
+ * - `[]` when the node has no `selectionIntent` prop, or when the intent is
+ *   collapsed (`from === to`), or when the content rect is unavailable
+ *   (pre-layout / clipped to zero size).
+ * - `[Rect]` for a single-visual-line selection.
+ * - `[Rect, Rect, ...]` for multi-line selections (split on embedded `\n`).
+ *
+ * **Geometry** (mirrors text-editor / ProseMirror conventions):
+ * - First line: from `(content.x + fromCol, content.y + fromLine)` to the
+ *   end of the line. If single-line, runs to `toCol`.
+ * - Middle lines: full content-rect width, one row each.
+ * - Last line: from `(content.x, content.y + toLine)` to `toCol` chars.
+ *
+ * Coordinates are absolute terminal cells, matching `cursorRect`'s
+ * coordinate space. Width is in cells (one rect per visual line).
+ *
+ * **Wrap-spanning gap (v1)**: only `\n`-separated lines produce multi-line
+ * fragments. Soft-wrapped text (e.g., a long paragraph that the renderer
+ * breaks into multiple visual lines) currently produces one wide rectangle
+ * — the highlight will visually span the wrap correctly because the
+ * underlying buffer wraps too, but the rectangle won't be split into
+ * per-visual-line entries. Wrap-aware fragmentation requires registering a
+ * wrap measurer in `@silvery/ag` so this function can call back into
+ * `wrapText` without inverting the layering. Tracked at
+ * `km-silvery.overlay-anchor-system` (Phase 4c).
+ */
+export function computeSelectionFragments(node: AgNode): readonly Rect[] {
+  const props = node.props as (BoxProps & { selectionIntent?: SelectionIntent }) | undefined
+  const intent = props?.selectionIntent
+  if (!intent) return EMPTY_FRAGMENTS
+  // Collapsed selection: caret is rendered separately (cursorOffset).
+  if (intent.from >= intent.to) return EMPTY_FRAGMENTS
+  const content = computeContentRect(node)
+  if (!content) return EMPTY_FRAGMENTS
+
+  const text = collectSelectionText(node)
+  if (text.length === 0) return EMPTY_FRAGMENTS
+
+  const start = offsetToLineCol(text, intent.from)
+  const end = offsetToLineCol(text, intent.to)
+
+  // Single-line fast path — the common case.
+  if (start.line === end.line) {
+    const width = Math.max(0, end.col - start.col)
+    if (width === 0) return EMPTY_FRAGMENTS
+    return [
+      {
+        x: content.x + start.col,
+        y: content.y + start.line,
+        width,
+        height: 1,
+      },
+    ]
+  }
+
+  // Multi-line: first partial line, optional middle full-width lines, last
+  // partial line. Each fragment is one row tall; coordinates are absolute.
+  const fragments: Rect[] = []
+  // First line: from start.col to end-of-line.
+  const firstLineLen = lineLengthAt(text, start.line)
+  const firstWidth = Math.max(0, firstLineLen - start.col)
+  if (firstWidth > 0) {
+    fragments.push({
+      x: content.x + start.col,
+      y: content.y + start.line,
+      width: firstWidth,
+      height: 1,
+    })
+  }
+  // Middle lines: full content width.
+  for (let line = start.line + 1; line < end.line; line++) {
+    fragments.push({
+      x: content.x,
+      y: content.y + line,
+      width: content.width,
+      height: 1,
+    })
+  }
+  // Last line: from start-of-line to end.col.
+  if (end.col > 0) {
+    fragments.push({
+      x: content.x,
+      y: content.y + end.line,
+      width: end.col,
+      height: 1,
+    })
+  }
+  return fragments.length === 0 ? EMPTY_FRAGMENTS : fragments
+}
+
 /**
  * Project AgNode.scrollState → ScrollStateSnapshot (the subset the virtualizer
  * needs). Returns null if the node has no scroll state yet (non-scroll
@@ -380,7 +625,11 @@ export function syncRectSignals(node: AgNode): void {
   const props = (node.props as BoxProps | undefined) ?? undefined
   const hasCursorOffset = !!props?.cursorOffset
   const hasFocused = !!props?.focused
-  const s = hasCursorOffset || hasFocused ? getLayoutSignals(node) : signalMap.get(node)
+  const hasSelectionIntent = !!props?.selectionIntent
+  const s =
+    hasCursorOffset || hasFocused || hasSelectionIntent
+      ? getLayoutSignals(node)
+      : signalMap.get(node)
   if (!s) return
 
   if (node.boxRect !== s.boxRect()) s.boxRect(node.boxRect)
@@ -419,6 +668,18 @@ export function syncRectSignals(node: AgNode): void {
   const nextFocusedId = computeFocusedNodeId(node)
   if (nextFocusedId !== s.focusedNodeId()) {
     s.focusedNodeId(nextFocusedId)
+  }
+
+  // Sync selectionFragments — Phase 4b peer of cursorRect/focusedNodeId.
+  // `computeSelectionFragments` reads from `node.props.selectionIntent`
+  // directly so toggling `from`/`to` (or removing the prop) propagates to
+  // subscribers without any rect change (mirrors cursor invariant 2 + focus
+  // invariant 2). Empty intents collapse to the shared EMPTY_FRAGMENTS
+  // sentinel — subscribers see reference-stable "no selection" frames so
+  // downstream `findActiveSelectionFragments` walks short-circuit.
+  const nextFragments = computeSelectionFragments(node)
+  if (!selectionFragmentsEqual(nextFragments, s.selectionFragments())) {
+    s.selectionFragments(nextFragments)
   }
 
   // Sync scrollState signal — projects AgNode.scrollState (layout-phase's
@@ -588,6 +849,58 @@ export function findActiveFocusedNodeId(root: AgNode): string | null {
 
   walk(root)
   return result
+}
+
+// ============================================================================
+// Active selection lookup (Phase 4b — selection as overlay/decoration)
+// ============================================================================
+
+/**
+ * Walk the tree and collect every fragment from every Box that declares
+ * `selectionIntent`. Concatenated in tree order (post-order — same shape as
+ * `findActiveFocusedNodeId`/`findActiveCursorRect`).
+ *
+ * Empty array when no node declares a selection or all declarers have
+ * collapsed/empty intents. The walk reads from `LayoutSignals.selectionFragments`
+ * when allocated (the production fast path), falling back to direct compute
+ * for nodes without signals (rare — happens only during teardown).
+ *
+ * **Multi-node selection** (v1): two adjacent Boxes both declaring
+ * `selectionIntent` produce concatenated fragments — the renderer paints
+ * highlight bg on every rect. Full cross-node range selection (selecting
+ * from middle of node A through node B) is a future enhancement and would
+ * be expressed by setting `selectionIntent` on each spanned node, with
+ * `to: text.length` on A and `from: 0` on B.
+ *
+ * **Cleanup on unmount**: the walk only visits currently-mounted nodes, so
+ * an unmounted node's stale fragments cannot contribute (mirrors cursor
+ * invariant 5 + focus invariant 3). Per-frame recompute in `syncRectSignals`
+ * additionally clears the signal back to `EMPTY_FRAGMENTS` when the prop is
+ * removed without unmount.
+ *
+ * Per-node cost: one `props.selectionIntent` check + one signal lookup.
+ * Trees with no selection declarer return `[]` after a single traversal.
+ */
+export function findActiveSelectionFragments(root: AgNode): readonly Rect[] {
+  const out: Rect[] = []
+
+  function walk(node: AgNode): void {
+    for (const child of node.children) {
+      walk(child)
+    }
+    const props = node.props as BoxProps | undefined
+    if (props?.selectionIntent) {
+      const s = signalMap.get(node)
+      const fragments = s ? s.selectionFragments() : computeSelectionFragments(node)
+      if (fragments.length > 0) {
+        // Concat — multi-node selections compose for free.
+        for (const r of fragments) out.push(r)
+      }
+    }
+  }
+
+  walk(root)
+  return out
 }
 
 /**

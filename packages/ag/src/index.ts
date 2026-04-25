@@ -35,6 +35,9 @@ export type {
   CustomEvent,
   Event,
   EventSource,
+  CursorOffset,
+  CursorShape,
+  SelectionIntent,
 } from "./types"
 
 // Keys
@@ -149,8 +152,10 @@ export {
   computeContentRect,
   computeCursorRect,
   computeFocusedNodeId,
+  computeSelectionFragments,
   findActiveCursorRect,
   findActiveFocusedNodeId,
+  findActiveSelectionFragments,
   type LayoutSignals,
   type ScrollStateSnapshot,
   type CursorRect,

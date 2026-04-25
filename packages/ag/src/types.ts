@@ -108,6 +108,57 @@ export interface CursorOffset {
   shape?: CursorShape
 }
 
+/**
+ * Semantic selection intent declared on a Box — the user's "selected
+ * substring" within this node's text content, expressed as character offsets.
+ *
+ * This is the **input** half of the selection-as-overlay model (Phase 4b of
+ * `km-silvery.view-as-layout-output`):
+ *
+ *  - **Input** (this type): `selectionIntent` — what the user wants selected.
+ *  - **Output** (`LayoutSignals.selectionFragments`): the resolved list of
+ *    rectangles (one per visual line spanned). Computed during the layout
+ *    pass; consumed by the selection renderer to paint highlight bg.
+ *
+ * Mirrors `CursorOffset`'s shape: a small declarative payload on the owning
+ * Box. The layout phase runs `computeSelectionFragments(node)` to derive the
+ * geometric fragments and pushes them onto the per-node signal. Components
+ * like `TextArea`, `Text` (when selectable), or any node with a selected
+ * substring can declare this prop.
+ *
+ * **Rules**:
+ *  - `from` and `to` are character offsets into the rendered text content of
+ *    the owning node (post-render, post-wrap). The fragment computation
+ *    walks the node's text layout to map offsets to visual rectangles.
+ *  - `from <= to`. A collapsed selection (`from === to`) produces zero
+ *    fragments — caret rendering is `cursorOffset`'s job.
+ *  - `null`/`undefined` on a Box means "no selection on this node" — that
+ *    node contributes no fragments.
+ *  - Multiple Boxes may declare `selectionIntent` simultaneously; the
+ *    aggregator (`findActiveSelectionFragments(root)`) concatenates fragments
+ *    from all currently-mounted declarers (Phase 4b — multi-node selection
+ *    is left for a future enhancement; v1 concatenation already covers the
+ *    "two adjacent nodes both selected" case).
+ *
+ * **Cross-target hygiene**: this type is purely semantic (offsets only). The
+ * resolved `Rect[]` output and the actual highlight bg color stay terminal-
+ * specific (or canvas/DOM-specific in future targets). Tracking bead:
+ * `km-silvery.phase4-split-focus-selection`.
+ */
+export interface SelectionIntent {
+  /**
+   * Inclusive start offset (character index into the owning node's rendered
+   * text content). Must be `>= 0` and `<= text.length`.
+   */
+  from: number
+  /**
+   * Exclusive end offset (character index). Must be `>= from` and
+   * `<= text.length`. When `from === to` the selection is collapsed and
+   * produces zero fragments.
+   */
+  to: number
+}
+
 // ============================================================================
 // Interactive State Types
 // ============================================================================
@@ -504,6 +555,49 @@ export interface BoxProps
    * clip edge is treated as visible.
    */
   cursorOffset?: CursorOffset
+
+  /**
+   * Semantic selection intent — the user's selected substring within this
+   * Box's text content, declared as character offsets `{ from, to }`. The
+   * layout phase resolves this into a list of rectangles
+   * (`LayoutSignals.selectionFragments`) that the selection renderer reads
+   * to paint highlight bg.
+   *
+   * This is the **selection-as-overlay** path (Phase 4b of
+   * `km-silvery.view-as-layout-output`). It mirrors `cursorOffset` exactly:
+   * a semantic declaration on the outer Box, resolved into geometric output
+   * during `syncRectSignals`, with a tree-walk lookup
+   * (`findActiveSelectionFragments`) that the renderer consumes.
+   *
+   * **Geometry**:
+   * - Collapsed (`from === to`) → zero fragments. Caret rendering is
+   *   `cursorOffset`'s responsibility, not selection's.
+   * - Single visual line → one rectangle from `from` to `to`.
+   * - Multi-line (text contains `\n` characters) → one rectangle per visual
+   *   line: the first runs from `from` to end-of-line, middle lines span the
+   *   full content area width, the last runs from start-of-line to `to`.
+   * - Wrap-aware fragment computation across word-wrapped visual lines is
+   *   limited in v1 — only embedded `\n` produces multi-line fragments. A
+   *   future iteration will register a wrap measurer so soft-wrapped text
+   *   produces the correct per-visual-line fragments. Track at
+   *   `km-silvery.overlay-anchor-system` (Phase 4c).
+   *
+   * **Multi-node selection**: each Box declares its own intent;
+   * `findActiveSelectionFragments(root)` concatenates fragments across all
+   * mounted declarers. Two adjacent nodes both selected is supported. Full
+   * cross-node range selection (selecting from middle of node A through
+   * node B) is a future enhancement.
+   *
+   * **Cross-target hygiene**: `selectionIntent` is purely semantic. The
+   * resolved `Rect[]` is purely geometric. Terminal-specific bg highlight
+   * styling lives in `@silvery/ag-term` (selection-renderer); canvas/DOM
+   * targets read the same fragments and render their own highlight.
+   *
+   * **Back-compat**: `useSelection` continues to work as a deprecated
+   * wrapper that reads from the legacy `SelectionFeature` capability.
+   * Migrate to `selectionIntent={…}` to opt into the layout-output path.
+   */
+  selectionIntent?: SelectionIntent
 
   /**
    * Virtualization-internal: set only by virtual list placeholders (e.g.
