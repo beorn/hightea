@@ -35,13 +35,15 @@ describe("Bug 1: leadingHeight with unmeasured items", () => {
   test("getHeight uses measured average for unmeasured items when measurements exist", () => {
     // Simulate: estimate=4, but we measured some items at height=2.
     // Item at index 5 is unmeasured. It should use average measured (2), not estimate (4).
+    // Cache keys are `${itemKey}:${width}` strings (or just `String(itemKey)` when
+    // width is omitted) — this test omits width so keys are stringified ints.
     const estimateHeight = 4
-    const measuredHeights = new Map<string | number, number>([
-      [10, 2],
-      [11, 2],
-      [12, 2],
-      [13, 2],
-      [14, 2],
+    const measuredHeights = new Map<string, number>([
+      ["10", 2],
+      ["11", 2],
+      ["12", 2],
+      ["13", 2],
+      ["14", 2],
     ])
     const getItemKey = (index: number) => index
     // Compute average measured height (what sumHeights would compute)
@@ -58,7 +60,7 @@ describe("Bug 1: leadingHeight with unmeasured items", () => {
   })
 
   test("getHeight returns measured value when item is measured", () => {
-    const measuredHeights = new Map<string | number, number>([[0, 3]])
+    const measuredHeights = new Map<string, number>([["0", 3]])
     const height = getHeight(0, 4, measuredHeights, (i) => i)
     expect(height).toBe(3)
   })
@@ -69,12 +71,12 @@ describe("Bug 1: leadingHeight with unmeasured items", () => {
     // Estimate is 4.
     // sumHeights(0, 10) should use measured avg (2) per item = 20, not estimate (4) = 40.
     const estimateHeight = 4
-    const measuredHeights = new Map<string | number, number>([
-      [10, 2],
-      [11, 2],
-      [12, 2],
-      [13, 3],
-      [14, 2],
+    const measuredHeights = new Map<string, number>([
+      ["10", 2],
+      ["11", 2],
+      ["12", 2],
+      ["13", 3],
+      ["14", 2],
     ])
     const getItemKey = (index: number) => index
 
@@ -90,10 +92,10 @@ describe("Bug 1: leadingHeight with unmeasured items", () => {
 
   test("sumHeights with gap uses measured average for unmeasured items", () => {
     const estimateHeight = 4
-    const measuredHeights = new Map<string | number, number>([
-      [10, 2],
-      [11, 2],
-      [12, 2],
+    const measuredHeights = new Map<string, number>([
+      ["10", 2],
+      ["11", 2],
+      ["12", 2],
     ])
     const getItemKey = (index: number) => index
 
@@ -111,10 +113,10 @@ describe("Bug 1: leadingHeight with unmeasured items", () => {
 
 describe("Bug 2: scroll range reaches all items", () => {
   test("calcAverageHeight uses measurements over estimate", () => {
-    const measuredHeights = new Map<string | number, number>([
-      [0, 2],
-      [1, 3],
-      [2, 2],
+    const measuredHeights = new Map<string, number>([
+      ["0", 2],
+      ["1", 3],
+      ["2", 2],
     ])
     const avg = calcAverageHeight(20, 4, measuredHeights)
     // Average of measured: (2+3+2)/3 ≈ 2.33
@@ -127,9 +129,9 @@ describe("Bug 2: scroll range reaches all items", () => {
     // Items 15-19 are unmeasured (trailing, after render window).
     // Items 5-14 are measured at height 2.
     const estimateHeight = 4
-    const measuredHeights = new Map<string | number, number>()
+    const measuredHeights = new Map<string, number>()
     for (let i = 5; i < 15; i++) {
-      measuredHeights.set(i, 2)
+      measuredHeights.set(String(i), 2)
     }
     const getItemKey = (index: number) => index
 

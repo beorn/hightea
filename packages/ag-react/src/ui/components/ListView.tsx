@@ -41,6 +41,7 @@ import React, {
   useState,
 } from "react"
 import { sumHeights, useVirtualizer } from "../../hooks/useVirtualizer"
+import { useScrollState } from "../../hooks/useScrollState"
 import { useInput } from "../../hooks/useInput"
 import { Box, type BoxHandle } from "../../components/Box"
 import { Text } from "../../components/Text"
@@ -124,6 +125,31 @@ export interface ListViewSearchConfig<T> {
   /** Extract searchable text from an item. When omitted, auto-extracts from rendered content. */
   getText?: (item: T) => string
 }
+
+/**
+ * Virtualization strategy for ListView.
+ *
+ * - **`"none"`** — render every item, no windowing. The right default for
+ *   small lists where the overhead of windowing exceeds the cost of rendering
+ *   everything. Maintains correctness — no scroll-extent estimation, no
+ *   measurement cache invariants to track.
+ * - **`"index"`** — index-window virtualisation. The window is anchored to
+ *   the viewport (via layout-phase's `firstVisibleChild`) and bounded by
+ *   item count + estimated row count. Cursor is a secondary constraint —
+ *   it stays renderable even when scrolled far away. The right choice for
+ *   chat/log surfaces where wrap is variable but per-item rendering is
+ *   cheap.
+ * - **`"measured"`** — pixel-aware measured virtualisation (when `height`
+ *   prop is set). Currently delegates to the legacy `useVirtualizer` path
+ *   that already measures items and computes pixel-accurate placeholders.
+ *   The placeholder for a future anchor-preserving rewrite.
+ *
+ * Default: `"none"` if `items.length <= virtualizationThreshold`, else
+ * `"index"` (when `height` is omitted) or `"measured"` (when `height` is
+ * set). Pass an explicit value to opt out of the small-list-renders-all
+ * default.
+ */
+export type VirtualizationStrategy = "none" | "index" | "measured"
 
 export interface ListViewProps<T> {
   /** Array of items to render */
@@ -243,6 +269,42 @@ export interface ListViewProps<T> {
 
   /** Cache configuration (true = auto-cache items above viewport) */
   cache?: boolean | ListViewCacheConfig<T>
+
+  /**
+   * Virtualization strategy. See `VirtualizationStrategy`.
+   *
+   * Default: `"none"` when `items.length <= virtualizationThreshold`
+   * (the small-list-renders-all default). Above the threshold the default
+   * is `"index"` (height-independent mode) or `"measured"` (pixel-mode
+   * with a fixed `height`). Pass an explicit value to override.
+   */
+  virtualization?: VirtualizationStrategy
+
+  /**
+   * Item count threshold below which the default strategy is `"none"`
+   * (render every item). Above this threshold ListView switches to its
+   * size-aware default. Lifted into a prop so consumers with cheap items
+   * can raise the bar (e.g. 500 trivial Text rows) and consumers with
+   * expensive items can lower it. Default: 100.
+   */
+  virtualizationThreshold?: number
+
+  /**
+   * Maximum total estimated row count for the rendered window in `"index"`
+   * mode. The window expands until either `maxRendered` (item budget) or
+   * this value (row budget) is exhausted — whichever comes first.
+   *
+   * Why both: 50 items of 1 row each is cheap (50 rows of work), but 50
+   * items of 5 rows each is expensive (250 rows of work). Capping by item
+   * count alone over-renders for tall items; capping by row count alone
+   * under-renders for short items. Both budgets together adapt to content
+   * shape automatically.
+   *
+   * Default: 200. Roughly 4-10 viewport-heights of content depending on
+   * row size — enough overscan for smooth scroll, bounded enough to keep
+   * the React + pipeline budget healthy.
+   */
+  maxEstimatedRows?: number
 }
 
 export interface ListViewHandle {
@@ -270,6 +332,17 @@ const DEFAULT_OVERSCAN = 5
 const DEFAULT_INDEX_WINDOW_OVERSCAN = 50
 const DEFAULT_MAX_RENDERED = 100
 const DEFAULT_SCROLL_PADDING = 2
+/** Item-count cutoff for the small-list-renders-all default. Below this,
+ * the default `virtualization` is `"none"` (no windowing) regardless of
+ * `height`. Most lists in real apps are well below this — the default
+ * exists so callers don't have to opt out of windowing for their 30-row
+ * settings panel. */
+const DEFAULT_VIRTUALIZATION_THRESHOLD = 100
+/** Default row-count budget for index-window expansion. The index window
+ * grows until either `maxRendered` (item count) or this (estimated total
+ * rows) is hit. Tall items hit the row budget first, short items hit the
+ * item budget first — same React + pipeline cost either way. */
+const DEFAULT_MAX_ESTIMATED_ROWS = 200
 
 /** Shared no-match sentinel — every renderItem call with no search activity
  * gets the same identity-stable reference so consumers that memoise on
@@ -355,8 +428,16 @@ const SCROLLBAR_FADE_AFTER_MS = 800
 
 /**
  * Wrapper that measures its child's rendered height after layout.
- * Reports the measurement to the virtualizer via measureItem callback.
- * Uses Box's onLayout prop to get the actual rendered height.
+ * Reports the measurement to the virtualizer via measureItem callback,
+ * including the rendered width so the cache invalidates cleanly on pane
+ * resize.
+ *
+ * Width is forwarded as the third argument to `measureItem(key, height,
+ * width)` — wrapped content's height is a function of available width, so
+ * caching by id alone produces stale heights once a pane is resized. The
+ * virtualizer composes `${itemKey}:${width}` internally; callers don't
+ * see the composite key.
+ *
  * Does NOT add any layout of its own — the child determines the height.
  */
 function MeasuredItem({
@@ -365,7 +446,7 @@ function MeasuredItem({
   children,
 }: {
   itemKey: string | number
-  measureItem: (key: string | number, height: number) => boolean
+  measureItem: (key: string | number, height: number, width?: number) => boolean
   children: React.ReactNode
 }): React.ReactElement {
   // Use a ref to always have the latest key/measureItem without re-subscribing.
@@ -375,9 +456,14 @@ function MeasuredItem({
   const measureRef = useRef(measureItem)
   measureRef.current = measureItem
 
-  const handleLayout = useCallback((rect: { height: number }) => {
+  const handleLayout = useCallback((rect: { width: number; height: number }) => {
     if (rect.height > 0) {
-      measureRef.current(keyRef.current, rect.height)
+      // Forward width so the virtualizer keys the cache by `(id, width)`.
+      // Round to integer columns — a fractional width won't differ
+      // meaningfully from the integer one for cache hit purposes, and
+      // floating-point keys produce noisy duplicates after resize churn.
+      const w = rect.width > 0 ? Math.round(rect.width) : undefined
+      measureRef.current(keyRef.current, rect.height, w)
     }
   }, [])
 
@@ -425,6 +511,9 @@ function ListViewInner<T>(
     surfaceId,
     search: searchProp,
     cache: cacheProp,
+    virtualization: virtualizationProp,
+    virtualizationThreshold = DEFAULT_VIRTUALIZATION_THRESHOLD,
+    maxEstimatedRows = DEFAULT_MAX_ESTIMATED_ROWS,
   }: ListViewProps<T>,
   ref: React.ForwardedRef<ListViewHandle>,
 ): React.ReactElement {
@@ -433,14 +522,27 @@ function ListViewInner<T>(
   // When `height` is omitted, ListView lets flex propagate the actual
   // viewport height (parent owns the constraint via `flex-grow=1
   // overflow=scroll`) and switches to **index-window virtualisation** —
-  // render `[cursor - overscan, cursor + overscan + 1)` items, no
-  // pixel-windowing, no first-render zero-read class.
+  // anchored to the viewport (via layout-phase's `firstVisibleChild`) and
+  // bounded by both an item budget (`maxRendered`) and a row budget
+  // (`maxEstimatedRows`). No pixel-windowing, no first-render zero-read
+  // class.
   //
   // The pixel-mode path (`height` provided) is unchanged — existing tests
   // and callers that still want a fixed-height viewport keep working.
   const isHeightIndependent = height === undefined
   const overscan =
     overscanProp ?? (isHeightIndependent ? DEFAULT_INDEX_WINDOW_OVERSCAN : DEFAULT_OVERSCAN)
+
+  // Resolved virtualization strategy. Below the threshold, default is
+  // "none" (small lists render everything). Above, default is "index" for
+  // height-independent mode and "measured" for pixel mode.
+  const resolvedVirtualization: VirtualizationStrategy =
+    virtualizationProp ??
+    (items.length <= virtualizationThreshold
+      ? "none"
+      : isHeightIndependent
+        ? "index"
+        : "measured")
 
   // ── Term context for cache capture width ─────────────────────────
   const term = useContext(TermContext)
@@ -1144,9 +1246,22 @@ function ListViewInner<T>(
   // (first render), this is null and useVirtualizer uses bootstrap mode.
   const boxHandleRef = useRef<BoxHandle>(null)
   const [containerNode, setContainerNode] = useState<AgNode | null>(null)
+  // Viewport width and height tracked via the inner Box's onLayout. Width is
+  // forwarded to `useVirtualizer({ viewportWidth })` so the measurement
+  // cache invalidates on pane resize. Height is used in height-independent
+  // mode to size the row budget against the actually-visible viewport.
+  const [viewportSize, setViewportSize] = useState<{ w: number; h: number } | null>(null)
   useLayoutEffect(() => {
     const node = boxHandleRef.current?.getNode() ?? null
     setContainerNode(node)
+  }, [])
+  const handleContainerLayout = useCallback((rect: { width: number; height: number }) => {
+    const w = rect.width > 0 ? Math.round(rect.width) : 0
+    const h = rect.height > 0 ? Math.round(rect.height) : 0
+    setViewportSize((prev) => {
+      if (prev && prev.w === w && prev.h === h) return prev
+      return { w, h }
+    })
   }, [])
 
   // Count of trailing extra children rendered between the visible items and
@@ -1194,29 +1309,236 @@ function ListViewInner<T>(
     onEndReachedThreshold,
     containerNode,
     trailingExtraChildren,
+    // Width-keyed measurement cache: pass the actual rendered viewport
+    // width so heights captured at width=80 don't leak into a width=40
+    // re-render (wrapped content's height is width-dependent).
+    viewportWidth: viewportSize?.w,
   })
 
-  // Index-window override for height-independent mode: render
-  // `[cursor - overscan, cursor + overscan + 1)` items. Leading/trailing
-  // placeholders are zero so flex propagates the natural content height
-  // and the parent's `overflow=scroll` clips. Unlike pixel virtualisation,
-  // this never has a first-render zero-read and is robust to wrapped
-  // content of any height.
+  // ── Viewport-anchored windowing (height-independent / "index" mode) ──
+  //
+  // Anchor to viewport first, cursor second. Layout-phase publishes
+  // `firstVisibleChild` / `lastVisibleChild` for the inner scroll
+  // container — these are AgNode child indices that include any leading
+  // spacer Box. The mapping
+  //
+  //     viewportItemStart = firstVisibleChild - leadingOffset + prevStart
+  //
+  // gives us the virtual-item index of the topmost rendered item. We then
+  // window `[viewportItemStart - overscan, viewportItemEnd + overscan)`
+  // and union with the cursor so it stays renderable even when scrolled
+  // far from the cursor's position.
+  //
+  // When scrollState isn't available yet (first render before the inner
+  // box mounts), we fall back to `cursor ± overscan` — the bootstrap
+  // window that always contains the cursor.
+  //
+  // We track the previous frame's window structure in a ref so we can map
+  // the child indices back to virtual-item indices without re-measuring.
+  const indexWindowPrevRef = useRef<{
+    startIndex: number
+    endIndex: number
+    hasLeadingSpacer: boolean
+  }>({ startIndex: 0, endIndex: 0, hasLeadingSpacer: false })
+  const innerScrollState = useScrollState(containerNode ?? null)
+
   const cursorAnchor = Math.max(0, Math.min(activeItems.length - 1, scrollOffset))
-  const indexWindowStart = isHeightIndependent
-    ? Math.max(0, cursorAnchor - overscan)
-    : range.startIndex
-  const indexWindowEnd = isHeightIndependent
-    ? Math.min(activeItems.length, cursorAnchor + overscan + 1)
-    : range.endIndex
+
+  // Compute the index window for "index" virtualization mode.
+  let indexWindowStart: number
+  let indexWindowEnd: number
+  const indexEstAsNumber =
+    typeof adjustedEstimateHeight === "number"
+      ? adjustedEstimateHeight
+      : adjustedEstimateHeight(0)
+  const safeEstHeight = Math.max(1, indexEstAsNumber)
+
+  if (resolvedVirtualization === "index") {
+    // Try to derive a viewport-anchor item index from layout-phase's
+    // `firstVisibleChild`. If unavailable, fall back to the cursor.
+    let viewportFirstItem: number | null = null
+    let viewportLastItem: number | null = null
+    if (
+      innerScrollState !== null &&
+      innerScrollState.viewportHeight > 0 &&
+      indexWindowPrevRef.current.endIndex > indexWindowPrevRef.current.startIndex
+    ) {
+      const prev = indexWindowPrevRef.current
+      const leadingOffset = prev.hasLeadingSpacer ? 1 : 0
+      const realItemEnd = leadingOffset + (prev.endIndex - prev.startIndex)
+      // Map firstVisibleChild back to a virtual item.
+      const f = innerScrollState.firstVisibleChild
+      const l = innerScrollState.lastVisibleChild
+      if (f >= leadingOffset && f < realItemEnd) {
+        viewportFirstItem = prev.startIndex + (f - leadingOffset)
+      } else if (f < leadingOffset) {
+        // Leading spacer is on screen — viewport sits above the rendered
+        // window. Anchor at prev.startIndex (the first rendered item) and
+        // expand backward via overscan; the spacer height tells us nothing
+        // about exactly which earlier item is at top, but next frame's
+        // re-mount will refine.
+        viewportFirstItem = prev.startIndex
+      }
+      if (l >= leadingOffset && l < realItemEnd) {
+        viewportLastItem = prev.startIndex + (l - leadingOffset)
+      } else if (l >= realItemEnd) {
+        viewportLastItem = prev.endIndex - 1
+      }
+    }
+
+    // Cursor extends the viewport-anchored window: it must stay
+    // renderable even when the user has scrolled far from it. But if the
+    // cursor is far from the viewport, we don't render its neighborhood
+    // — just keep cursor itself in the rendered slice.
+    const anchorFirst = viewportFirstItem ?? cursorAnchor
+    const anchorLast = viewportLastItem ?? cursorAnchor
+
+    let start = Math.max(0, anchorFirst - overscan)
+    let end = Math.min(activeItems.length, anchorLast + overscan + 1)
+
+    // Apply the row budget. Walk forward from `anchorFirst` (or the
+    // cursor, whichever is the centroid), accumulating estimated rows
+    // until either `maxRendered` or `maxEstimatedRows` is hit.
+    //
+    // We measure the budget by summing measured heights when available,
+    // estimate otherwise. A single tall item never blocks rendering — at
+    // minimum we keep the anchor + a 1-item neighborhood.
+    const budgetRow = Math.max(safeEstHeight, maxEstimatedRows)
+    const budgetItem = Math.max(1, maxRendered)
+
+    // Estimate row count for [start, end).
+    const rowsForRange = (s: number, e: number): number => {
+      if (e <= s) return 0
+      // Cheap approximation: use measured heights if any have been
+      // captured for the cache, otherwise estimate. Avoids a full
+      // sumHeights call inside the budget loop.
+      if (measuredHeights.size === 0) return (e - s) * safeEstHeight
+      return sumHeights(
+        s,
+        e,
+        adjustedEstimateHeight,
+        gap,
+        measuredHeights,
+        wrappedGetKey,
+        viewportSize?.w,
+      )
+    }
+
+    // Shrink the window from BOTH ends until both budgets are satisfied.
+    // Shrink toward the anchor so we keep items closest to the visible
+    // viewport. The cursor must remain inside the window.
+    const cursorInWindow = (s: number, e: number): boolean =>
+      cursorAnchor >= s && cursorAnchor < e
+
+    while (end - start > budgetItem || rowsForRange(start, end) > budgetRow) {
+      if (end - start <= 1) break
+      // Decide which end to trim. Prefer trimming the side farther from
+      // the anchor + cursor.
+      const anchorMid = Math.floor((anchorFirst + anchorLast) / 2)
+      const distStart = Math.abs(anchorMid - start)
+      const distEnd = Math.abs(anchorMid - (end - 1))
+      let nextStart = start
+      let nextEnd = end
+      if (distEnd > distStart) {
+        nextEnd = end - 1
+      } else {
+        nextStart = start + 1
+      }
+      // Don't trim across the cursor — keep cursor renderable.
+      if (cursorInWindow(start, end) && !cursorInWindow(nextStart, nextEnd)) {
+        // Trim the OTHER side instead.
+        if (nextStart !== start) {
+          nextStart = start
+          nextEnd = end - 1
+        } else {
+          nextEnd = end
+          nextStart = start + 1
+        }
+        if (!cursorInWindow(nextStart, nextEnd)) break // stuck — exit
+      }
+      start = nextStart
+      end = nextEnd
+    }
+
+    indexWindowStart = start
+    indexWindowEnd = end
+  } else if (resolvedVirtualization === "none") {
+    // Render every item — no windowing. Correct for small lists.
+    indexWindowStart = 0
+    indexWindowEnd = activeItems.length
+  } else {
+    // "measured" — pixel-mode virtualisation, use the virtualizer's window.
+    indexWindowStart = range.startIndex
+    indexWindowEnd = range.endIndex
+  }
+
+  // Capture this frame's window structure for next frame's viewport
+  // mapping. `hasLeadingSpacer` is computed below alongside the spacer
+  // sizes — we update the ref after that.
+
+  const usingIndexWindow = resolvedVirtualization === "index"
+  const usingNoVirtualization = resolvedVirtualization === "none"
   const effectiveStartIndex = indexWindowStart
   const effectiveEndIndex = indexWindowEnd
-  const effectiveLeadingHeight = isHeightIndependent ? 0 : leadingHeight
-  const effectiveTrailingHeight = isHeightIndependent ? 0 : trailingHeight
-  const effectiveHiddenBefore = isHeightIndependent ? indexWindowStart : hiddenBefore
-  const effectiveHiddenAfter = isHeightIndependent
+
+  // Spacer heights for "index" mode — preserve scroll extent so
+  // scrollbar / scroll-position math sees the full virtual list height,
+  // not just the rendered window. Use measured heights when available;
+  // fall back to estimate × count for the un-measured prefix/suffix.
+  const indexLeadingSpacer = usingIndexWindow
+    ? sumHeights(
+        0,
+        indexWindowStart,
+        adjustedEstimateHeight,
+        gap,
+        measuredHeights,
+        wrappedGetKey,
+        viewportSize?.w,
+      )
+    : 0
+  const indexTrailingSpacer = usingIndexWindow
+    ? sumHeights(
+        indexWindowEnd,
+        activeItems.length,
+        adjustedEstimateHeight,
+        gap,
+        measuredHeights,
+        wrappedGetKey,
+        viewportSize?.w,
+      )
+    : 0
+
+  // Effective values used by the render path. In "measured" mode (pixel),
+  // use the virtualizer's leading/trailing. In "index" mode, use our
+  // spacer sums. In "none" mode, no spacers (everything renders).
+  const effectiveLeadingHeight = usingIndexWindow
+    ? indexLeadingSpacer
+    : usingNoVirtualization
+      ? 0
+      : leadingHeight
+  const effectiveTrailingHeight = usingIndexWindow
+    ? indexTrailingSpacer
+    : usingNoVirtualization
+      ? 0
+      : trailingHeight
+  const effectiveHiddenBefore = usingIndexWindow
+    ? indexWindowStart
+    : usingNoVirtualization
+      ? 0
+      : hiddenBefore
+  const effectiveHiddenAfter = usingIndexWindow
     ? Math.max(0, activeItems.length - indexWindowEnd)
-    : hiddenAfter
+    : usingNoVirtualization
+      ? 0
+      : hiddenAfter
+
+  // Update prev-window ref AFTER computing the spacer sums (so the
+  // hasLeadingSpacer flag matches what's about to render).
+  indexWindowPrevRef.current = {
+    startIndex: indexWindowStart,
+    endIndex: indexWindowEnd,
+    hasLeadingSpacer: effectiveLeadingHeight > 0,
+  }
 
   // ── Surface / search registration ────────────────────────────────
   const textSurfaceRef = useRef<TextSurface | null>(null)
@@ -1448,26 +1770,28 @@ function ListViewInner<T>(
   // form only holds when overscan doesn't pull `start` back (scrollOffset=0 or
   // viewport at count-end). We instead check the always-true internal
   // consistency invariant — any violation points to a virtualizer math bug.
-  // STRICT invariant only applies in pixel-virtualisation mode. In
-  // height-independent mode we explicitly override `leadingHeight` to 0 and
-  // window items by index — the placeholder math the invariant guards
-  // doesn't run.
-  if (!isHeightIndependent && process?.env?.SILVERY_STRICT) {
+  // STRICT invariant only applies in pixel-virtualisation mode
+  // (`virtualization="measured"`). The "index" and "none" modes override
+  // both the window and the placeholder heights — the virtualizer's
+  // `leadingHeight` is unrelated to the user-visible spacer in those
+  // cases.
+  if (resolvedVirtualization === "measured" && process?.env?.SILVERY_STRICT) {
     const strict = process.env.SILVERY_STRICT
     const shouldThrow = strict === "2"
     const expectedLeading = sumHeights(
       0,
-      startIndex,
+      range.startIndex,
       adjustedEstimateHeight,
       gap,
       measuredHeights,
       wrappedGetKey,
+      viewportSize?.w,
     )
     // Allow 1 row of floating-point slack for avgMeasured fallback divisions.
     if (Math.abs(leadingHeight - expectedLeading) > 1) {
       const msg =
         `[SILVERY_STRICT] ListView leadingHeight ${leadingHeight} diverges from ` +
-        `sumHeights(0, startIndex=${startIndex})=${expectedLeading} ` +
+        `sumHeights(0, startIndex=${range.startIndex})=${expectedLeading} ` +
         `(scrollOffset=${scrollOffset}, count=${activeItems.length})`
       if (shouldThrow) throw new Error(msg)
       else console.warn(msg)
@@ -1621,6 +1945,7 @@ function ListViewInner<T>(
       scrollOffset={scrollRow ?? undefined}
       overflowIndicator={overflowIndicator}
       onWheel={onWheel}
+      onLayout={handleContainerLayout}
     >
       {/* Leading placeholder for virtual height.
        *

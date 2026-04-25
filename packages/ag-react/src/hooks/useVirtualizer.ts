@@ -118,6 +118,15 @@ export interface VirtualizerConfig {
    * Default: 0.
    */
   trailingExtraChildren?: number
+  /**
+   * Current viewport width in columns. When provided, the measurement cache
+   * is keyed by `(itemKey, viewportWidth)` so that resizing the pane
+   * invalidates stale heights captured at the previous width — items that
+   * wrap differently at a new width get re-measured cleanly. When omitted,
+   * the cache is keyed by `itemKey` alone (legacy behaviour, only correct
+   * for non-wrapping content). Default: undefined.
+   */
+  viewportWidth?: number
 }
 
 export interface VirtualizerResult {
@@ -137,11 +146,17 @@ export interface VirtualizerResult {
   scrollToItem: (index: number) => void
   /** Get the key for an item at index */
   getKey: (index: number) => string | number
-  /** Report a measured height for an item. Call after layout with actual height.
-   * Returns true if the measurement changed (consumers can use this to trigger re-render). */
-  measureItem: (key: string | number, height: number) => boolean
-  /** Read-only access to the measured heights cache */
-  measuredHeights: ReadonlyMap<string | number, number>
+  /** Report a measured height for an item. Call after layout with actual
+   * height. The optional `width` argument keys the cache by `(itemKey, width)`
+   * so a pane resize doesn't keep returning stale heights. Omit width on
+   * non-wrapping content to preserve the legacy by-id-only cache.
+   * Returns true if the measurement changed (consumers can use this to
+   * trigger re-render). */
+  measureItem: (key: string | number, height: number, width?: number) => boolean
+  /** Read-only access to the measured heights cache. Keys are
+   * `${itemKey}:${width}` strings (or just `String(itemKey)` when width is
+   * omitted). */
+  measuredHeights: ReadonlyMap<string, number>
 }
 
 // =============================================================================
@@ -156,6 +171,26 @@ const DEFAULT_MAX_RENDERED = 100
 // Helpers
 // =============================================================================
 
+/**
+ * Compose a width-aware cache key from an itemKey and a viewport width.
+ * When `viewportWidth` is undefined the cache key reduces to `itemKey`
+ * alone — preserves legacy behaviour for callers that haven't wired up
+ * the width signal yet.
+ *
+ * Width is tracked alongside the itemKey because wrapped content's height
+ * is a function of available width: a paragraph that's 3 rows at width=80
+ * may be 6 rows at width=40. Caching height by id alone produces stale
+ * values after a pane resize.
+ */
+export function makeMeasureKey(
+  itemKey: string | number,
+  viewportWidth?: number,
+): string {
+  return viewportWidth === undefined
+    ? String(itemKey)
+    : `${itemKey}:${viewportWidth}`
+}
+
 /** Get item height for a specific index, checking measured cache first.
  *
  * When measurements exist but this specific item hasn't been measured,
@@ -166,13 +201,15 @@ const DEFAULT_MAX_RENDERED = 100
 export function getHeight(
   index: number,
   estimateHeight: number | ((index: number) => number),
-  measuredHeights?: ReadonlyMap<string | number, number>,
+  measuredHeights?: ReadonlyMap<string, number>,
   getItemKey?: (index: number) => string | number,
   avgMeasuredHeight?: number,
+  viewportWidth?: number,
 ): number {
   if (measuredHeights && measuredHeights.size > 0) {
-    const key = getItemKey ? getItemKey(index) : index
-    const measured = measuredHeights.get(key)
+    const baseKey = getItemKey ? getItemKey(index) : index
+    const cacheKey = makeMeasureKey(baseKey, viewportWidth)
+    const measured = measuredHeights.get(cacheKey)
     if (measured !== undefined) return measured
     // Use average measured height for unmeasured items — more accurate
     // than the original estimate which may diverge from actual heights.
@@ -185,7 +222,7 @@ export function getHeight(
 export function calcAverageHeight(
   count: number,
   estimateHeight: number | ((index: number) => number),
-  measuredHeights?: ReadonlyMap<string | number, number>,
+  measuredHeights?: ReadonlyMap<string, number>,
 ): number {
   if (count === 0) return 1
 
@@ -221,8 +258,9 @@ export function sumHeights(
   endIndex: number,
   estimateHeight: number | ((index: number) => number),
   gap: number,
-  measuredHeights?: ReadonlyMap<string | number, number>,
+  measuredHeights?: ReadonlyMap<string, number>,
   getItemKey?: (index: number) => string | number,
+  viewportWidth?: number,
 ): number {
   const itemCount = endIndex - startIndex
   if (itemCount <= 0) return 0
@@ -248,7 +286,14 @@ export function sumHeights(
   // Slow path: per-item lookup (checks measurement cache, falls back to avg measured or estimate)
   let total = 0
   for (let i = startIndex; i < endIndex; i++) {
-    total += getHeight(i, estimateHeight, measuredHeights, getItemKey, avgMeasured)
+    total += getHeight(
+      i,
+      estimateHeight,
+      measuredHeights,
+      getItemKey,
+      avgMeasured,
+      viewportWidth,
+    )
   }
   return total + gapTotal
 }
@@ -298,26 +343,33 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     getItemKey,
     containerNode,
     trailingExtraChildren = 0,
+    viewportWidth,
   } = config
 
   // ── Measurement cache ─────────────────────────────────────────────
-  // Stores actual rendered heights keyed by item key. Survives re-renders
-  // and accumulates as the user scrolls through the list.
-  const measuredHeightsRef = useRef<Map<string | number, number>>(new Map())
+  // Stores actual rendered heights keyed by `${itemKey}:${width}` (or
+  // `String(itemKey)` when no width is provided). Width-keying ensures a
+  // pane resize invalidates stale heights for wrapped content. Survives
+  // re-renders and accumulates as the user scrolls.
+  const measuredHeightsRef = useRef<Map<string, number>>(new Map())
   // Counter to trigger re-computation when measurements change
   const [measurementVersion, setMeasurementVersion] = useState(0)
 
-  const measureItem = useCallback((key: string | number, height: number): boolean => {
-    const cache = measuredHeightsRef.current
-    const existing = cache.get(key)
-    if (existing === height) return false
-    cache.set(key, height)
-    // Schedule a re-render so placeholder sizes update with new measurements.
-    // This is batched by React — multiple measureItem calls in the same
-    // layout effect produce a single re-render.
-    setMeasurementVersion((v) => v + 1)
-    return true
-  }, [])
+  const measureItem = useCallback(
+    (key: string | number, height: number, width?: number): boolean => {
+      const cache = measuredHeightsRef.current
+      const cacheKey = makeMeasureKey(key, width)
+      const existing = cache.get(cacheKey)
+      if (existing === height) return false
+      cache.set(cacheKey, height)
+      // Schedule a re-render so placeholder sizes update with new measurements.
+      // This is batched by React — multiple measureItem calls in the same
+      // layout effect produce a single re-render.
+      setMeasurementVersion((v) => v + 1)
+      return true
+    },
+    [],
+  )
 
   const measuredHeights = measuredHeightsRef.current
 
@@ -657,8 +709,24 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
         const cappedEnd = Math.max(cursorFloor, start + maxRendered)
         end = Math.min(end, cappedEnd)
 
-        const leadingSize = sumHeights(0, start, estimateHeight, gap, measuredHeights, getItemKey)
-        const trailingSize = sumHeights(end, count, estimateHeight, gap, measuredHeights, getItemKey)
+        const leadingSize = sumHeights(
+          0,
+          start,
+          estimateHeight,
+          gap,
+          measuredHeights,
+          getItemKey,
+          viewportWidth,
+        )
+        const trailingSize = sumHeights(
+          end,
+          count,
+          estimateHeight,
+          gap,
+          measuredHeights,
+          getItemKey,
+          viewportWidth,
+        )
 
         return {
           startIndex: start,
@@ -706,8 +774,24 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
 
     // Placeholder sizes using measured heights when available; sumHeights
     // falls back to estimate for unmeasured items.
-    const leadingSize = sumHeights(0, start, estimateHeight, gap, measuredHeights, getItemKey)
-    const trailingSize = sumHeights(end, count, estimateHeight, gap, measuredHeights, getItemKey)
+    const leadingSize = sumHeights(
+      0,
+      start,
+      estimateHeight,
+      gap,
+      measuredHeights,
+      getItemKey,
+      viewportWidth,
+    )
+    const trailingSize = sumHeights(
+      end,
+      count,
+      estimateHeight,
+      gap,
+      measuredHeights,
+      getItemKey,
+      viewportWidth,
+    )
 
     return {
       startIndex: start,
@@ -734,6 +818,9 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     hasSteadyState,
     ssFirstVisibleChild,
     ssLastVisibleChild,
+    // Width-keyed measurement cache: re-sum placeholders when the viewport
+    // width changes (cache lookups will pull a different slice of entries).
+    viewportWidth,
   ])
 
   // Update previous-window ref AFTER the memo computes the new window. The
