@@ -2015,6 +2015,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           scrollback,
           virtualScrollOffset,
           paintBuffer: paintBuf,
+          theme: profileOption?.theme,
         })
       }
       if (hasSelection) {
@@ -2022,6 +2023,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           selectionEnabled,
           selectionState,
           paintBuffer: paintBuf,
+          theme: profileOption?.theme,
         })
       }
       // Search bar wins LAST — it's the modal UI element. When the bar

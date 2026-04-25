@@ -35,13 +35,16 @@ import {
   composeSearchHighlightCells,
   composeSelectionCells,
   type SearchHighlight,
+  type SelectionTheme,
 } from "../selection-renderer"
+import { hexToRgb } from "../pipeline/backdrop/color"
 import type { Buffer, Dims, RenderTarget } from "./types"
 import type { PipelineConfig } from "../pipeline"
 import type { createVirtualScrollback } from "../virtual-scrollback"
 import type { TerminalBuffer } from "../buffer"
 import type { createFiberRoot, createContainer } from "@silvery/ag-react/reconciler"
 import type { TerminalSelectionState } from "@silvery/headless/selection"
+import type { Theme } from "@silvery/ansi"
 
 type Scrollback = ReturnType<typeof createVirtualScrollback>
 type Container = ReturnType<typeof createContainer>
@@ -457,6 +460,17 @@ export interface SelectionPaintOptions {
    * pipeline/CLAUDE.md "Incremental Rendering Model").
    */
   paintBuffer: Buffer
+  /**
+   * Active Theme — when provided, Sterling `bg-selected` / `fg-on-selected`
+   * (with legacy `selectionbg` fallback) drive the selection highlight color.
+   * When omitted, the hardcoded `DEFAULT_SELECTION_THEME` desaturated blue-grey
+   * is used so callers without a Theme still get a visible highlight that
+   * sidesteps the SGR-7 two-tone artifact described on
+   * `DEFAULT_SELECTION_THEME` below.
+   *
+   * Tracking: km-silvery.selection-theme-tokens
+   */
+  theme?: Theme
 }
 
 /**
@@ -497,13 +511,49 @@ export interface SelectionPaintOptions {
  */
 const DEFAULT_SELECTION_THEME = { selectionBg: { r: 68, g: 78, b: 109 } } as const
 
+/**
+ * Resolve a `SelectionTheme` from an optional Theme.
+ *
+ * Priority for the selection background:
+ *   1. Sterling flat token `bg-selected` (Phase A — sterling-selection-tokens)
+ *   2. Legacy `selectionbg` (retained for hand-authored Themes that don't flow
+ *      through `inlineSterlingTokens`; purged in 0.20.0 by
+ *      sterling-purge-legacy-tokens)
+ *   3. Fall back to {@link DEFAULT_SELECTION_THEME} (the in-source desaturated
+ *      blue-grey) so the highlight stays visible when no Theme is wired.
+ *
+ * Selection foreground: only `fg-on-selected` is honored. The legacy Theme has
+ * no `selectionfg` field — leaving fg undefined preserves each cell's original
+ * foreground (text stays legible regardless of selection bg) via
+ * `theme.selectionFg ?? cellFg` in {@link composeSelectionCells}.
+ *
+ * Tracking: km-silvery.selection-theme-tokens
+ */
+export function resolveSelectionThemeFromTheme(theme: Theme | undefined): SelectionTheme {
+  if (!theme) return DEFAULT_SELECTION_THEME
+  // Sterling flat tokens live alongside legacy fields on the Theme record.
+  // Use a widened view so kebab keys (`bg-selected`, `fg-on-selected`) are
+  // indexable without the type system complaining about missing properties on
+  // pre-Sterling Themes.
+  const themeAny = theme as unknown as Record<string, string | undefined>
+  const bgHex = themeAny["bg-selected"] ?? themeAny["selectionbg"]
+  const fgHex = themeAny["fg-on-selected"]
+  const bg = bgHex ? hexToRgb(bgHex) : null
+  if (!bg) return DEFAULT_SELECTION_THEME
+  const fg = fgHex ? hexToRgb(fgHex) : null
+  // Only set selectionFg when the theme actually carries fg-on-selected — leaving
+  // it undefined preserves cell fg for legibility.
+  return fg ? { selectionBg: bg, selectionFg: fg } : { selectionBg: bg }
+}
+
 export function applySelectionToPaintBuffer(opts: SelectionPaintOptions): void {
-  const { selectionEnabled, selectionState, paintBuffer } = opts
+  const { selectionEnabled, selectionState, paintBuffer, theme } = opts
   if (!selectionEnabled || !selectionState.range) return
+  const selectionTheme = resolveSelectionThemeFromTheme(theme)
   const changes = composeSelectionCells(
     paintBuffer._buffer,
     selectionState.range,
-    DEFAULT_SELECTION_THEME,
+    selectionTheme,
     false, // respectSelectableFlag: legacy overlay didn't filter — keep parity
     selectionState.scope,
   )
@@ -520,6 +570,14 @@ export interface SearchHighlightsPaintOptions {
    * full rationale (preserves Ag's `_prevBuffer` invariant).
    */
   paintBuffer: Buffer
+  /**
+   * Active Theme — same resolution as `SelectionPaintOptions.theme`. Search
+   * highlights share the selection highlight color so the two effects look
+   * uniform across content cells and trailing-whitespace cells.
+   *
+   * Tracking: km-silvery.selection-theme-tokens
+   */
+  theme?: Theme
 }
 
 /**
@@ -538,7 +596,7 @@ export interface SearchHighlightsPaintOptions {
  * Tracking: km-silvery.delete-search-overlay-ansi
  */
 export function applySearchHighlightsToPaintBuffer(opts: SearchHighlightsPaintOptions): void {
-  const { searchState, scrollback, virtualScrollOffset, paintBuffer } = opts
+  const { searchState, scrollback, virtualScrollOffset, paintBuffer, theme } = opts
   if (!searchState.active || searchState.currentMatch < 0) return
   const match = searchState.matches[searchState.currentMatch]
   if (!match) return
@@ -567,11 +625,8 @@ export function applySearchHighlightsToPaintBuffer(opts: SearchHighlightsPaintOp
   // Same theme as selection — uniform highlight color across content cells
   // and any non-content cells the match range happens to cover. Avoids the
   // two-tone artifact described on DEFAULT_SELECTION_THEME above.
-  const changes = composeSearchHighlightCells(
-    paintBuffer._buffer,
-    highlights,
-    DEFAULT_SELECTION_THEME,
-  )
+  const selectionTheme = resolveSelectionThemeFromTheme(theme)
+  const changes = composeSearchHighlightCells(paintBuffer._buffer, highlights, selectionTheme)
   applySelectionToBuffer(paintBuffer._buffer, changes)
 }
 
