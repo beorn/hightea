@@ -156,6 +156,22 @@ export interface LayoutSignals {
    */
   readonly cursorRect: WritableSignal<CursorRect | null>
 
+  /**
+   * Focused-node id declared by this node's `BoxProps.focused`. The value is
+   * the node's `id` (preferred) or `testID` when `props.focused === true`,
+   * else `null`. Phase 4a of `km-silvery.view-as-layout-output` — the
+   * focus-renderer reads this signal (and/or `findActiveFocusedNodeId(root)`)
+   * to paint focus styling without going through the `useFocus` →
+   * `FocusManager` → `useSyncExternalStore` effect chain.
+   *
+   * Per-node by design (peer of `cursorRect`): each Box that participates in
+   * focus carries its own declared id here, and the tree-walk lookup picks
+   * the deepest visible declarer. Unmount is handled by WeakMap GC + the
+   * per-frame recompute in `syncRectSignals` clearing back to null when the
+   * prop is removed. See bead `km-silvery.phase4-split-focus-selection`.
+   */
+  readonly focusedNodeId: WritableSignal<string | null>
+
   // Scroll state for overflow="scroll" containers (null otherwise, or until
   // first layout pass). Peer of rect signals — synced by syncRectSignals.
   readonly scrollState: WritableSignal<ScrollStateSnapshot | null>
@@ -186,6 +202,7 @@ export function getLayoutSignals(node: AgNode): LayoutSignals {
       screenRect: signal<Rect | null>(node.screenRect),
       contentRect: signal<Rect | null>(computeContentRect(node)),
       cursorRect: signal<CursorRect | null>(computeCursorRect(node)),
+      focusedNodeId: signal<string | null>(computeFocusedNodeId(node)),
       scrollState: signal<ScrollStateSnapshot | null>(snapshotScrollState(node)),
       textContent: signal<string | undefined>(node.textContent),
       focused: signal<boolean>(node.interactiveState?.focused ?? false),
@@ -269,6 +286,32 @@ export function computeCursorRect(node: AgNode): CursorRect | null {
 }
 
 /**
+ * Compute the focused-node id for a node based on its `focused` BoxProp.
+ *
+ * Returns the node's `id` (preferred) or `testID` when `props.focused === true`,
+ * else `null`. This is the per-node value carried in
+ * `LayoutSignals.focusedNodeId` — the tree-walk lookup
+ * `findActiveFocusedNodeId(root)` picks the deepest non-null among all
+ * declarers (Phase 4a precedence rule).
+ *
+ * Identity priority: `id` > `testID`. Apps that want stable focus identity
+ * should set one of those props alongside `focused={true}`. When neither is
+ * set but `focused === true`, an opaque sentinel (`"__focused__"`) is
+ * returned so the signal is still observable as "something is focused" —
+ * downstream consumers should not depend on the sentinel value beyond
+ * non-null/null.
+ */
+export function computeFocusedNodeId(node: AgNode): string | null {
+  const props = node.props as (BoxProps & { id?: string; testID?: string }) | undefined
+  if (!props?.focused) return null
+  // Prefer `id` (typed on TestProps) then `testID`, then a sentinel so the
+  // signal remains observable even on anonymous focused declarers.
+  if (typeof props.id === "string" && props.id.length > 0) return props.id
+  if (typeof props.testID === "string" && props.testID.length > 0) return props.testID
+  return "__focused__"
+}
+
+/**
  * Project AgNode.scrollState → ScrollStateSnapshot (the subset the virtualizer
  * needs). Returns null if the node has no scroll state yet (non-scroll
  * containers or fresh scroll containers pre-layout).
@@ -326,15 +369,18 @@ export function hasLayoutSignals(node: AgNode): boolean {
  * Reference-equality check prevents unnecessary downstream updates.
  */
 export function syncRectSignals(node: AgNode): void {
-  // For caret-bearing nodes, allocate signals lazily so the scheduler walk
-  // (`findActiveCursorRect`) sees them via `getLayoutSignals`. Without this,
-  // a node that ONLY uses `cursorOffset` (no useBoxRect / useScrollRect
-  // consumers) would never have signals allocated, and the caret would
-  // never reach the scheduler. This is the prop-as-output equivalent of
-  // `useCursor`'s former `useScrollRect` subscription.
+  // For caret-bearing nodes AND focus-declaring nodes, allocate signals
+  // lazily so tree-walk lookups (`findActiveCursorRect`,
+  // `findActiveFocusedNodeId`) see them via `getLayoutSignals`. Without
+  // this, a node that ONLY uses `cursorOffset` / `focused` (no useBoxRect /
+  // useScrollRect consumers) would never have signals allocated, and the
+  // caret/focus would never reach the renderer. This is the prop-as-output
+  // equivalent of `useCursor`'s former `useScrollRect` subscription and
+  // `useFocus`'s former `useSyncExternalStore` subscription.
   const props = (node.props as BoxProps | undefined) ?? undefined
   const hasCursorOffset = !!props?.cursorOffset
-  const s = hasCursorOffset ? getLayoutSignals(node) : signalMap.get(node)
+  const hasFocused = !!props?.focused
+  const s = hasCursorOffset || hasFocused ? getLayoutSignals(node) : signalMap.get(node)
   if (!s) return
 
   if (node.boxRect !== s.boxRect()) s.boxRect(node.boxRect)
@@ -362,6 +408,17 @@ export function syncRectSignals(node: AgNode): void {
   const nextCursorRect = computeCursorRect(node)
   if (!cursorRectEqual(nextCursorRect, s.cursorRect())) {
     s.cursorRect(nextCursorRect)
+  }
+
+  // Sync focusedNodeId — Phase 4a peer of cursorRect. `computeFocusedNodeId`
+  // reads from `node.props.focused` directly so toggling the prop without
+  // any rect change still propagates to subscribers (mirrors cursor
+  // invariant 2 — prop-change recompute). When the prop is removed, the
+  // computed id becomes null and the signal clears, so per-frame walks
+  // can't see ghost focuses on stale nodes (mirrors invariant 5).
+  const nextFocusedId = computeFocusedNodeId(node)
+  if (nextFocusedId !== s.focusedNodeId()) {
+    s.focusedNodeId(nextFocusedId)
   }
 
   // Sync scrollState signal — projects AgNode.scrollState (layout-phase's
@@ -482,6 +539,55 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
 
   walk(root)
   return focusedResult ?? fallbackResult
+}
+
+// ============================================================================
+// Active focus lookup (Phase 4a — focus as layout output)
+// ============================================================================
+
+/**
+ * Walk the tree and find the active focused-node id — the node that should
+ * be painted with focus styling this frame. Mirrors `findActiveCursorRect`'s
+ * shape (post-order walk, deepest-wins). Returns null when no Box declares
+ * `focused === true`.
+ *
+ * **Precedence**: deepest declarer in paint order wins. If multiple nodes
+ * have `focused === true` (rare — typically one boundary is focused at a
+ * time), the post-order walk picks the later/deeper one. No "focused-editable
+ * tiebreak" exists for focus itself (cursor's invariant 1 specifically
+ * disambiguates between caret declarers, which don't apply here).
+ *
+ * **Visibility / clipping**: this walk does NOT yet apply scroll/clip
+ * filtering. Phase 4a treats focus as a semantic id — actually painting a
+ * focus ring is a downstream renderer concern, and that renderer may have
+ * its own clipping logic via `screenRect`. The cursor invariants doc covers
+ * the rationale (caret pixels must be hidden across clip ancestors; a
+ * focused node's id can still be reported even when its border is clipped
+ * — the renderer decides what to draw).
+ *
+ * Per-node cost: one `props.focused` check + one signal lookup. Trees with
+ * no focused declarer return null after a single traversal.
+ */
+export function findActiveFocusedNodeId(root: AgNode): string | null {
+  let result: string | null = null
+
+  function walk(node: AgNode): void {
+    for (const child of node.children) {
+      walk(child)
+    }
+    const props = node.props as BoxProps | undefined
+    if (props?.focused) {
+      const s = signalMap.get(node)
+      const id = s ? s.focusedNodeId() : computeFocusedNodeId(node)
+      if (id !== null) {
+        // Last-write-wins (deeper post-order entries overwrite shallower).
+        result = id
+      }
+    }
+  }
+
+  walk(root)
+  return result
 }
 
 /**

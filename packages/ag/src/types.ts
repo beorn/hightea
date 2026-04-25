@@ -447,6 +447,40 @@ export interface BoxProps
   overflowIndicator?: boolean
 
   /**
+   * Declarative focus marker — "this Box is focused." When set on a Box, the
+   * layout phase writes the node's id (or testID) to `LayoutSignals.focusedNodeId`
+   * and the focus-renderer reads from that signal to paint the focus ring /
+   * dim styling — bypassing the `useFocus` → `FocusManager` → `useSyncExternalStore`
+   * chain on the first frame after mount.
+   *
+   * This is the **focus-as-layout-output** path (Phase 4a of
+   * `km-silvery.view-as-layout-output`). It mirrors `cursorOffset` exactly:
+   * a semantic boolean declared on the outer Box, resolved into a layout
+   * signal during `syncRectSignals`, with a tree-walk lookup
+   * (`findActiveFocusedNodeId`) that the renderer / scheduler consumes.
+   *
+   * **Precedence across nodes** (mirrors cursor invariant 1):
+   * 1. Deepest visible focused declarer in paint-order wins. If two siblings
+   *    both have `focused === true`, the post-order tree walk picks the
+   *    later-rendered one — consistent with cursor's deepest-wins fallback.
+   * 2. Otherwise null.
+   *
+   * **Identity**: the signal value is the node's `id` if present, else its
+   * `testID`, else null. Apps that need stable focus identity should set one
+   * of those props alongside `focused={true}`.
+   *
+   * **Cross-target hygiene**: `focused` is a semantic boolean. Terminal-specific
+   * focus styling (dim, bold borders, focus ring) lives in `@silvery/ag-term`
+   * or component-level styling. Canvas/DOM targets read the same id-level
+   * signal but render their own focus indicator.
+   *
+   * **Back-compat**: `useFocus` continues to work as a deprecated wrapper that
+   * routes through the legacy `FocusManager` path. Migrate to `focused={…}`
+   * to opt into the layout-output path.
+   */
+  focused?: boolean
+
+  /**
    * Component-relative caret position. When set, the layout phase computes
    * absolute terminal coordinates (border + padding + offset relative to the
    * box's `scrollRect`) and writes them to `LayoutSignals.cursorRect`. The

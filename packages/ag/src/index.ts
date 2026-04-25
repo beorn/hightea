@@ -146,6 +146,12 @@ export {
   syncRectSignals,
   syncTextContentSignal,
   syncFocusedSignal,
+  computeContentRect,
+  computeCursorRect,
+  computeFocusedNodeId,
+  findActiveCursorRect,
+  findActiveFocusedNodeId,
   type LayoutSignals,
   type ScrollStateSnapshot,
+  type CursorRect,
 } from "./layout-signals"

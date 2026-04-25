@@ -1,6 +1,25 @@
 /**
  * useFocus — Ink-compatible focus hook.
  *
+ * @deprecated Phase 4a of `km-silvery.view-as-layout-output` — focus is now
+ * a layout output (`<Box focused={…}>` writes to `LayoutSignals.focusedNodeId`).
+ * Migrate to the prop-driven path:
+ *
+ * ```tsx
+ * // Old (one-cycle back-compat):
+ * const { isFocused } = useFocus({ id: "panel" })
+ * <Box>{isFocused ? "Focused" : "Not"}</Box>
+ *
+ * // New:
+ * <Box id="panel" focused={isPanelFocused}>{…}</Box>
+ * ```
+ *
+ * `useFocus` continues to work — it routes through the legacy `FocusManager`
+ * + `useSyncExternalStore` path and does NOT participate in the layout-output
+ * signal. Components that need focus styling on the very first frame after a
+ * conditional mount (e.g., dialog-open) should migrate before the next major
+ * cycle, when this hook will be removed.
+ *
  * Matches Ink 7.0's `useFocus(options?)` signature exactly:
  * - Options: `{ isActive?: boolean, autoFocus?: boolean, id?: string }`
  * - Returns: `{ isFocused: boolean, focus: (id: string) => void }`
@@ -21,7 +40,7 @@
  * }
  * ```
  *
- * Bead: km-silvery.focus-parity
+ * Bead: km-silvery.focus-parity, km-silvery.phase4-split-focus-selection
  */
 
 import { useCallback, useContext, useEffect, useRef, useSyncExternalStore } from "react"
@@ -62,6 +81,8 @@ export interface UseFocusResult {
  *
  * The `id` option overrides testID for focus identity matching. When `isActive`
  * is false, `isFocused` is always false regardless of actual focus state.
+ *
+ * @deprecated Use `<Box focused={…}>` + `LayoutSignals.focusedNodeId` (Phase 4a).
  *
  * @param options - Focus options (all optional).
  */
