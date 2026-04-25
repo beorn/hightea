@@ -53,6 +53,7 @@ import { DerivationPanel } from "./DerivationPanel.tsx"
 import { TierBar, TIER_ORDER, type Tier, type ViewMode } from "./TierBar.tsx"
 import { ContrastAudit } from "./ContrastAudit.tsx"
 import { SchemeAuthor } from "./SchemeAuthor.tsx"
+import { PaletteGallery } from "./PaletteGallery.tsx"
 import { quantizeLegacyTheme, quantizeSterlingTheme } from "./shared/quantize.ts"
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -119,6 +120,12 @@ export function App(): React.ReactElement {
    */
   const [authorScheme, setAuthorScheme] = useState<ColorScheme | null>(null)
   const [showHelp, setShowHelp] = useState(false)
+  /**
+   * When true, the entire screen is the palette gallery — full-screen QA
+   * view of all 84 palettes. Toggled with `p`. Tri-pane state is preserved
+   * underneath; closing the gallery returns to the same scheme/token cursor.
+   */
+  const [showGallery, setShowGallery] = useState(false)
 
   const schemeName = schemes[schemeIdx]!
   const basePalette = useMemo(() => {
@@ -174,6 +181,11 @@ export function App(): React.ReactElement {
       return
     }
 
+    // The gallery owns all keys when active — its own useInput handles
+    // navigation, selection, and `p` / Esc to exit. We just guard against
+    // global handlers stealing focus.
+    if (showGallery) return
+
     // Global — always active
     if (input === "q" || (key.ctrl && input === "c")) {
       exit()
@@ -181,6 +193,10 @@ export function App(): React.ReactElement {
     }
     if (input === "?") {
       setShowHelp(true)
+      return
+    }
+    if (input === "p") {
+      setShowGallery(true)
       return
     }
     if (input === "1") return setTier("truecolor")
@@ -272,6 +288,23 @@ export function App(): React.ReactElement {
     }
     return <ComponentPreview schemeName={schemeName} mode={sterlingTheme.mode} />
   }, [view, sterlingThemeBase, sterlingTheme.mode, schemeName, basePalette])
+
+  if (showGallery) {
+    return (
+      <ThemeProvider theme={legacyTheme}>
+        <Box flexDirection="column" height="100%" padding={0}>
+          <PaletteGallery
+            schemes={schemes}
+            builtinPalettes={builtinPalettes as Record<string, ColorScheme>}
+            activeIndex={schemeIdx}
+            tier={tier}
+            onSelect={(i) => setSchemeIdx(i)}
+            onExit={() => setShowGallery(false)}
+          />
+        </Box>
+      </ThemeProvider>
+    )
+  }
 
   return (
     <ThemeProvider theme={legacyTheme}>
@@ -368,6 +401,12 @@ function HelpOverlay(): React.ReactElement {
             a
           </Text>{" "}
           <Muted>— scheme-author view (22-color input grid)</Muted>
+        </Text>
+        <Text>
+          <Text bold color="$fg-accent">
+            p
+          </Text>{" "}
+          <Muted>— fullscreen palette gallery (all 84 schemes at a glance)</Muted>
         </Text>
         <Text>
           <Text bold color="$fg-accent">

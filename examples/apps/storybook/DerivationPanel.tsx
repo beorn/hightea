@@ -91,6 +91,34 @@ export interface DerivationPanelProps {
   tier?: ColorLevel
 }
 
+/**
+ * Tier ladder — stacks the selected token's hex at every tier (truecolor /
+ * 256 / ansi16 / mono) so the quantization collapse is visible at a
+ * glance, no toggling required. Highlights the active tier.
+ */
+function TierLadder({ hex, activeTier }: { hex: string; activeTier: ColorLevel }): React.ReactElement {
+  const TIERS: readonly ColorLevel[] = ["truecolor", "256", "ansi16", "mono"]
+  return (
+    <Box flexDirection="column" gap={0}>
+      <Muted>tier ladder</Muted>
+      {TIERS.map((t) => {
+        const v = t === "truecolor" ? hex : quantizeHex(hex, t)
+        const isActive = t === activeTier
+        return (
+          <Box key={t} gap={1}>
+            <Muted>{isActive ? "▸" : " "}</Muted>
+            <Text color={isActive ? "$fg-warning" : undefined} bold={isActive}>
+              {t.padEnd(9)}
+            </Text>
+            <Text color={v}>██</Text>
+            <Text color={isActive ? undefined : "$fg-muted"}>{v}</Text>
+          </Box>
+        )
+      })}
+    </Box>
+  )
+}
+
 export function DerivationPanel({
   theme,
   openedPath,
@@ -170,6 +198,7 @@ export function DerivationPanel({
             </Text>
           </Box>
         ) : null}
+        {isKnown ? <TierLadder hex={hex} activeTier={tier} /> : null}
         {step ? (
           <>
             <Box gap={1}>

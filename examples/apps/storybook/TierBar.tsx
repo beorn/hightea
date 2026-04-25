@@ -93,6 +93,9 @@ export function TierBar({ tier, focus, view }: TierBarProps): React.ReactElement
           <Kbd>a</Kbd> author
         </Muted>
         <Muted>
+          <Kbd>p</Kbd> gallery
+        </Muted>
+        <Muted>
           <Kbd>?</Kbd> help
         </Muted>
         <Muted>
