@@ -22,9 +22,10 @@ import { main as appTodo } from "../apps/app-todo.tsx"
 import { main as asyncData } from "../apps/async-data.tsx"
 import { main as cliWizard } from "../apps/cli-wizard.tsx"
 import { main as clipboard } from "../apps/clipboard.tsx"
-import { main as components } from "../apps/components.tsx"
+// `components.tsx` / `design.tsx` / `theme.tsx` removed 2026-04-25 in
+// km-silvery.consolidate-design-demos. The Sterling Storybook
+// (apps/storybook/) is the canonical design-system explorer.
 import { main as dataExplorer } from "../apps/data-explorer.tsx"
-import { main as design } from "../apps/design.tsx"
 import { main as devTools } from "../apps/dev-tools.tsx"
 import { main as explorer } from "../apps/explorer.tsx"
 import { main as gallery } from "../apps/gallery.tsx"
@@ -42,7 +43,6 @@ import { main as terminalCapsDemo } from "../apps/terminal-caps-demo.tsx"
 import { main as terminal } from "../apps/terminal.tsx"
 import { main as textSelectionDemo } from "../apps/text-selection-demo.tsx"
 import { main as textarea } from "../apps/textarea.tsx"
-import { main as theme } from "../apps/theme.tsx"
 import { main as transform } from "../apps/transform.tsx"
 import { main as virtual10k } from "../apps/virtual-10k.tsx"
 import { main as aichat } from "../apps/aichat/index.tsx"
@@ -77,14 +77,7 @@ export const REGISTRY: RegistryEntry[] = [
   { name: "async data", main: asyncData, category: "Apps" },
   { name: "cli wizard", main: cliWizard, category: "Apps" },
   { name: "clipboard", main: clipboard, category: "Apps" },
-  { name: "components", main: components, category: "Apps" },
   { name: "data explorer", main: dataExplorer, category: "Apps" },
-  {
-    name: "design",
-    main: design,
-    category: "Apps",
-    description: "Design system workbench — formula + tokens + components",
-  },
   { name: "dev tools", main: devTools, category: "Apps" },
   { name: "explorer", main: explorer, category: "Apps" },
   { name: "gallery", main: gallery, category: "Apps" },
@@ -102,14 +95,14 @@ export const REGISTRY: RegistryEntry[] = [
   { name: "terminal", main: terminal, category: "Apps" },
   { name: "text selection demo", main: textSelectionDemo, category: "Apps" },
   { name: "textarea", main: textarea, category: "Apps" },
-  { name: "theme", main: theme, category: "Apps" },
   { name: "transform", main: transform, category: "Apps" },
   { name: "virtual 10k", main: virtual10k, category: "Apps" },
   {
     name: "storybook",
     main: storybook,
     category: "Apps",
-    description: "Sterling Storybook — 3-pane design-system explorer",
+    description:
+      "Sterling Storybook — canonical design-system explorer (3 panes: schemes / components / token tree, plus contrast audit, derivation, scheme authoring, tier toggle). Replaces the former design / theme / components apps.",
   },
 
   // Layout
