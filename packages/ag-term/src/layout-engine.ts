@@ -200,8 +200,8 @@ export async function ensureDefaultLayoutEngine(engineType?: LayoutEngineType): 
     const { initYogaEngine } = await import("./adapters/yoga-adapter.js")
     setLayoutEngine(await initYogaEngine())
   } else {
-    // 'flexily' (default) uses zero-allocation engine
+    // 'flexily' (default) uses zero-allocation engine with CSS-correct defaults
     const { createFlexilyZeroEngine } = await import("./adapters/flexily-zero-adapter.js")
-    setLayoutEngine(createFlexilyZeroEngine())
+    setLayoutEngine(createFlexilyZeroEngine("css"))
   }
 }

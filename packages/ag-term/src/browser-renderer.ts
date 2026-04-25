@@ -62,7 +62,7 @@ export function initBrowserRenderer<TConfig>(
 ): void {
   if (initialized) return
 
-  setLayoutEngine(createFlexilyZeroEngine())
+  setLayoutEngine(createFlexilyZeroEngine("css"))
   setRenderAdapter(factory.createAdapter(config))
 
   initialized = true

@@ -196,7 +196,7 @@ let initialized = false
 function initXtermRenderer(): void {
   if (initialized) return
 
-  setLayoutEngine(createFlexilyZeroEngine())
+  setLayoutEngine(createFlexilyZeroEngine("css"))
   setRenderAdapter(terminalAdapter)
 
   initialized = true
