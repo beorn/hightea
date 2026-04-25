@@ -15,6 +15,9 @@ export {
   sterlingMergePartial as mergePartial,
   inlineSterlingTokens,
   STERLING_FLAT_TOKENS,
+  PUBLIC_TOKENS,
+  FAMILY_ORDER,
+  groupTokensByFamily,
   sterlingDefaultScheme as defaultScheme,
   WCAG_AA,
   sterlingAutoLift as autoLift,
@@ -47,4 +50,5 @@ export type {
   SterlingTheme as Theme,
   ThemeShape,
   ColorScheme,
+  TokenManifestEntry,
 } from "@silvery/ansi"

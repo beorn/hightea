@@ -344,6 +344,9 @@ export {
   mergePartial as sterlingMergePartial,
   inlineSterlingTokens,
   STERLING_FLAT_TOKENS,
+  PUBLIC_TOKENS,
+  FAMILY_ORDER,
+  groupTokensByFamily,
   defaultScheme as sterlingDefaultScheme,
   WCAG_AA,
   autoLift as sterlingAutoLift,
@@ -374,4 +377,5 @@ export type {
   SurfaceRole,
   Theme as SterlingTheme,
   ThemeShape,
+  TokenManifestEntry,
 } from "./sterling/index"
