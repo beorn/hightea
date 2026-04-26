@@ -28,8 +28,9 @@
  * actually this test-harness artifact, not a layout-engine defect. Validation
  * by the silvery-expert agent confirmed: flexily Phase 7a's NaN×NaN measure
  * is CSS-correct shrink-wrap behavior. The screenshot bug was a separate issue
- * fixed by silvercode commits cdf14b592 + 363deaf6f (flexShrink/minWidth
- * propagation through DetectionText + AssistantBlock outer rows).
+ * fixed by consumer-side commits (flexShrink/minWidth propagation through
+ * LinkifiedText + AssistantBlock outer rows; LinkifiedText was renamed
+ * from DetectionText in silvercode 2026-04-25).
  */
 import React from "react"
 import { describe, test, expect } from "vitest"
