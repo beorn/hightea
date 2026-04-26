@@ -4,10 +4,9 @@
  * Live preview of silvery's canonical components under the currently selected
  * scheme. Everything here reads semantic $tokens; no hex values in JSX.
  *
- * MVP set: typography ramp, semantic color row, badges, surface stack,
- * alert-like inline boxes for each status variant, a SelectList, a
- * TextInput preview, a ModalDialog preview (inline-flattened so it
- * composes in a pane).
+ * Eats its own dogfood — every section uses real silvery primitives:
+ * <Banner>, <Alert>, <TextInput>, <SelectList>, <Spinner>, <ProgressBar>,
+ * <Badge>. No locally-drawn approximations.
  *
  * All components sit inside an outer `<ThemeProvider theme={legacyTheme}>`
  * at the App root — swapping schemes there re-renders the whole tree.
@@ -19,7 +18,6 @@ import {
   Text,
   Muted,
   Small,
-  Strong,
   Kbd,
   Divider,
   H1,
@@ -27,9 +25,13 @@ import {
   H3,
   P,
   Badge,
+  Banner,
+  Alert,
+  Button,
   SelectList,
   Spinner,
   ProgressBar,
+  TextInput,
   useKineticScroll,
   type SelectOption,
 } from "silvery"
@@ -44,115 +46,6 @@ const SELECT_ITEMS: SelectOption[] = [
   { label: "Elixir", value: "ex" },
 ]
 
-/** A readonly TextInput-look-alike (same pattern the old storybook used). */
-function TextInputPreview({
-  label,
-  value,
-  placeholder,
-  focused,
-}: {
-  label: string
-  value: string
-  placeholder?: string
-  focused?: boolean
-}) {
-  const hasValue = value.length > 0
-  return (
-    <Box flexDirection="column" gap={0}>
-      <Muted>{label}</Muted>
-      <Box
-        borderStyle="single"
-        borderColor={focused ? "$fg-accent" : "$border-default"}
-        paddingX={1}
-        width={36}
-      >
-        {hasValue ? (
-          <Text>
-            <Text>{value}</Text>
-            {focused ? <Text inverse> </Text> : null}
-          </Text>
-        ) : focused ? (
-          <Text>
-            <Text inverse> </Text>
-            <Text color="$fg-muted">{placeholder ? placeholder.slice(1) : ""}</Text>
-          </Text>
-        ) : (
-          <Text color="$fg-muted">{placeholder ?? ""}</Text>
-        )}
-      </Box>
-    </Box>
-  )
-}
-
-/** A single Alert-like inline box. Uses semantic tokens for bg + on-bg text. */
-function AlertBox({
-  variant,
-  icon,
-  title,
-  body,
-}: {
-  variant: "error" | "warning" | "success" | "info" | "accent"
-  icon: string
-  title: string
-  body: string
-}) {
-  const bgToken = `$${variant}`
-  const fgToken = `$${variant}fg` // legacy `fg-on-*` alias in @silvery/ansi
-  return (
-    <Box borderStyle="single" borderColor={bgToken} paddingX={1} flexDirection="column" width={38}>
-      <Box gap={1}>
-        <Text color={bgToken} bold>
-          {icon}
-        </Text>
-        <Strong>{title}</Strong>
-      </Box>
-      <Small>
-        <Muted>{body}</Muted>
-      </Small>
-      <Box marginTop={0}>
-        <Box backgroundColor={bgToken} paddingX={1}>
-          <Text color={fgToken}>on-{variant} surface</Text>
-        </Box>
-      </Box>
-    </Box>
-  )
-}
-
-/** A mini "modal dialog" rendered inline — not a floating overlay. */
-function ModalPreview() {
-  return (
-    <Box
-      borderStyle="double"
-      borderColor="$fg-accent"
-      paddingX={2}
-      paddingY={1}
-      width={52}
-      flexDirection="column"
-      gap={0}
-    >
-      <Box gap={1}>
-        <Text color="$fg-accent" bold>
-          ◆
-        </Text>
-        <Strong>Confirm destructive action</Strong>
-      </Box>
-      <Muted>Delete 3 items — this cannot be undone.</Muted>
-      <Divider />
-      <Box gap={1}>
-        <Box backgroundColor="$fg-error" paddingX={1}>
-          <Text color="$fg-on-error" bold>
-            {" "}
-            Delete{" "}
-          </Text>
-        </Box>
-        <Box borderStyle="single" borderColor="$border-default" paddingX={1}>
-          <Text>Cancel</Text>
-        </Box>
-      </Box>
-    </Box>
-  )
-}
-
 export interface ComponentPreviewProps {
   schemeName: string
   mode: "light" | "dark"
@@ -160,6 +53,8 @@ export interface ComponentPreviewProps {
 
 export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): React.ReactElement {
   const [selectIdx, setSelectIdx] = useState(0)
+  const [searchValue, setSearchValue] = useState("")
+  const [projectValue, setProjectValue] = useState("km-tui")
   // Wheel over the preview pane scrolls its viewport with iOS-style kinetic
   // momentum. The layout phase clamps `scrollOffset` to a valid range so we
   // don't need to know content height up-front.
@@ -218,40 +113,22 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         <Divider />
 
-        {/* Alert demos — one per status variant. Two columns: 3 left, 2 right. */}
+        {/* Alert demos — real silvery <Banner> for each status variant.
+            Two columns at typical widths; flexWrap collapses to one column on narrow terms. */}
         <Box flexDirection="column" gap={0}>
           <Small>
             <Muted>ALERTS</Muted>
           </Small>
           <Box flexDirection="row" gap={1} flexWrap="wrap" alignItems="flex-start">
-            <Box flexDirection="column" gap={0}>
-              <AlertBox
-                variant="error"
-                icon="✗"
-                title="Build failed"
-                body="Type-check caught 2 errors in src/app.ts"
-              />
-              <AlertBox
-                variant="warning"
-                icon="⚠"
-                title="Deprecated API"
-                body="useInput(...) deprecated — migrate to useKey"
-              />
-              <AlertBox
-                variant="success"
-                icon="✓"
-                title="Tests passed"
-                body="143 specs green in 2.4s"
-              />
+            <Box flexDirection="column" gap={0} width={38}>
+              <Banner variant="error">
+                Build failed — type-check caught 2 errors in src/app.ts
+              </Banner>
+              <Banner variant="warning">Deprecated API — useInput migrate to useKey</Banner>
             </Box>
-            <Box flexDirection="column" gap={0}>
-              <AlertBox variant="info" icon="ℹ" title="Tip" body="Press ? for keyboard shortcuts" />
-              <AlertBox
-                variant="accent"
-                icon="◆"
-                title="Accent surface"
-                body="Primary call-to-action surface"
-              />
+            <Box flexDirection="column" gap={0} width={38}>
+              <Banner variant="success">Tests passed — 143 specs green in 2.4s</Banner>
+              <Banner variant="info">Press ? for keyboard shortcuts</Banner>
             </Box>
           </Box>
         </Box>
@@ -281,7 +158,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         <Divider />
 
-        {/* Input + list — laid out as 3 columns horizontally */}
+        {/* Input + list — real silvery TextInput + SelectList. */}
         <Box flexDirection="column" gap={0}>
           <Small>
             <Muted>INPUT · LIST</Muted>
@@ -289,16 +166,20 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
           <Box flexDirection="row" gap={2} flexWrap="wrap" alignItems="flex-start">
             <Box flexDirection="column" minWidth={20}>
               <Muted>focused input</Muted>
-              <TextInputPreview
-                label="Search"
-                value=""
-                placeholder="Type to filter..."
-                focused={true}
-              />
+              <Box borderStyle="single" borderColor="$fg-accent" paddingX={1} width={28}>
+                <TextInput
+                  value={searchValue}
+                  onChange={setSearchValue}
+                  placeholder="Type to filter..."
+                  isActive={true}
+                />
+              </Box>
             </Box>
             <Box flexDirection="column" minWidth={20}>
               <Muted>blurred input</Muted>
-              <TextInputPreview label="Project" value="km-tui" focused={false} />
+              <Box borderStyle="single" borderColor="$border-default" paddingX={1} width={28}>
+                <TextInput value={projectValue} onChange={setProjectValue} isActive={false} />
+              </Box>
             </Box>
             <Box flexDirection="column" minWidth={20}>
               <Muted>select list</Muted>
@@ -340,12 +221,20 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         <Divider />
 
-        {/* Modal preview */}
+        {/* Modal — real silvery <Alert> with composed Title/Body/Actions.
+            Inline-rendered via `open` so it composes in the pane (not a floating overlay). */}
         <Box flexDirection="column" gap={0}>
           <Small>
             <Muted>MODAL DIALOG</Muted>
           </Small>
-          <ModalPreview />
+          <Alert variant="error" open onClose={() => {}} width={52}>
+            <Alert.Title>Confirm destructive action</Alert.Title>
+            <Alert.Body>Delete 3 items — this cannot be undone.</Alert.Body>
+            <Alert.Actions>
+              <Button label="Delete" variant="destructive" onPress={() => {}} />
+              <Button label="Cancel" variant="accent" onPress={() => {}} />
+            </Alert.Actions>
+          </Alert>
         </Box>
 
         <Divider />
