@@ -100,6 +100,8 @@ import {
   updateKeyboardModifiers,
   findContainBoundary,
   selectionHitTest,
+  createClickCountState,
+  checkClickCount,
 } from "../mouse-events"
 import { setArmed } from "@silvery/ag/interactive-signals"
 import {
@@ -1163,8 +1165,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   //   idle     --mouseDown--> armed      (store anchor, NO selection started yet)
   //   armed    --mouseMove(|Δ|>=1)--> dragging (dispatch start then extend)
   //   armed    --mouseUp-->   idle       (plain click — click dispatches
-  //                                       normally, no selection created)
-  //   dragging --mouseMove--> dragging   (dispatch extend with current pos)
+  //                                       normally, no selection created;
+  //                                       on 2nd / 3rd click in a chain
+  //                                       dispatch startWord / startLine
+  //                                       so the upcoming drag extends by
+  //                                       word / line granularity)
+  //   dragging --mouseMove--> dragging   (dispatch extend with current pos;
+  //                                       extend uses the current granularity
+  //                                       so word / line drags snap)
   //   dragging --mouseUp-->   idle       (dispatch finish + OSC 52,
   //                                       SUPPRESS subsequent onClick)
   //
@@ -1179,7 +1187,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     col: number
     row: number
     scope: SelectionScope | null
+    /** Click-count this mousedown belongs to (1, 2, or 3).
+     *  Determines what action to dispatch on the corresponding mouseUp:
+     *  1 → no selection (plain click), 2 → startWord, 3 → startLine.
+     *  Also determines drag granularity if the down is followed by a move:
+     *  count=2 starts a word-granular drag, count=3 a line-granular drag. */
+    clickCount: 1 | 2 | 3
   } | null = null
+  // Click-count tracker dedicated to selection (separate from
+  // mouseEventState.doubleClick which drives onDoubleClick / onTripleClick
+  // dispatch on the component tree). Updated on every mousedown so we
+  // arm `pendingSelectionDown` with the right granularity intent. Without
+  // a dedicated state, peeking mouseEventState.doubleClick on mousedown
+  // would race the down-stream call inside processMouseEvent.
+  const selectionClickCount = createClickCountState()
 
   // --- Selection bridge ---
   // Listeners for the bridge's subscribe mechanism (used by useSelection)
@@ -2305,7 +2326,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           const agRoot = getContainerRoot(container)
           const hit = agRoot ? selectionHitTest(agRoot, mouseData.x, mouseData.y) : null
           const scope = hit ? findContainBoundary(hit) : null
-          pendingSelectionDown = { col: mouseData.x, row: mouseData.y, scope }
+          // Resolve click-count for THIS mousedown (1=fresh, 2=double-click,
+          // 3=triple-click). Used by the up branch to decide whether to
+          // dispatch startWord / startLine, and by the move branch to pick
+          // the drag granularity (word / line snapping).
+          const clickCount = checkClickCount(
+            selectionClickCount,
+            mouseData.x,
+            mouseData.y,
+            mouseData.button,
+          )
+          pendingSelectionDown = {
+            col: mouseData.x,
+            row: mouseData.y,
+            scope,
+            clickCount,
+          }
           // Don't consume — let the component tree handle mousedown
           // (click-to-focus, onMouseDown handlers, etc.)
         } else if (mouseData.action === "move") {
@@ -2318,12 +2354,50 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             if (dx !== 0 || dy !== 0) {
               const anchor = pendingSelectionDown
               pendingSelectionDown = null
-              const [started] = terminalSelectionUpdate(
-                { type: "start", col: anchor.col, row: anchor.row, scope: anchor.scope },
-                selectionState,
-              )
+              // Pick the start action based on the click chain that armed
+              // this drag:
+              //   1 → start  (character-granular drag)
+              //   2 → startWord (word-granular drag — snaps to word edges)
+              //   3 → startLine (line-granular drag — snaps to line edges)
+              // The headless machine sets `granularity` accordingly, and
+              // `terminalSelectionUpdate({ type: "extend", buffer })` snaps
+              // the head on every extend.
+              let started: typeof selectionState
+              if (anchor.clickCount === 2 && currentBuffer) {
+                ;[started] = terminalSelectionUpdate(
+                  {
+                    type: "startWord",
+                    col: anchor.col,
+                    row: anchor.row,
+                    scope: anchor.scope,
+                    buffer: currentBuffer._buffer,
+                  },
+                  selectionState,
+                )
+              } else if (anchor.clickCount === 3 && currentBuffer) {
+                ;[started] = terminalSelectionUpdate(
+                  {
+                    type: "startLine",
+                    col: anchor.col,
+                    row: anchor.row,
+                    scope: anchor.scope,
+                    buffer: currentBuffer._buffer,
+                  },
+                  selectionState,
+                )
+              } else {
+                ;[started] = terminalSelectionUpdate(
+                  { type: "start", col: anchor.col, row: anchor.row, scope: anchor.scope },
+                  selectionState,
+                )
+              }
               const [extended] = terminalSelectionUpdate(
-                { type: "extend", col: mouseData.x, row: mouseData.y },
+                {
+                  type: "extend",
+                  col: mouseData.x,
+                  row: mouseData.y,
+                  buffer: currentBuffer?._buffer,
+                },
                 started,
               )
               selectionState = extended
@@ -2341,8 +2415,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             // dragging → dragging (extend with current pos; head follows
             // the cursor regardless of direction, so selection shrinks on
             // reverse drag — Bug 1 protection).
+            // Buffer is forwarded so word / line granularity drags snap
+            // the head to the right boundary on every move.
             const [next] = terminalSelectionUpdate(
-              { type: "extend", col: mouseData.x, row: mouseData.y },
+              {
+                type: "extend",
+                col: mouseData.x,
+                row: mouseData.y,
+                buffer: currentBuffer?._buffer,
+              },
               selectionState,
             )
             selectionState = next
@@ -2385,10 +2466,60 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             // onClick → onSelect, opening a detail view after a drag).
             return true
           }
-          // armed → idle (plain click). Clear the pending anchor and let
-          // the event flow through to processMouseEvent normally — the
-          // consumer's onClick/onSelect runs, no selection is created.
-          pendingSelectionDown = null
+          // armed → idle. Distinguish three cases:
+          //  - clickCount === 1 → plain click. Let the event flow through
+          //    to processMouseEvent normally so onClick / onSelect runs;
+          //    no selection is created (Bug 3 protection).
+          //  - clickCount === 2 → double-click. Select the word at the
+          //    click point (granularity = word) and copy via OSC 52.
+          //  - clickCount === 3 → triple-click. Select the line at the
+          //    click point (granularity = line) and copy via OSC 52.
+          //
+          // The component-tree dispatch (onClick / onDoubleClick / onTripleClick)
+          // is independent of this selection logic — that runs in
+          // processMouseEvent unless we explicitly consume the event by
+          // returning true. We keep dispatch flowing on multi-click so
+          // app code can listen to onDoubleClick etc.
+          if (pendingSelectionDown) {
+            const anchor = pendingSelectionDown
+            pendingSelectionDown = null
+            if (anchor.clickCount >= 2 && currentBuffer) {
+              const [next] = terminalSelectionUpdate(
+                anchor.clickCount === 2
+                  ? {
+                      type: "startWord",
+                      col: anchor.col,
+                      row: anchor.row,
+                      scope: anchor.scope,
+                      buffer: currentBuffer._buffer,
+                    }
+                  : {
+                      type: "startLine",
+                      col: anchor.col,
+                      row: anchor.row,
+                      scope: anchor.scope,
+                      buffer: currentBuffer._buffer,
+                    },
+                selectionState,
+              )
+              const [finished] = terminalSelectionUpdate({ type: "finish" }, next)
+              selectionState = finished
+              notifySelectionListeners()
+              // Copy via OSC 52, mirroring the drag-finish branch above.
+              if (finished.range) {
+                const text = extractText(currentBuffer._buffer, finished.range, {
+                  scope: finished.scope,
+                })
+                if (text.length > 0) {
+                  const base64 = globalThis.Buffer.from(text).toString("base64")
+                  target.write(`\x1b]52;c;${base64}\x07`)
+                }
+              }
+              paintFrame()
+              // Don't consume — let the click event reach the component
+              // tree so onDoubleClick / onTripleClick handlers fire.
+            }
+          }
         }
       }
     }
