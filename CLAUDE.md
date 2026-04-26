@@ -341,9 +341,8 @@ for projects that want drop-in Yoga compatibility. silvery's Ink-compat layer
 the only internal user of the Yoga preset. Consumers building silvery apps
 should not need to think about presets.
 
-See [vendor/flexily/docs/guide/yoga-divergences.md](../flexily/docs/guide/yoga-divergences.md)
-for the full divergence list and beads `km-silvery.flexshrink-flip-silvery-only` +
-`km-flexily.auto-min-size-flex-items` for the migration history.
+See [flexily's yoga-divergences guide](https://github.com/beorn/flexily/blob/main/docs/guide/yoga-divergences.md)
+for the full divergence list.
 
 ## Testing
 

@@ -393,7 +393,7 @@ class FlexilyZeroLayoutEngineYoga extends FlexilyZeroLayoutEngine {
  * Yoga-flavored semantics are deliberately not exposed here — consumers
  * needing Yoga compat should use `createFlexily({ defaults: "yoga" })` from
  * flexily directly. The Ink-compat layer is the single internal user that
- * stays on Yoga; it imports the unexported {@link createFlexilyZeroEngineForInkCompat}.
+ * stays on Yoga; it imports the `@internal` {@link createFlexilyZeroEngineForInkCompat}.
  */
 export function createFlexilyZeroEngine(): FlexilyZeroLayoutEngine {
   return new FlexilyZeroLayoutEngine()
