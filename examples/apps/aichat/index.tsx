@@ -204,8 +204,7 @@ function useKeyBindings(
     if (key.tab) {
       if (state.done || state.compacting) return
       // Tab: empty input fills with the next scripted message (user can edit
-      // before submitting); non-empty input submits like Enter. See
-      // FooterControl.fillOrSubmit in components.tsx.
+      // before submitting); non-empty input submits like Enter.
       footerControlRef.current.fillOrSubmit()
       return
     }

@@ -38,11 +38,12 @@ describe("InlineAlert", () => {
     expect((icon!.props as StyleProps).color).toBe("$fg-error")
   })
 
-  test("destructive variant aliases to error tokens", () => {
-    const app = render(<InlineAlert variant="destructive">Delete repo</InlineAlert>)
-    const icon = app.getByText("x").resolve()
-    expect((icon!.props as StyleProps).color).toBe("$fg-error")
-  })
+  // Removed: "destructive variant aliases to error tokens" — under Option B
+  // (variant prop with per-component value unions), `<InlineAlert variant="destructive">`
+  // is now a compile error. Status components only accept status variants.
+  // Action emphasis belongs on `<Button variant="destructive">` inside the alert,
+  // not on the alert itself. The compiler now prevents the bad call site that
+  // this test guarded against — the test is redundant.
 
   test("default variant is info", () => {
     const app = render(<InlineAlert>Heads up</InlineAlert>)
@@ -97,13 +98,9 @@ describe("Banner", () => {
     expect(app.containsText("dismiss")).toBe(false)
   })
 
-  test("destructive variant aliases to error subtle tokens", () => {
-    const app = render(<Banner variant="destructive">Delete in progress</Banner>)
-    // destructive icon matches error icon ("x")
-    const icon = app.getByText("x ").resolve()
-    expect(icon, "destructive→error icon").not.toBeNull()
-    expect((icon!.props as StyleProps).color).toBe("$fg-error")
-  })
+  // Removed: "destructive variant aliases to error subtle tokens" — under
+  // Option B, `<Banner variant="destructive">` is a compile error. Status
+  // components only accept status variants.
 })
 
 // =============================================================================
@@ -147,15 +144,11 @@ describe("Alert", () => {
     expect(onClose).toHaveBeenCalledTimes(1)
   })
 
-  test("destructive variant renders error tokens", () => {
-    const app = render(
-      <Alert variant="destructive" open onClose={() => {}}>
-        <Alert.Title>Delete?</Alert.Title>
-      </Alert>,
-    )
-    const icon = app.getByText("x").resolve()
-    expect((icon!.props as StyleProps).color).toBe("$fg-error")
-  })
+  // Removed: "destructive variant renders error tokens" — under Option B,
+  // `<Alert variant="destructive">` is a compile error. Action intents
+  // belong on `<Button variant="destructive">` inside `<Alert.Actions>`,
+  // not on `<Alert>` itself. See the "composes Button in Alert.Actions"
+  // test below for the canonical pattern.
 
   test("composes Button in Alert.Actions", () => {
     // Use a fresh renderer — shared render() state across tests in the same
