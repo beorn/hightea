@@ -123,11 +123,7 @@ describe("invariant 1: active caret precedence", () => {
             <Text>shallow</Text>
           </Box>
           <Box flexDirection="column" padding={1}>
-            <Box
-              borderStyle="round"
-              paddingX={1}
-              cursorOffset={{ col: 5, row: 0, visible: true }}
-            >
+            <Box borderStyle="round" paddingX={1} cursorOffset={{ col: 5, row: 0, visible: true }}>
               <Text>deeper</Text>
             </Box>
           </Box>
@@ -234,14 +230,7 @@ describe("invariant 3: contentRect peer signal", () => {
     function App() {
       return (
         <Box flexDirection="column" padding={1}>
-          <Box
-            id="content"
-            width={20}
-            height={5}
-            borderStyle="round"
-            paddingX={2}
-            paddingY={1}
-          >
+          <Box id="content" width={20} height={5} borderStyle="round" paddingX={2} paddingY={1}>
             <Text>x</Text>
           </Box>
         </Box>
@@ -269,11 +258,7 @@ describe("invariant 3: contentRect peer signal", () => {
     function App() {
       return (
         <Box flexDirection="column" padding={1}>
-          <Box
-            borderStyle="round"
-            paddingX={1}
-            cursorOffset={{ col: 3, row: 0, visible: true }}
-          >
+          <Box borderStyle="round" paddingX={1} cursorOffset={{ col: 3, row: 0, visible: true }}>
             <Text>abc</Text>
           </Box>
         </Box>
@@ -302,19 +287,26 @@ describe("invariant 4: clipping (default hide)", () => {
 
     // Build a scroll container with content taller than the viewport. The
     // caret sits on a child below the visible window — clipping must hide it.
+    //
+    // `flexShrink={0}` on each child is required because the parent has
+    // `overflow="scroll"` which (per CSS §4.5 container-side rule) forces
+    // `flexShrink >= 1` on children. Without flexShrink={0}, the three
+    // height={2} children shrink toward content-min (1) inside height={4}
+    // and all three fit — no overflow, no clipping. flexShrink={0} pins
+    // each child at height=2 so the third sits genuinely below the viewport.
     function App() {
       return (
         <Box flexDirection="column" overflow="scroll" height={4}>
-          <Box height={2}>
+          <Box height={2} flexShrink={0}>
             <Text>row 0</Text>
           </Box>
-          <Box height={2}>
+          <Box height={2} flexShrink={0}>
             <Text>row 1</Text>
           </Box>
           {/* Below the viewport (rows 4-5). With cursorOffset row 0 it
               would land at y = boxRect.y of this child, which is outside
               the scroll container's scrollRect. */}
-          <Box height={2} cursorOffset={{ col: 0, row: 0, visible: true }}>
+          <Box height={2} flexShrink={0} cursorOffset={{ col: 0, row: 0, visible: true }}>
             <Text>caret here</Text>
           </Box>
         </Box>
@@ -395,11 +387,7 @@ describe("invariant 5: stale-cleanup on unmount", () => {
             </Box>
           ))}
           {phase === 1 || phase === 3 ? (
-            <Box
-              borderStyle="round"
-              paddingX={1}
-              cursorOffset={{ col: 2, row: 0, visible: true }}
-            >
+            <Box borderStyle="round" paddingX={1} cursorOffset={{ col: 2, row: 0, visible: true }}>
               <Text>caret</Text>
             </Box>
           ) : null}

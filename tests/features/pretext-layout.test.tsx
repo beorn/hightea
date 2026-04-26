@@ -73,15 +73,14 @@ describe("regression: fit-content clamps to parent width", () => {
     expect(child!.width).toBeLessThanOrEqual(parent!.width)
   })
 
-  // Investigation dated 2026-04-11: this bug is NOT fit-content-specific.
-  // A plain <Box> without any fit-content prop also overflows a fixed-width
-  // parent — child measured 161 cols in a 20-col parent. Adding explicit
-  // alignItems="stretch" to the parent makes both cases work (child wraps
-  // correctly to 20 cols). Root cause is in Flexily's default cross-axis
-  // alignment OR in the Silvery Box component's default props — NOT in
-  // measure-phase.ts as originally suspected. Fix requires deeper work on
-  // the layout engine defaults, not a one-line patch to fit-content.
-  test.fails("plain Box child (no fit-content) is clamped by fixed-width parent", () => {
+  // Investigation dated 2026-04-11: this bug was NOT fit-content-specific —
+  // a plain <Box> without any fit-content prop also overflowed a fixed-width
+  // parent because Box-with-children reported max-content as its auto-min,
+  // pinning the row wider than parent width. Fixed by recursive intrinsic
+  // min-content (bead km-flexily.recursive-min-content): Boxes now propagate
+  // CSS min-content (longest unbreakable token for wrap-text descendants)
+  // and respect the parent's width clamp.
+  test("plain Box child (no fit-content) is clamped by fixed-width parent", () => {
     const render = createRenderer({ cols: 80, rows: 24 })
     const app = render(
       <Box width={20} id="parent">
