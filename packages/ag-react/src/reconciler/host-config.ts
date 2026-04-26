@@ -33,7 +33,12 @@ import {
   ALL_RECONCILER_BITS,
 } from "@silvery/ag/epoch"
 import { classifyPropChanges } from "./helpers"
-import { applyBoxProps, createNode, createVirtualTextNode } from "./nodes"
+import {
+  applyBoxProps,
+  applyTextFlexItemProps,
+  createNode,
+  createVirtualTextNode,
+} from "./nodes"
 import { createLogger } from "loggily"
 import { warnOnce, _resetWarnOnceForTesting } from "@silvery/ansi"
 
