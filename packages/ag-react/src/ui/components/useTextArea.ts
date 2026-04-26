@@ -375,8 +375,14 @@ export function useTextArea({
 
       // =================================================================
       // Enter (newline) — replaces selection if active
+      //
+      // Fires when:
+      //   - submitKey !== "enter" (plain Enter inserts newline), OR
+      //   - key.shift is held (Shift+Enter universally inserts a newline,
+      //     even when submitKey === "enter" — chat-input convention,
+      //     see comment near submit guards above).
       // =================================================================
-      if (key.return && submitKey !== "enter") {
+      if (key.return && (submitKey !== "enter" || key.shift)) {
         stickyXRef.current = null
         if (hasSelection) {
           replaceSelectionWith("\n")
