@@ -35,6 +35,7 @@ import {
   Box,
   Divider,
   Muted,
+  Screen,
   Strong,
   Text,
   ThemeProvider,
@@ -293,7 +294,7 @@ export function App(): React.ReactElement {
   if (showGallery) {
     return (
       <ThemeProvider theme={legacyTheme}>
-        <Box flexDirection="column" height="100%" padding={0}>
+        <Screen>
           <PaletteGallery
             schemes={schemes}
             builtinPalettes={builtinPalettes as Record<string, ColorScheme>}
@@ -302,17 +303,17 @@ export function App(): React.ReactElement {
             onSelect={(i) => setSchemeIdx(i)}
             onExit={() => setShowGallery(false)}
           />
-        </Box>
+        </Screen>
       </ThemeProvider>
     )
   }
 
   return (
     <ThemeProvider theme={legacyTheme}>
-      <Box flexDirection="column" width="100%" height="100%" padding={0}>
+      <Screen>
         {header}
         <Divider />
-        <Box flexGrow={1} flexDirection="row" gap={0} overflow="hidden" width="100%" minWidth={0}>
+        <Box flexGrow={1} flexDirection="row" gap={0} overflow="hidden">
           <SchemeList
             schemes={schemes}
             selectedIndex={schemeIdx}
@@ -320,7 +321,7 @@ export function App(): React.ReactElement {
             focused={focus === "schemes"}
           />
           {middle}
-          <Box flexDirection="column" userSelect="contain" flexShrink={0}>
+          <Box flexDirection="column" userSelect="contain">
             <TokenTree
               theme={sterlingTheme}
               cursorIndex={tokenCursor}
@@ -333,7 +334,7 @@ export function App(): React.ReactElement {
         <Divider />
         <TierBar tier={tier} focus={focus} view={view} />
         {showHelp ? <HelpOverlay /> : null}
-      </Box>
+      </Screen>
     </ThemeProvider>
   )
 }
