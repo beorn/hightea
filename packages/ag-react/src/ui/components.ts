@@ -245,6 +245,17 @@ export type { TextRevealProps } from "./components/TextReveal"
 export { TimeToFirstDraw } from "./components/TimeToFirstDraw"
 export type { TimeToFirstDrawProps } from "./components/TimeToFirstDraw"
 
+// RadioGroup — mutually-exclusive option group
+export { RadioGroup } from "./components/RadioGroup"
+export type { RadioGroupProps, RadioGroupOption } from "./components/RadioGroup"
+
+// Aliases for ACP-aligned naming. Identical components today; future
+// variants may diverge if the call site needs distinct semantics.
+export { Badge as Tag } from "./components/Badge"
+export type { BadgeProps as TagProps } from "./components/Badge"
+export { Toggle as Switch } from "./components/Toggle"
+export type { ToggleProps as SwitchProps } from "./components/Toggle"
+
 // =============================================================================
 // Position Registry (2D Grid Virtualization)
 // =============================================================================

@@ -329,6 +329,20 @@ export type { TextRevealProps } from "./ui/components"
 export { TimeToFirstDraw } from "./ui/components"
 export type { TimeToFirstDrawProps } from "./ui/components"
 
+// RadioGroup — mutually-exclusive option group
+export { RadioGroup } from "./ui/components"
+export type { RadioGroupProps, RadioGroupOption } from "./ui/components"
+
+// Naming aliases to align with ACP-side vocabulary used by silvercode.
+// Tag / Switch are 1:1 re-exports of Badge / Toggle. HoverCard would
+// alias the Popover primitive, but Popover today is a Provider+hooks
+// shape (no standalone component) — defer the alias until a richer
+// HoverCard wrapper lands.
+export { Tag } from "./ui/components"
+export type { TagProps } from "./ui/components"
+export { Switch } from "./ui/components"
+export type { SwitchProps } from "./ui/components"
+
 // Image Component
 export { Image } from "./ui/image/index"
 export type { ImageProps } from "./ui/image/index"
