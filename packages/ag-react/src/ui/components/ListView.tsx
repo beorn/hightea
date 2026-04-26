@@ -41,6 +41,7 @@ import React, {
   useState,
 } from "react"
 import { sumHeights, useVirtualizer } from "../../hooks/useVirtualizer"
+import { makeMeasureKey } from "../../hooks/useVirtualizer"
 import { useScrollState } from "../../hooks/useScrollState"
 import { useInput } from "../../hooks/useInput"
 import { Box, type BoxHandle } from "../../components/Box"
@@ -48,6 +49,7 @@ import { Text } from "../../components/Text"
 import type { AgNode } from "@silvery/ag/types"
 import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
 import { renderStringSync } from "../../render-string"
+import { createHeightModel, type HeightModel } from "./list-view/height-model"
 import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
 import type { HistoryBuffer } from "@silvery/ag-term/history-buffer"
 import { createListDocument } from "@silvery/ag-term/list-document"
@@ -1340,6 +1342,76 @@ function ListViewInner<T>(
     viewportWidth: viewportSize?.w,
   })
 
+  // ── HeightModel — canonical height-math source ────────────────────
+  //
+  // Phase 2 of `km-silvery.listview-heightmodel-unify`: replaces the
+  // ad-hoc `sumHeights()` callsites + `totalRowsMeasured` /
+  // `rowsAboveViewport` / `indexLeadingSpacer` / `indexTrailingSpacer`
+  // triplets with a Fenwick-backed prefix-sum tree. The model's
+  // `effective height per index` mirrors `sumHeights` semantics —
+  // measured-when-available, otherwise avgMeasured fallback (when any
+  // measurements exist), otherwise the original estimate. Encoding the
+  // fallback in the estimate keeps the model itself a thin
+  // O(log n)-prefix-sum primitive while preserving the user-visible
+  // behaviour shipped in earlier ListView fixes (Stream J / Stream O).
+  //
+  // The model is allocated once and reconfigured per render via
+  // `update({...})`. A reconfigure rebuilds the Fenwick tree (O(n log n))
+  // — for typical list sizes (n ≤ 200) this is ~1500 ops, dwarfed by
+  // React render cost. Prefix-sum queries are O(log n) thereafter.
+  const heightModelRef = useRef<HeightModel | null>(null)
+  if (heightModelRef.current === null) {
+    heightModelRef.current = createHeightModel({
+      itemCount: 0,
+      estimate: () => 1,
+      gap: 0,
+    })
+  }
+  const heightModel = heightModelRef.current
+
+  // Average measured height — used as a fallback for unmeasured items
+  // when ANY measurements exist (mirrors `sumHeights` semantics; without
+  // this fallback, leading/trailing placeholders overshoot when the
+  // original estimate diverges from actual heights). When no
+  // measurements have arrived yet, this is undefined and we fall back to
+  // the original estimate.
+  let avgMeasuredHeight: number | undefined
+  if (measuredHeights.size > 0) {
+    let total = 0
+    for (const h of measuredHeights.values()) total += h
+    avgMeasuredHeight = total / measuredHeights.size
+  }
+
+  // Build the effective-height estimator. This mirrors the per-item
+  // resolution that `sumHeights` performs internally: measured cache
+  // first (keyed by `(itemKey, viewportWidth)`), avgMeasured fallback,
+  // then estimate. Captured by HeightModel via `update({estimate})` —
+  // the Fenwick tree rebuild reads each index through this function.
+  const effectiveEstimate = (index: number): number => {
+    if (measuredHeights.size > 0) {
+      const baseKey = wrappedGetKey ? wrappedGetKey(index) : index
+      const cacheKey = makeMeasureKey(baseKey, viewportSize?.w)
+      const measured = measuredHeights.get(cacheKey)
+      if (measured !== undefined) return measured
+      if (avgMeasuredHeight !== undefined) return avgMeasuredHeight
+    }
+    return typeof adjustedEstimateHeight === "function"
+      ? adjustedEstimateHeight(index)
+      : adjustedEstimateHeight
+  }
+
+  // Reconfigure the model for this render. Estimate-identity changes
+  // every render (it closes over the live `measuredHeights` map), which
+  // forces a Fenwick rebuild — that's the price of single-source-of-truth
+  // height math. For n ≤ 200 the cost is negligible; for larger lists
+  // the rebuild can be amortised by switching to `setMeasured` deltas
+  // tracked across renders, deferred to Phase 3 if profiling shows it.
+  heightModel.update({
+    itemCount: activeItems.length,
+    gap,
+    estimate: effectiveEstimate,
+  })
+
   // ── Viewport-anchored windowing (height-independent / "index" mode) ──
   //
   // Anchor to viewport first, cursor second. Layout-phase publishes
@@ -1433,18 +1505,14 @@ function ListViewInner<T>(
     const rowsForRange = (s: number, e: number): number => {
       if (e <= s) return 0
       // Cheap approximation: use measured heights if any have been
-      // captured for the cache, otherwise estimate. Avoids a full
-      // sumHeights call inside the budget loop.
+      // captured for the cache, otherwise estimate. Avoids the full
+      // prefix-sum query inside the budget loop.
       if (measuredHeights.size === 0) return (e - s) * safeEstHeight
-      return sumHeights(
-        s,
-        e,
-        adjustedEstimateHeight,
-        gap,
-        measuredHeights,
-        wrappedGetKey,
-        viewportSize?.w,
-      )
+      // Phase 2: query HeightModel — O(log n) prefix difference matches
+      // the prior `sumHeights(s, e, …)` semantics (measured /
+      // avgMeasured / estimate per index, plus (count-1) inter-item gap).
+      const m = e - s
+      return heightModel.prefixSum(e) - heightModel.prefixSum(s) + Math.max(0, m - 1) * gap
     }
 
     // Shrink the window from BOTH ends until both budgets are satisfied.
@@ -1505,29 +1573,34 @@ function ListViewInner<T>(
 
   // Spacer heights for "index" mode — preserve scroll extent so
   // scrollbar / scroll-position math sees the full virtual list height,
-  // not just the rendered window. Use measured heights when available;
-  // fall back to estimate × count for the un-measured prefix/suffix.
+  // not just the rendered window. HeightModel encodes the per-index
+  // effective height (measured / avgMeasured / estimate) and gives us
+  // O(log n) prefix sums; spacer math becomes two prefix queries.
+  //
+  // Phase 2 (`km-silvery.listview-heightmodel-unify`) — formerly two
+  // `sumHeights(s, e, …)` calls; the model now owns this math.
+  //
+  // Gap accounting matches `sumHeights(s, e)`: for a contiguous range
+  // [s, e) of m=e-s items the gap contribution is max(0, m-1)*gap
+  // (gaps between items in the range; cross-boundary gaps to neighbours
+  // outside the range are NOT counted — that mirrors the rendered
+  // layout, which inserts a gap-Box only between visible items, never
+  // between the spacer and the first visible item).
+  //
+  //   sumHeights(0, start) = prefixSum(start) + max(0, start-1)*gap
+  //   sumHeights(end, n)   = (totalRows - prefixSum(end) - (n-1)*gap)
+  //                          + max(0, n-end-1)*gap
+  //                        = (sum of heights[end..n)) + (n-end-1)*gap
+  const totalGapAccount = Math.max(0, activeItems.length - 1) * gap
   const indexLeadingSpacer = usingIndexWindow
-    ? sumHeights(
-        0,
-        indexWindowStart,
-        adjustedEstimateHeight,
-        gap,
-        measuredHeights,
-        wrappedGetKey,
-        viewportSize?.w,
-      )
+    ? heightModel.prefixSum(indexWindowStart) +
+      Math.max(0, indexWindowStart - 1) * gap
     : 0
   const indexTrailingSpacer = usingIndexWindow
-    ? sumHeights(
-        indexWindowEnd,
-        activeItems.length,
-        adjustedEstimateHeight,
-        gap,
-        measuredHeights,
-        wrappedGetKey,
-        viewportSize?.w,
-      )
+    ? heightModel.totalRows() -
+      heightModel.prefixSum(indexWindowEnd) -
+      totalGapAccount +
+      Math.max(0, activeItems.length - indexWindowEnd - 1) * gap
     : 0
 
   // Effective values used by the render path. In "measured" mode (pixel),
@@ -1800,6 +1873,12 @@ function ListViewInner<T>(
   if (resolvedVirtualization === "measured" && process?.env?.SILVERY_STRICT) {
     const strict = process.env.SILVERY_STRICT
     const shouldThrow = strict === "2"
+    // Phase 2 (`km-silvery.listview-heightmodel-unify`) keeps `sumHeights`
+    // here intentionally — it's an INDEPENDENT computation against which
+    // the virtualizer's `leadingHeight` is cross-checked. Replacing it
+    // with HeightModel would make this a self-consistency tautology
+    // (HeightModel and the virtualizer's leadingHeight share the same
+    // `effectiveEstimate` resolution at runtime).
     const expectedLeading = sumHeights(
       0,
       range.startIndex,
@@ -1880,10 +1959,9 @@ function ListViewInner<T>(
   const totalRowsStable = Math.max(1, activeItems.length * (estimateAsNumber + gap))
   // Accurate rows-above-viewport for THUMB POSITION: uses measurement cache
   // (items that have scrolled past are always measured → stable in use).
-  const totalRowsMeasured = Math.max(
-    1,
-    sumHeights(0, activeItems.length, adjustedEstimateHeight, gap, measuredHeights, wrappedGetKey),
-  )
+  // HeightModel encodes the same `effectiveEstimate` resolution that
+  // `sumHeights(0, n, …)` performed pre-Phase-2, so this is identity.
+  const totalRowsMeasured = Math.max(1, heightModel.totalRows())
   const totalRows = totalRowsMeasured
   // Overflow detection for the scrollbar VISIBILITY GATE: take the maximum
   // of estimate-based and measurement-based totals. Estimate alone misses
@@ -1982,16 +2060,11 @@ function ListViewInner<T>(
   // uses for scrollbar position. `leadingHeight` from the virtualizer is
   // `sumHeights(0, startIndex)` where startIndex = scrollOffset − overscan,
   // so it underestimates "rows above viewport" by the overscan window and
-  // lags the thumb behind the content. Use `scrollOffset` (viewport-top
-  // item index) + sumHeights directly.
-  const rowsAboveViewport = sumHeights(
-    0,
-    scrollOffset,
-    adjustedEstimateHeight,
-    gap,
-    measuredHeights,
-    wrappedGetKey,
-  )
+  // lags the thumb behind the content. Query HeightModel directly — same
+  // semantics as the prior `sumHeights(0, scrollOffset, …)` (measured /
+  // avgMeasured / estimate per index, plus inter-item gap accounting).
+  const rowsAboveViewport =
+    heightModel.prefixSum(scrollOffset) + Math.max(0, scrollOffset - 1) * gap
   // Thumb size uses `totalRowsStable` (estimate-based) for jitter-free
   // sizing — see TanStack-convention rationale above. The visibility gate,
   // however, is driven by `totalRowsForOverflow` (max of estimate +
