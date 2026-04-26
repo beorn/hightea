@@ -172,6 +172,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
       borderStyle="single"
       borderColor="$border-default"
       overflow="scroll"
+      overflowIndicator
       scrollOffset={scrollOffset}
       onWheel={onWheel}
     >
@@ -234,7 +235,12 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
               title="Deprecated API"
               body="useInput(...) deprecated — migrate to useKey"
             />
-            <AlertBox variant="success" icon="✓" title="Tests passed" body="143 specs green in 2.4s" />
+            <AlertBox
+              variant="success"
+              icon="✓"
+              title="Tests passed"
+              body="143 specs green in 2.4s"
+            />
             <AlertBox variant="info" icon="ℹ" title="Tip" body="Press ? for keyboard shortcuts" />
             <AlertBox
               variant="accent"

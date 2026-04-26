@@ -129,6 +129,7 @@ export function TokenTree({
       borderStyle="single"
       borderColor={focused ? "$fg-accent" : "$border-default"}
       overflow="scroll"
+      overflowIndicator
     >
       <Box paddingX={1} gap={1}>
         <Text bold color="$fg-accent">

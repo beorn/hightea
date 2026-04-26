@@ -233,6 +233,7 @@ export function SchemeAuthor({
       borderStyle="single"
       borderColor="$fg-accent"
       overflow="scroll"
+      overflowIndicator
     >
       <Box paddingX={1} gap={1}>
         <Text bold color="$fg-accent">
