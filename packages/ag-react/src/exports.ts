@@ -548,6 +548,13 @@ export type { ModifierState, UseModifierKeysOptions } from "./hooks/useModifierK
 export { useMouseCursor } from "./hooks/useMouseCursor"
 
 export { useTerm, shallow } from "./hooks/useTerm"
+export {
+  useResponsiveValue,
+  DEFAULT_BREAKPOINTS,
+  type Breakpoint,
+  type ResponsiveValues,
+  type UseResponsiveValueOptions,
+} from "./hooks/useResponsiveValue"
 export { useWindowSize } from "./hooks/useWindowSize"
 export { useHover } from "./hooks/useHover"
 export type { UseHoverReturn } from "./hooks/useHover"
