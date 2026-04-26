@@ -572,11 +572,7 @@ function ListViewInner<T>(
   // height-independent mode and "measured" for pixel mode.
   const resolvedVirtualization: VirtualizationStrategy =
     virtualizationProp ??
-    (items.length <= virtualizationThreshold
-      ? "none"
-      : isHeightIndependent
-        ? "index"
-        : "measured")
+    (items.length <= virtualizationThreshold ? "none" : isHeightIndependent ? "index" : "measured")
 
   // ── Term context for cache capture width ─────────────────────────
   const term = useContext(TermContext)
@@ -706,11 +702,14 @@ function ListViewInner<T>(
   }, [])
 
   // Cleanup on unmount.
-  useEffect(() => () => {
-    stopKinetic()
-    clearReleaseTimer()
-    if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
-  }, [stopKinetic, clearReleaseTimer])
+  useEffect(
+    () => () => {
+      stopKinetic()
+      clearReleaseTimer()
+      if (scrollbarHideTimerRef.current !== null) clearTimeout(scrollbarHideTimerRef.current)
+    },
+    [stopKinetic, clearReleaseTimer],
+  )
 
   // Low-level cursor update — does NOT touch wheel/scroll state. Used by
   // the hover path (where content scrolling under a stationary mouse
@@ -979,10 +978,7 @@ function ListViewInner<T>(
         } else if (cursorIdx <= 0) {
           scrollRowFloatRef.current = 0
         } else {
-          scrollRowFloatRef.current = Math.max(
-            0,
-            Math.min(maxRow, rowsAboveViewportRef.current),
-          )
+          scrollRowFloatRef.current = Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
         }
       }
       lastWheelTimeRef.current = now
@@ -1008,10 +1004,7 @@ function ListViewInner<T>(
         consecOppRef.current = 0
       } else {
         // Opposite direction.
-        if (
-          consecSameRef.current >= SUSTAINED_SCROLL_THRESHOLD &&
-          consecOppRef.current === 0
-        ) {
+        if (consecSameRef.current >= SUSTAINED_SCROLL_THRESHOLD && consecOppRef.current === 0) {
           // First lone opposite during sustained scroll — noise. Drop
           // entirely: no displacement, no buffer contribution, no
           // scrollbar pulse, no edge-bump flash.
@@ -1310,9 +1303,7 @@ function ListViewInner<T>(
   // viewport height that's "tall enough" to cover the index window so the
   // virtualizer's bookkeeping doesn't think nothing fits.
   const virtualizerEstimateAsNumber =
-    typeof adjustedEstimateHeight === "number"
-      ? adjustedEstimateHeight
-      : adjustedEstimateHeight(0)
+    typeof adjustedEstimateHeight === "number" ? adjustedEstimateHeight : adjustedEstimateHeight(0)
   const syntheticViewportHeight =
     (overscan * 2 + 1) * (Math.max(1, virtualizerEstimateAsNumber) + gap)
   const virtualizerViewportHeight = isHeightIndependent
@@ -1382,9 +1373,7 @@ function ListViewInner<T>(
   let indexWindowStart: number
   let indexWindowEnd: number
   const indexEstAsNumber =
-    typeof adjustedEstimateHeight === "number"
-      ? adjustedEstimateHeight
-      : adjustedEstimateHeight(0)
+    typeof adjustedEstimateHeight === "number" ? adjustedEstimateHeight : adjustedEstimateHeight(0)
   const safeEstHeight = Math.max(1, indexEstAsNumber)
 
   if (resolvedVirtualization === "index") {
@@ -1461,8 +1450,7 @@ function ListViewInner<T>(
     // Shrink the window from BOTH ends until both budgets are satisfied.
     // Shrink toward the anchor so we keep items closest to the visible
     // viewport. The cursor must remain inside the window.
-    const cursorInWindow = (s: number, e: number): boolean =>
-      cursorAnchor >= s && cursorAnchor < e
+    const cursorInWindow = (s: number, e: number): boolean => cursorAnchor >= s && cursorAnchor < e
 
     while (end - start > budgetItem || rowsForRange(start, end) > budgetRow) {
       if (end - start <= 1) break
@@ -1848,11 +1836,7 @@ function ListViewInner<T>(
   const isSelectedInSlice = selectedIndexInSlice >= 0 && selectedIndexInSlice < visibleItems.length
   const scrollToIndex = hasTopPlaceholder ? selectedIndexInSlice + 1 : selectedIndexInSlice
   const boxScrollTo =
-    scrollRow !== null
-      ? undefined
-      : isSelectedInSlice
-        ? Math.max(0, scrollToIndex)
-        : undefined
+    scrollRow !== null ? undefined : isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
 
   // Scrollbar geometry — indexed on ROW (vertical position), not item#.
   // Item-indexed thumb jumps erratically when item heights vary, because
@@ -1892,21 +1876,13 @@ function ListViewInner<T>(
   // `estimateAsNumber` folds function-estimates into an average by sampling
   // index 0; for uniform-height lists this is exact, and for variable-height
   // the thumb is mildly imprecise in size but doesn't jitter.
-  const estimateAsNumber =
-    typeof estimateHeight === "number" ? estimateHeight : estimateHeight(0)
+  const estimateAsNumber = typeof estimateHeight === "number" ? estimateHeight : estimateHeight(0)
   const totalRowsStable = Math.max(1, activeItems.length * (estimateAsNumber + gap))
   // Accurate rows-above-viewport for THUMB POSITION: uses measurement cache
   // (items that have scrolled past are always measured → stable in use).
   const totalRowsMeasured = Math.max(
     1,
-    sumHeights(
-      0,
-      activeItems.length,
-      adjustedEstimateHeight,
-      gap,
-      measuredHeights,
-      wrappedGetKey,
-    ),
+    sumHeights(0, activeItems.length, adjustedEstimateHeight, gap, measuredHeights, wrappedGetKey),
   )
   const totalRows = totalRowsMeasured
   // Overflow detection for the scrollbar VISIBILITY GATE: take the maximum
@@ -1965,8 +1941,7 @@ function ListViewInner<T>(
     // against maxScrollRow with a 1-row tolerance for sub-row drift.
     const maxRow = maxScrollRowRef.current
     const lastIdx = activeItems.length - 1
-    const atBottomCursor =
-      scrollRow === null && (!nav || activeCursor >= lastIdx)
+    const atBottomCursor = scrollRow === null && (!nav || activeCursor >= lastIdx)
     const atBottomScroll = scrollRow !== null && scrollRow >= maxRow - 0.5
     const atBottom = atBottomCursor || atBottomScroll
 
@@ -2032,17 +2007,32 @@ function ListViewInner<T>(
       )
     : 0
   // SCROLL CAP — `scrollRow` is clamped to [0, scrollableRows] in wheel +
-  // momentum + keyboard handlers. Use the same `max(estimate, measured)`
-  // total as the visibility gate (Stream J). Estimate alone underestimates
-  // total content rows when items are taller than `estimateHeight`
-  // (silvercode shape: multi-line AssistantBlocks with default estimate=1).
-  // Measured alone is fine in steady state but `max(…)` keeps the cap
-  // honest the moment measurements arrive even before the avgMeasured
-  // fallback for unmeasured items has settled. Floor at 0 (not 1) so when
-  // content fits the viewport, `maxRow = 0` and `handleWheel` /
-  // `enterMomentum` early-return — no spurious overscroll bump on a list
-  // whose content fits.
-  const scrollableRows = Math.max(0, totalRowsForOverflow - trackHeight)
+  // momentum + keyboard handlers. Uses `totalRowsMeasured` directly (NOT
+  // `max(stable, measured)` — that's the visibility gate's job).
+  //
+  // The visibility gate (`totalRowsForOverflow = max(stable, measured)`)
+  // and the scroll cap have inverse failure modes:
+  //
+  // - Visibility gate: a false negative is BAD — scrollbar disappears even
+  //   though content overflows. Stream J fixed this by taking the max of
+  //   stable + measured so the gate is conservative-toward-overflowing.
+  //
+  // - Scroll cap: a TOO-GENEROUS cap is BAD — user wheel-scrolls past the
+  //   actual content end and the viewport renders an empty row window past
+  //   the last item (silvercode --resume with a long system prompt: tall
+  //   first item drives `avgMeasured` up, every unmeasured item below the
+  //   viewport gets that high fallback, `totalRowsMeasured` overshoots
+  //   actual content by 3-5×; combined with `max(stable, measured)`,
+  //   `scrollableRows` runs many times past content end → blank viewport).
+  //   A briefly-tight cap during initial measurement ramp-up is a minor
+  //   cosmetic issue; an overshoot into empty space is severe.
+  //
+  // Floor at 0 (not 1) so when content fits, `maxRow = 0` and
+  // `handleWheel` / `enterMomentum` early-return — no spurious overscroll
+  // bump on a list whose content fits.
+  //
+  // Bead: km-silvery.listview-scroll-overshoot (regression from 8c63cfb9).
+  const scrollableRows = Math.max(0, totalRowsMeasured - trackHeight)
   const trackRemainder = trackHeight - thumbHeight
   // When the user is wheel-driving, derive thumb from our own `scrollRow`
   // (exact row offset). Otherwise use the virtualizer's measurement-based
@@ -2065,8 +2055,7 @@ function ListViewInner<T>(
   // (flex) modes. In flex mode `trackHeight` comes from the inner Box's
   // measured rect (via `viewportSize.h`), so until first layout we don't
   // render anything (thumbHeight ≥ trackHeight short-circuits below).
-  const showScrollbar =
-    isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
+  const showScrollbar = isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
 
   // Outer wrapper + inner scroll container.
   //
@@ -2085,229 +2074,224 @@ function ListViewInner<T>(
 
   return (
     <Box position="relative" flexDirection="column" {...outerSizing} width={width}>
-    <Box
-      ref={boxHandleRef}
-      flexDirection="column"
-      {...innerSizing}
-      width={width}
-      overflow="scroll"
-      scrollTo={boxScrollTo}
-      scrollOffset={scrollRow ?? undefined}
-      overflowIndicator={overflowIndicator}
-      onWheel={onWheel}
-      onLayout={handleContainerLayout}
-    >
-      {/* Leading placeholder for virtual height.
+      <Box
+        ref={boxHandleRef}
+        flexDirection="column"
+        {...innerSizing}
+        width={width}
+        overflow="scroll"
+        scrollTo={boxScrollTo}
+        scrollOffset={scrollRow ?? undefined}
+        overflowIndicator={overflowIndicator}
+        onWheel={onWheel}
+        onLayout={handleContainerLayout}
+      >
+        {/* Leading placeholder for virtual height.
+         *
+         * `representsItems` tells the parent scroll container that this one
+         * placeholder Box stands in for `hiddenBefore` (= startIndex) logical
+         * items — so when it's fully scrolled above the viewport, the parent's
+         * `hiddenAbove` is incremented by that count (→ `▲N` shows real items).
+         * Without this, the ▲N indicator would always say `1` while many items
+         * are actually above the render window. */}
+        {effectiveLeadingHeight > 0 && (
+          <Box
+            height={effectiveLeadingHeight}
+            flexShrink={0}
+            representsItems={effectiveHiddenBefore}
+          />
+        )}
+
+        {/* Render visible items with height measurement */}
+        {visibleItems.map((item, i) => {
+          const originalIndex = startIndex + i + unmountedCount
+          const key = getKey ? getKey(item, originalIndex) : startIndex + i
+          const isLast = i === visibleItems.length - 1
+          // Search-match metadata — computed per visible item (bounded by
+          // maxRendered, typically < 100) so centralising the algorithm here
+          // costs nothing vs the consumer re-scanning in renderItem. When
+          // search is not configured (`getText` unset) or there's no active
+          // query, both fields collapse to empty and the consumer renders
+          // plainly. See ListItemMeta docstring for per-segment usage.
+          const itemMatchRanges: readonly MatchRange[] =
+            activeSearchQuery !== "" && getText
+              ? computeMatchRanges(getText(item), activeSearchQuery)
+              : EMPTY_MATCH_RANGES
+          const meta: ListItemMeta = {
+            isCursor: originalIndex === activeCursor,
+            searchQuery: activeSearchQuery,
+            matchRanges: itemMatchRanges,
+          }
+          // Use wrappedGetKey (index within activeItems) for measurement cache
+          const measureKey = wrappedGetKey ? wrappedGetKey(startIndex + i) : startIndex + i
+
+          // In nav mode, wrap each item with hover/click handlers so that
+          // hovering moves the keyboard cursor and clicking confirms the
+          // selection. The wrapper is always added when nav is on and active
+          // — previously it was only added when the app provided
+          // onItemHover/onItemClick explicitly, which meant hover silently
+          // did nothing for apps that wanted the defaults.
+          const rendered = renderItem(item, originalIndex, meta)
+          const itemNode =
+            nav && active !== false ? (
+              <Box
+                onMouseEnter={
+                  onItemHover
+                    ? () => onItemHover(originalIndex)
+                    : // Hover updates the cursor but does NOT reset
+                      // wheel/scroll state. Otherwise, content scrolling
+                      // under a stationary mouse would fire onMouseEnter
+                      // on each newly-revealed item, each call would
+                      // clobber the in-flight scroll anchor, and the next
+                      // wheel event would re-seed from the (now stale)
+                      // virtualizer position — manifesting as a sudden
+                      // 30+ row jump after a brief pause mid-flick.
+                      () => setCursorSilently(originalIndex)
+                }
+                onClick={
+                  onItemClick
+                    ? () => onItemClick(originalIndex)
+                    : () => {
+                        moveTo(originalIndex)
+                        onSelect?.(originalIndex)
+                      }
+                }
+              >
+                {rendered}
+              </Box>
+            ) : (
+              rendered
+            )
+
+          return (
+            <React.Fragment key={key}>
+              <MeasuredItem itemKey={measureKey} measureItem={measureItem}>
+                {itemNode}
+              </MeasuredItem>
+              {!isLast && renderSeparator && renderSeparator()}
+              {!isLast && gap > 0 && !renderSeparator && <Box height={gap} flexShrink={0} />}
+            </React.Fragment>
+          )
+        })}
+
+        {/* Footer content (e.g., filter hidden count) */}
+        {listFooter}
+
+        {/* Trailing placeholder for virtual height.
+         *
+         * See leading placeholder above for why `representsItems` is set — the
+         * trailing version covers `hiddenAfter` (= count - endIndex) items that
+         * are beyond the render window on the bottom side. */}
+        {effectiveTrailingHeight > 0 && (
+          <Box
+            height={effectiveTrailingHeight}
+            flexShrink={0}
+            representsItems={effectiveHiddenAfter}
+          />
+        )}
+      </Box>
+      {/* Scrollbar overlay — absolute-positioned on the right edge so it
+       * doesn't steal a column from content. Track is implicit (transparent);
+       * only the thumb draws. The thumb renders via eighth-block Unicode
+       * glyphs so its vertical position slides at 1/8-row precision even when
+       * the content viewport (row-integer) hasn't advanced.
        *
-       * `representsItems` tells the parent scroll container that this one
-       * placeholder Box stands in for `hiddenBefore` (= startIndex) logical
-       * items — so when it's fully scrolled above the viewport, the parent's
-       * `hiddenAbove` is incremented by that count (→ `▲N` shows real items).
-       * Without this, the ▲N indicator would always say `1` while many items
-       * are actually above the render window. */}
-      {effectiveLeadingHeight > 0 && (
-        <Box
-          height={effectiveLeadingHeight}
-          flexShrink={0}
-          representsItems={effectiveHiddenBefore}
-        />
-      )}
-
-      {/* Render visible items with height measurement */}
-      {visibleItems.map((item, i) => {
-        const originalIndex = startIndex + i + unmountedCount
-        const key = getKey ? getKey(item, originalIndex) : startIndex + i
-        const isLast = i === visibleItems.length - 1
-        // Search-match metadata — computed per visible item (bounded by
-        // maxRendered, typically < 100) so centralising the algorithm here
-        // costs nothing vs the consumer re-scanning in renderItem. When
-        // search is not configured (`getText` unset) or there's no active
-        // query, both fields collapse to empty and the consumer renders
-        // plainly. See ListItemMeta docstring for per-segment usage.
-        const itemMatchRanges: readonly MatchRange[] =
-          activeSearchQuery !== "" && getText
-            ? computeMatchRanges(getText(item), activeSearchQuery)
-            : EMPTY_MATCH_RANGES
-        const meta: ListItemMeta = {
-          isCursor: originalIndex === activeCursor,
-          searchQuery: activeSearchQuery,
-          matchRanges: itemMatchRanges,
-        }
-        // Use wrappedGetKey (index within activeItems) for measurement cache
-        const measureKey = wrappedGetKey ? wrappedGetKey(startIndex + i) : startIndex + i
-
-        // In nav mode, wrap each item with hover/click handlers so that
-        // hovering moves the keyboard cursor and clicking confirms the
-        // selection. The wrapper is always added when nav is on and active
-        // — previously it was only added when the app provided
-        // onItemHover/onItemClick explicitly, which meant hover silently
-        // did nothing for apps that wanted the defaults.
-        const rendered = renderItem(item, originalIndex, meta)
-        const itemNode =
-          nav && active !== false ? (
-            <Box
-              onMouseEnter={
-                onItemHover
-                  ? () => onItemHover(originalIndex)
-                  : // Hover updates the cursor but does NOT reset
-                    // wheel/scroll state. Otherwise, content scrolling
-                    // under a stationary mouse would fire onMouseEnter
-                    // on each newly-revealed item, each call would
-                    // clobber the in-flight scroll anchor, and the next
-                    // wheel event would re-seed from the (now stale)
-                    // virtualizer position — manifesting as a sudden
-                    // 30+ row jump after a brief pause mid-flick.
-                    () => setCursorSilently(originalIndex)
-              }
-              onClick={
-                onItemClick
-                  ? () => onItemClick(originalIndex)
-                  : () => {
-                      moveTo(originalIndex)
-                      onSelect?.(originalIndex)
-                    }
-              }
-            >
-              {rendered}
+       * Corner stops are short horizontal bracket lines extending LEFT from
+       * the scrollbar column at the top and bottom of the track — a visual
+       * cue where the track ends, appearing/hiding with the same auto-hide
+       * timer as the thumb. */}
+      {showScrollbar &&
+        (() => {
+          // Snap near-1 frac to exactly 1 so the thumb reaches the track end.
+          // The setScrollbarFrac threshold (Math.abs < 0.001) can leave frac at
+          // 0.9999… which then propagates through the float math as a thumb
+          // that's 0.008 rows short of the track bottom — visible as a 1-cell
+          // gap because the fractional-bottom branch renders a partial block
+          // instead of "█".
+          const frac = scrollbarFrac > 0.999 ? 1 : scrollbarFrac < 0.001 ? 0 : scrollbarFrac
+          const thumbTopFloat = frac * trackRemainder
+          const thumbBottomFloat = thumbTopFloat + thumbHeight
+          const firstRow = Math.floor(thumbTopFloat)
+          const lastRow = Math.min(trackHeight - 1, Math.ceil(thumbBottomFloat) - 1)
+          const EIGHTHS = "▁▂▃▄▅▆▇█"
+          // Epsilon compare for fractional edges — a floating-point near-equal
+          // shouldn't render a partial glyph.
+          const EPS = 0.001
+          const rows: React.ReactNode[] = []
+          for (let r = firstRow; r <= lastRow; r++) {
+            const isFirst = r === firstRow
+            const isLast = r === lastRow
+            const fractionalTop = isFirst && Math.abs(thumbTopFloat - firstRow) > EPS
+            const fractionalBottom = isLast && Math.abs(thumbBottomFloat - (lastRow + 1)) > EPS
+            if (fractionalTop) {
+              // Portion of this cell filled (from the bottom). Use lower-N-eighths
+              // glyphs which paint a bar rising from the bottom of the cell.
+              const portion = 1 - (thumbTopFloat - firstRow)
+              const idx = Math.max(0, Math.round(portion * 8) - 1)
+              const glyph = EIGHTHS[idx]!
+              rows.push(
+                <Text key={r} color="$muted">
+                  {glyph}
+                </Text>,
+              )
+            } else if (fractionalBottom) {
+              // Portion of this cell filled (from the top). The lower-N-eighths
+              // glyph family only fills from the bottom, so we invert: render a
+              // lower-(8-N) glyph with swapped colors — track below the thumb,
+              // thumb above.
+              const portion = thumbBottomFloat - lastRow
+              const idx = Math.max(0, Math.round((1 - portion) * 8) - 1)
+              const glyph = EIGHTHS[idx]!
+              rows.push(
+                <Text key={r} color="$bg" backgroundColor="$muted">
+                  {glyph}
+                </Text>,
+              )
+            } else {
+              // Fully-filled thumb row.
+              rows.push(
+                <Text key={r} color="$muted" backgroundColor="$muted">
+                  █
+                </Text>,
+              )
+            }
+          }
+          // Edge-bump indicator — a transient cue that fires only when a
+          // scroll attempt was clamped at a boundary. Renders as a thin
+          // full-width line at the TOP edge of the first visible row (top
+          // bump) or the BOTTOM edge of the last visible row (bottom bump):
+          // Bar paints the full ListView width (left/right:0) using a bg-only
+          // Box — no Text child — so cell characters beneath are preserved.
+          return (
+            <Box position="absolute" top={firstRow} right={0} width={1} flexDirection="column">
+              {rows}
             </Box>
-          ) : (
-            rendered
           )
-
-        return (
-          <React.Fragment key={key}>
-            <MeasuredItem itemKey={measureKey} measureItem={measureItem}>
-              {itemNode}
-            </MeasuredItem>
-            {!isLast && renderSeparator && renderSeparator()}
-            {!isLast && gap > 0 && !renderSeparator && <Box height={gap} flexShrink={0} />}
-          </React.Fragment>
-        )
-      })}
-
-      {/* Footer content (e.g., filter hidden count) */}
-      {listFooter}
-
-      {/* Trailing placeholder for virtual height.
+        })()}
+      {/* Overscroll indicator — 10-char HALF-BLOCK in the right corner of
+       * the top or bottom row. Top uses ▀ (U+2580 UPPER HALF BLOCK,
+       * flush-top, 4/8 cell height); bottom uses ▄ (U+2584 LOWER HALF
+       * BLOCK, flush-bottom, 4/8 cell height). Half-block is the tallest
+       * symmetric edge-flush option in Unicode — there's no upper-quarter
+       * glyph, so going bigger than 1/8 means going to 1/2 directly.
+       * Color $muted matches the scrollbar thumb — same chrome vocabulary.
        *
-       * See leading placeholder above for why `representsItems` is set — the
-       * trailing version covers `hiddenAfter` (= count - endIndex) items that
-       * are beyond the render window on the bottom side. */}
-      {effectiveTrailingHeight > 0 && (
-        <Box
-          height={effectiveTrailingHeight}
-          flexShrink={0}
-          representsItems={effectiveHiddenAfter}
-        />
-      )}
-    </Box>
-    {/* Scrollbar overlay — absolute-positioned on the right edge so it
-     * doesn't steal a column from content. Track is implicit (transparent);
-     * only the thumb draws. The thumb renders via eighth-block Unicode
-     * glyphs so its vertical position slides at 1/8-row precision even when
-     * the content viewport (row-integer) hasn't advanced.
-     *
-     * Corner stops are short horizontal bracket lines extending LEFT from
-     * the scrollbar column at the top and bottom of the track — a visual
-     * cue where the track ends, appearing/hiding with the same auto-hide
-     * timer as the thumb. */}
-    {showScrollbar && (() => {
-      // Snap near-1 frac to exactly 1 so the thumb reaches the track end.
-      // The setScrollbarFrac threshold (Math.abs < 0.001) can leave frac at
-      // 0.9999… which then propagates through the float math as a thumb
-      // that's 0.008 rows short of the track bottom — visible as a 1-cell
-      // gap because the fractional-bottom branch renders a partial block
-      // instead of "█".
-      const frac = scrollbarFrac > 0.999 ? 1 : scrollbarFrac < 0.001 ? 0 : scrollbarFrac
-      const thumbTopFloat = frac * trackRemainder
-      const thumbBottomFloat = thumbTopFloat + thumbHeight
-      const firstRow = Math.floor(thumbTopFloat)
-      const lastRow = Math.min(trackHeight - 1, Math.ceil(thumbBottomFloat) - 1)
-      const EIGHTHS = "▁▂▃▄▅▆▇█"
-      // Epsilon compare for fractional edges — a floating-point near-equal
-      // shouldn't render a partial glyph.
-      const EPS = 0.001
-      const rows: React.ReactNode[] = []
-      for (let r = firstRow; r <= lastRow; r++) {
-        const isFirst = r === firstRow
-        const isLast = r === lastRow
-        const fractionalTop = isFirst && Math.abs(thumbTopFloat - firstRow) > EPS
-        const fractionalBottom = isLast && Math.abs(thumbBottomFloat - (lastRow + 1)) > EPS
-        if (fractionalTop) {
-          // Portion of this cell filled (from the bottom). Use lower-N-eighths
-          // glyphs which paint a bar rising from the bottom of the cell.
-          const portion = 1 - (thumbTopFloat - firstRow)
-          const idx = Math.max(0, Math.round(portion * 8) - 1)
-          const glyph = EIGHTHS[idx]!
-          rows.push(
-            <Text key={r} color="$muted">
-              {glyph}
-            </Text>,
-          )
-        } else if (fractionalBottom) {
-          // Portion of this cell filled (from the top). The lower-N-eighths
-          // glyph family only fills from the bottom, so we invert: render a
-          // lower-(8-N) glyph with swapped colors — track below the thumb,
-          // thumb above.
-          const portion = thumbBottomFloat - lastRow
-          const idx = Math.max(0, Math.round((1 - portion) * 8) - 1)
-          const glyph = EIGHTHS[idx]!
-          rows.push(
-            <Text key={r} color="$bg" backgroundColor="$muted">
-              {glyph}
-            </Text>,
-          )
-        } else {
-          // Fully-filled thumb row.
-          rows.push(
-            <Text key={r} color="$muted" backgroundColor="$muted">
-              █
-            </Text>,
-          )
-        }
-      }
-      // Edge-bump indicator — a transient cue that fires only when a
-      // scroll attempt was clamped at a boundary. Renders as a thin
-      // full-width line at the TOP edge of the first visible row (top
-      // bump) or the BOTTOM edge of the last visible row (bottom bump):
-      // Bar paints the full ListView width (left/right:0) using a bg-only
-      // Box — no Text child — so cell characters beneath are preserved.
-      return (
-        <Box
-          position="absolute"
-          top={firstRow}
-          right={0}
-          width={1}
-          flexDirection="column"
-        >
-          {rows}
+       * No animation — indicator appears when bumpedEdge is set and
+       * disappears when the user leaves the edge or the scrollbar-idle
+       * timer fires. The AT-EDGE RENDER GATE (effectiveRowsAbove checks)
+       * hides it the instant the user scrolls away, even if bumpedEdge is
+       * still non-null. Rendered OUTSIDE the scrollbar branch so keyboard
+       * nav (which doesn't flip isScrolling) still shows the bump. */}
+      {bumpedEdge === "top" && effectiveRowsAbove <= 0 && (
+        <Box position="absolute" top={0} right={1} flexDirection="row">
+          <Text color="$muted">▀▀▀▀▀▀▀▀▀▀</Text>
         </Box>
-      )
-    })()}
-    {/* Overscroll indicator — 10-char HALF-BLOCK in the right corner of
-      * the top or bottom row. Top uses ▀ (U+2580 UPPER HALF BLOCK,
-      * flush-top, 4/8 cell height); bottom uses ▄ (U+2584 LOWER HALF
-      * BLOCK, flush-bottom, 4/8 cell height). Half-block is the tallest
-      * symmetric edge-flush option in Unicode — there's no upper-quarter
-      * glyph, so going bigger than 1/8 means going to 1/2 directly.
-      * Color $muted matches the scrollbar thumb — same chrome vocabulary.
-      *
-      * No animation — indicator appears when bumpedEdge is set and
-      * disappears when the user leaves the edge or the scrollbar-idle
-      * timer fires. The AT-EDGE RENDER GATE (effectiveRowsAbove checks)
-      * hides it the instant the user scrolls away, even if bumpedEdge is
-      * still non-null. Rendered OUTSIDE the scrollbar branch so keyboard
-      * nav (which doesn't flip isScrolling) still shows the bump. */}
-    {bumpedEdge === "top" && effectiveRowsAbove <= 0 && (
-      <Box position="absolute" top={0} right={1} flexDirection="row">
-        <Text color="$muted">▀▀▀▀▀▀▀▀▀▀</Text>
-      </Box>
-    )}
-    {bumpedEdge === "bottom" && effectiveRowsAbove >= scrollableRows && (
-      <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
-        <Text color="$muted">▄▄▄▄▄▄▄▄▄▄</Text>
-      </Box>
-    )}
+      )}
+      {bumpedEdge === "bottom" && effectiveRowsAbove >= scrollableRows && (
+        <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
+          <Text color="$muted">▄▄▄▄▄▄▄▄▄▄</Text>
+        </Box>
+      )}
     </Box>
   )
 }
