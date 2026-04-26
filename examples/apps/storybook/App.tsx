@@ -181,22 +181,15 @@ export function App(): React.ReactElement {
       return
     }
 
-    // The gallery owns all keys when active — its own useInput handles
-    // navigation, selection, and `p` / Esc to exit. We just guard against
-    // global handlers stealing focus.
-    if (showGallery) return
-
-    // Global — always active
+    // GLOBAL keys — always active, including in gallery mode. q/Ctrl+C
+    // quits, ? opens help, 1-4/t cycle tier even from the gallery so users
+    // can re-quantize palettes mid-browse.
     if (input === "q" || (key.ctrl && input === "c")) {
       exit()
       return
     }
     if (input === "?") {
       setShowHelp(true)
-      return
-    }
-    if (input === "p") {
-      setShowGallery(true)
       return
     }
     if (input === "1") return setTier("truecolor")
@@ -208,6 +201,16 @@ export function App(): React.ReactElement {
       setTier(TIER_ORDER[(idx + 1) % TIER_ORDER.length]!)
       return
     }
+
+    // p enters gallery from the tri-pane. Gallery's own useInput owns p
+    // for the return trip (see PaletteGallery.tsx).
+    if (input === "p" && !showGallery) {
+      setShowGallery(true)
+      return
+    }
+
+    // Navigation + view toggles — gallery owns its own; tri-pane owns the rest.
+    if (showGallery) return
 
     // View mode toggles — work from any focus, any view.
     if (input === "v") return setView("components")

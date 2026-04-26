@@ -26,12 +26,18 @@ import {
   Divider,
   Kbd,
   useInput,
+  useBoxRect,
   type Key,
 } from "silvery"
 import { sterling, type SterlingTheme } from "@silvery/theme"
 import type { ColorScheme } from "@silvery/ansi"
 import { quantizeSterlingTheme } from "./shared/quantize.ts"
 import type { Tier } from "./TierBar.tsx"
+
+/** Floor below which scroll math gets weird. */
+const MIN_PAGE = 8
+/** Rows reserved for chrome (header + 2 dividers + column header + bottom divider + key legend). */
+const CHROME_ROWS = 6
 
 export interface PaletteGalleryProps {
   schemes: readonly string[]
@@ -72,10 +78,10 @@ export function PaletteGallery({
     [schemes, builtinPalettes, tier],
   )
 
-  // Display window — fixed height heuristic; real ListView would be ideal
-  // here but the tri-pane app doesn't pin row count. We pick a reasonable
-  // page size and let scroll keep cursor in view.
-  const PAGE = 24
+  // Page size derives from the gallery's measured height minus chrome —
+  // silverized (no hardcoded heights; reflows when the terminal resizes).
+  const galleryRect = useBoxRect()
+  const PAGE = Math.max(MIN_PAGE, (galleryRect?.height ?? MIN_PAGE + CHROME_ROWS) - CHROME_ROWS)
   const visibleStart = scroll
   const visibleEnd = Math.min(rows.length, scroll + PAGE)
   const visible = rows.slice(visibleStart, visibleEnd)
