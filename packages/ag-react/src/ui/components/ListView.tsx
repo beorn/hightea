@@ -1840,14 +1840,15 @@ function ListViewInner<T>(
   // offset above the first visible item — this is exactly what a browser
   // scrollbar uses, so tall items before the viewport correctly push the
   // thumb further down than short ones.
-  // Scrollbar geometry uses the explicit `height` prop. In
-  // height-independent mode the actual rendered height is decided by the
-  // parent flex container (and only known after layout) — we don't render a
-  // scrollbar overlay here. Use a synthetic non-zero `trackHeight` so the
-  // math below stays divide-safe; `showScrollbar` is hard-gated to false
-  // for the height-independent path so nothing of this geometry actually
-  // renders.
-  const trackHeight = Math.max(1, height ?? 1)
+  // Scrollbar geometry uses the explicit `height` prop in pinned-height
+  // mode, and the live measured viewport height (via the inner Box's
+  // `onLayout` → `viewportSize.h`) in height-independent (flex) mode. The
+  // measured height isn't known until first layout — until then we use 0,
+  // which makes `showScrollbar` evaluate false (thumbHeight < trackHeight
+  // collapses) so nothing renders pre-measurement.
+  const trackHeight = isHeightIndependent
+    ? Math.max(1, viewportSize?.h ?? 0)
+    : Math.max(1, height ?? 1)
   // Stable total-content height for THUMB SIZE: item count × estimate
   // (ignores the measurement cache) — TanStack Virtual / react-window
   // convention. A measurement-sum-based total would shrink/grow the thumb
@@ -1874,6 +1875,21 @@ function ListViewInner<T>(
     ),
   )
   const totalRows = totalRowsMeasured
+  // Auto-flash the scrollbar when item count grows — gives the user a
+  // brief "your relative position just shifted" cue (e.g. new chat messages
+  // arriving while reading the tail). Comparing item count rather than
+  // totalRows avoids false-positive flashes during initial measurement
+  // ramp-up where height grows as items are measured but no content was
+  // actually added. Same auto-hide timer as wheel events.
+  const prevItemCountRef = useRef(activeItems.length)
+  useEffect(() => {
+    const prev = prevItemCountRef.current
+    if (activeItems.length > prev) {
+      setIsScrolling(true)
+      scheduleScrollbarHide()
+    }
+    prevItemCountRef.current = activeItems.length
+  }, [activeItems.length, scheduleScrollbarHide])
   // Rows scrolled past the viewport top — the exact measurement a browser
   // uses for scrollbar position. `leadingHeight` from the virtualizer is
   // `sumHeights(0, startIndex)` where startIndex = scrollOffset − overscan,
@@ -1911,12 +1927,12 @@ function ListViewInner<T>(
   // unused here because showScrollbar is only true after wheel activity,
   // during which scrollbarFrac is always fresh.
   // effectiveRowsAbove is consumed below by the edge-bump render gate.
-  // Scrollbar overlay is gated on a known viewport height. In
-  // height-independent mode we skip it — the parent's flex layout owns the
-  // viewport size and a future iteration could subscribe to layout-signals
-  // for a flex-aware scrollbar.
+  // Scrollbar overlay is enabled in both pinned-height and height-independent
+  // (flex) modes. In flex mode `trackHeight` comes from the inner Box's
+  // measured rect (via `viewportSize.h`), so until first layout we don't
+  // render anything (thumbHeight ≥ trackHeight short-circuits below).
   const showScrollbar =
-    !isHeightIndependent && isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
+    isScrolling && thumbHeight > 0 && thumbHeight < trackHeight
 
   // Outer wrapper + inner scroll container.
   //
@@ -2148,18 +2164,16 @@ function ListViewInner<T>(
       * hides it the instant the user scrolls away, even if bumpedEdge is
       * still non-null. Rendered OUTSIDE the scrollbar branch so keyboard
       * nav (which doesn't flip isScrolling) still shows the bump. */}
-    {!isHeightIndependent && bumpedEdge === "top" && effectiveRowsAbove <= 0 && (
+    {bumpedEdge === "top" && effectiveRowsAbove <= 0 && (
       <Box position="absolute" top={0} right={1} flexDirection="row">
         <Text color="$muted">▀▀▀▀▀▀▀▀▀▀</Text>
       </Box>
     )}
-    {!isHeightIndependent &&
-      bumpedEdge === "bottom" &&
-      effectiveRowsAbove >= scrollableRows && (
-        <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
-          <Text color="$muted">▄▄▄▄▄▄▄▄▄▄</Text>
-        </Box>
-      )}
+    {bumpedEdge === "bottom" && effectiveRowsAbove >= scrollableRows && (
+      <Box position="absolute" top={trackHeight - 1} right={1} flexDirection="row">
+        <Text color="$muted">▄▄▄▄▄▄▄▄▄▄</Text>
+      </Box>
+    )}
     </Box>
   )
 }

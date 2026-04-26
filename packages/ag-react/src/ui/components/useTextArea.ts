@@ -331,16 +331,21 @@ export function useTextArea({
 
       // =================================================================
       // Submit
+      //
+      // Shift+Enter universally inserts a newline (not submit), regardless
+      // of submitKey — matches the standard chat-input convention. The
+      // newline path below activates for any `key.return && key.shift`
+      // even when submitKey === "enter".
       // =================================================================
-      if (submitKey === "ctrl+enter" && key.return && key.ctrl) {
+      if (submitKey === "ctrl+enter" && key.return && key.ctrl && !key.shift) {
         onSubmit?.(value)
         return
       }
-      if (submitKey === "enter" && key.return && !key.ctrl) {
+      if (submitKey === "enter" && key.return && !key.ctrl && !key.shift) {
         onSubmit?.(value)
         return
       }
-      if (submitKey === "meta+enter" && key.return && key.meta) {
+      if (submitKey === "meta+enter" && key.return && key.meta && !key.shift) {
         onSubmit?.(value)
         return
       }
