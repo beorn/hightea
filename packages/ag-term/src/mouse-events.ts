@@ -604,6 +604,12 @@ export interface MouseEventProcessorState {
   focusManager?: FocusManager
   /** Modifier state from Kitty keyboard events, merged into mouse events */
   keyboardModifiers: KeyboardModifierState
+  /** Aggregate `defaultPrevented` from the most recent click/dblclick/tripleclick
+   *  dispatch chain. Set by `processMouseEvent` on every mouseup so callers
+   *  (e.g., the runtime selection wiring) can gate auto-select on whether the
+   *  component tree consumed the click. Reset to false at the start of each
+   *  mouseup dispatch. */
+  lastClickPrevented: boolean
 }
 
 export function createMouseEventProcessor(
@@ -615,6 +621,7 @@ export function createMouseEventProcessor(
     mouseDownTarget: null,
     focusManager: options?.focusManager,
     keyboardModifiers: { super: false, hyper: false, capsLock: false, numLock: false },
+    lastClickPrevented: false,
   }
 }
 
@@ -710,6 +717,10 @@ export function processMouseEvent(
       setArmed(state.mouseDownTarget, false)
     }
 
+    // Reset aggregate at the start of every mouseup so callers reading
+    // `lastClickPrevented` after dispatch see only this dispatch's signal.
+    state.lastClickPrevented = false
+
     const event = createMouseEvent("mouseup", x, y, target, parsed, state.keyboardModifiers)
     dispatchMouseEvent(event)
 
@@ -724,13 +735,19 @@ export function processMouseEvent(
       const clickEvent = createMouseEvent("click", x, y, target, parsed, state.keyboardModifiers)
       ;(clickEvent as { detail?: 1 | 2 | 3 }).detail = count
       dispatchMouseEvent(clickEvent)
-      if (clickEvent.defaultPrevented) defaultPrevented = true
+      if (clickEvent.defaultPrevented) {
+        defaultPrevented = true
+        state.lastClickPrevented = true
+      }
 
       if (count >= 2) {
         const dblEvent = createMouseEvent("dblclick", x, y, target, parsed, state.keyboardModifiers)
         ;(dblEvent as { detail?: 1 | 2 | 3 }).detail = 2
         dispatchMouseEvent(dblEvent)
-        if (dblEvent.defaultPrevented) defaultPrevented = true
+        if (dblEvent.defaultPrevented) {
+          defaultPrevented = true
+          state.lastClickPrevented = true
+        }
       }
       if (count === 3) {
         const tripleEvent = createMouseEvent(
@@ -743,7 +760,10 @@ export function processMouseEvent(
         )
         ;(tripleEvent as { detail?: 1 | 2 | 3 }).detail = 3
         dispatchMouseEvent(tripleEvent)
-        if (tripleEvent.defaultPrevented) defaultPrevented = true
+        if (tripleEvent.defaultPrevented) {
+          defaultPrevented = true
+          state.lastClickPrevented = true
+        }
       }
     }
 

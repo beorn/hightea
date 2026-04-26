@@ -1194,6 +1194,18 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
      *  count=2 starts a word-granular drag, count=3 a line-granular drag. */
     clickCount: 1 | 2 | 3
   } | null = null
+
+  // Deferred word/line auto-select intent — captured on mouseup-from-armed
+  // (clickCount >= 2) and applied AFTER the component-tree dispatch so that
+  // a downstream onClick / onDoubleClick / onTripleClick handler that calls
+  // `event.preventDefault()` can opt out. See the gating comment in the
+  // mouseup branch below.
+  let pendingAutoSelect: {
+    col: number
+    row: number
+    scope: SelectionScope | null
+    clickCount: 2 | 3
+  } | null = null
   // Click-count tracker dedicated to selection (separate from
   // mouseEventState.doubleClick which drives onDoubleClick / onTripleClick
   // dispatch on the component tree). Updated on every mousedown so we
@@ -2480,44 +2492,30 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           // processMouseEvent unless we explicitly consume the event by
           // returning true. We keep dispatch flowing on multi-click so
           // app code can listen to onDoubleClick etc.
+          //
+          // defaultPrevented gating: we DEFER auto-select until AFTER the
+          // component-tree dispatch runs (in invokeEventHandler), so that
+          // an interactive widget that calls `event.preventDefault()` in
+          // its onClick / onDoubleClick / onTripleClick handler can opt out
+          // of the runtime's word/line selection. Without this gate, a
+          // click-to-toggle button would simultaneously toggle AND grab the
+          // word under the cursor — a UX collision. The pending intent is
+          // captured here, then resolved at the bottom of runEventHandler
+          // after `invokeEventHandler` writes `mouseEventState.lastClickPrevented`.
           if (pendingSelectionDown) {
             const anchor = pendingSelectionDown
             pendingSelectionDown = null
-            if (anchor.clickCount >= 2 && currentBuffer) {
-              const [next] = terminalSelectionUpdate(
-                anchor.clickCount === 2
-                  ? {
-                      type: "startWord",
-                      col: anchor.col,
-                      row: anchor.row,
-                      scope: anchor.scope,
-                      buffer: currentBuffer._buffer,
-                    }
-                  : {
-                      type: "startLine",
-                      col: anchor.col,
-                      row: anchor.row,
-                      scope: anchor.scope,
-                      buffer: currentBuffer._buffer,
-                    },
-                selectionState,
-              )
-              const [finished] = terminalSelectionUpdate({ type: "finish" }, next)
-              selectionState = finished
-              notifySelectionListeners()
-              // Copy via OSC 52, mirroring the drag-finish branch above.
-              if (finished.range) {
-                const text = extractText(currentBuffer._buffer, finished.range, {
-                  scope: finished.scope,
-                })
-                if (text.length > 0) {
-                  const base64 = globalThis.Buffer.from(text).toString("base64")
-                  target.write(`\x1b]52;c;${base64}\x07`)
-                }
+            if ((anchor.clickCount === 2 || anchor.clickCount === 3) && currentBuffer) {
+              pendingAutoSelect = {
+                col: anchor.col,
+                row: anchor.row,
+                scope: anchor.scope,
+                clickCount: anchor.clickCount,
               }
-              paintFrame()
               // Don't consume — let the click event reach the component
-              // tree so onDoubleClick / onTripleClick handlers fire.
+              // tree so onDoubleClick / onTripleClick handlers fire. The
+              // auto-select is applied (or skipped) below based on the
+              // dispatch's defaultPrevented signal.
             }
           }
         }
@@ -2548,7 +2546,55 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
 
     const ctx = createHandlerContext(store, focusManager, container)
-    return invokeEventHandler(event, handlers, ctx, mouseEventState, container)
+    const result = invokeEventHandler(event, handlers, ctx, mouseEventState, container)
+
+    // Apply deferred word/line auto-select gated on the component tree's
+    // defaultPrevented. Captured on mouseup-from-armed (clickCount >= 2);
+    // resolved here AFTER `invokeEventHandler` ran the click/dblclick/
+    // tripleclick dispatch and recorded `lastClickPrevented` on
+    // `mouseEventState`. Skipping when prevented avoids the UX collision
+    // where a click-to-toggle widget would also grab the word under the
+    // cursor.
+    if (pendingAutoSelect && currentBuffer) {
+      const anchor = pendingAutoSelect
+      pendingAutoSelect = null
+      if (!mouseEventState.lastClickPrevented) {
+        const [next] = terminalSelectionUpdate(
+          anchor.clickCount === 2
+            ? {
+                type: "startWord",
+                col: anchor.col,
+                row: anchor.row,
+                scope: anchor.scope,
+                buffer: currentBuffer._buffer,
+              }
+            : {
+                type: "startLine",
+                col: anchor.col,
+                row: anchor.row,
+                scope: anchor.scope,
+                buffer: currentBuffer._buffer,
+              },
+          selectionState,
+        )
+        const [finished] = terminalSelectionUpdate({ type: "finish" }, next)
+        selectionState = finished
+        notifySelectionListeners()
+        // Copy via OSC 52, mirroring the drag-finish branch above.
+        if (finished.range) {
+          const text = extractText(currentBuffer._buffer, finished.range, {
+            scope: finished.scope,
+          })
+          if (text.length > 0) {
+            const base64 = globalThis.Buffer.from(text).toString("base64")
+            target.write(`\x1b]52;c;${base64}\x07`)
+          }
+        }
+        paintFrame()
+      }
+    }
+
+    return result
   }
 
   /**
