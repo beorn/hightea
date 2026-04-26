@@ -309,10 +309,10 @@ export function App(): React.ReactElement {
 
   return (
     <ThemeProvider theme={legacyTheme}>
-      <Box flexDirection="column" height="100%" padding={0}>
+      <Box flexDirection="column" width="100%" height="100%" padding={0}>
         {header}
         <Divider />
-        <Box flexGrow={1} flexDirection="row" gap={0} overflow="hidden">
+        <Box flexGrow={1} flexDirection="row" gap={0} overflow="hidden" width="100%" minWidth={0}>
           <SchemeList
             schemes={schemes}
             selectedIndex={schemeIdx}
@@ -320,7 +320,7 @@ export function App(): React.ReactElement {
             focused={focus === "schemes"}
           />
           {middle}
-          <Box flexDirection="column" userSelect="contain">
+          <Box flexDirection="column" userSelect="contain" flexShrink={0}>
             <TokenTree
               theme={sterlingTheme}
               cursorIndex={tokenCursor}

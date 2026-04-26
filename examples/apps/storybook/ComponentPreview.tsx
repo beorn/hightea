@@ -99,7 +99,7 @@ function AlertBox({
   const bgToken = `$${variant}`
   const fgToken = `$${variant}fg` // legacy `fg-on-*` alias in @silvery/ansi
   return (
-    <Box borderStyle="single" borderColor={bgToken} paddingX={1} flexDirection="column" width={46}>
+    <Box borderStyle="single" borderColor={bgToken} paddingX={1} flexDirection="column" width={38}>
       <Box gap={1}>
         <Text color={bgToken} bold>
           {icon}
