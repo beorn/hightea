@@ -306,6 +306,8 @@ export function createOutputPhase(
         next,
         cursorPos,
         ctx,
+        tvState,
+        accState,
       )
     }
     return outputPhase(
@@ -365,6 +367,8 @@ function handleScrollbackPromotion(
   next: TerminalBuffer,
   cursorPos: CursorState | null | undefined,
   ctx: OutputContext,
+  tvState?: TerminalVerifyState,
+  accState?: AccumulateState,
 ): string {
   const { termRows } = ctx
   // 1. Move cursor to render region start
@@ -430,6 +434,30 @@ function handleScrollbackPromotion(
     state.prevCursorRow = maxOutputLines - 1
   }
   state.prevOutputLines = maxOutputLines
+
+  // Realign STRICT verification state. Scrollback promotion writes frozen
+  // content + live content as a single output, fundamentally remapping the
+  // render region — re-initialize verification with a fresh fullscreen
+  // rendering of `next` so subsequent incremental frames have a consistent
+  // baseline. (Frozen content above the live render region is "owned by the
+  // terminal" and not part of the buffer-equivalence invariant.)
+  if (tvState || accState) {
+    if ((tvState && tvState.backends.length > 0) || (accState && isStrictAccumulate())) {
+      const savedMode = ctx.mode
+      ctx.mode = "fullscreen"
+      const fsFresh = bufferToAnsi(next, ctx)
+      if (accState && isStrictAccumulate()) {
+        accState.accumulatedAnsi = fsFresh
+        accState.accumulateWidth = next.width
+        accState.accumulateHeight = next.height
+        accState.accumulateFrameCount = 0
+      }
+      if (tvState && tvState.backends.length > 0) {
+        initTerminalVerifyState(tvState, next.width, next.height, fsFresh)
+      }
+      ctx.mode = savedMode
+    }
+  }
 
   return output
 }
@@ -527,6 +555,12 @@ function wrapTextSizing(char: string, wide: boolean, ctx: OutputContext): string
   if (!wide || !outputTextSizingEnabled(ctx)) return char
   return textSized(char, 2)
 }
+
+/**
+ * Internal: exported for use by output-modes.ts (hybrid output emitters).
+ * Not part of the public API — do not use outside the pipeline.
+ */
+export const _internalWrapTextSizing = wrapTextSizing
 
 // ============================================================================
 // Style Interning + SGR Cache
@@ -765,6 +799,12 @@ function styleTransition(oldStyle: Style | null, newStyle: Style, ctx: OutputCon
 }
 
 /**
+ * Internal: exported for use by output-modes.ts (hybrid output emitters).
+ * Not part of the public API — do not use outside the pipeline.
+ */
+export const _internalStyleTransition = styleTransition
+
+/**
  * Map underline style to SGR 4:x subparameter.
  */
 function underlineStyleToSgr(style: UnderlineStyle | undefined): number | null {
@@ -857,6 +897,7 @@ export function outputPhase(
           cursorPos,
           ctx,
           tvState,
+          accState,
         )
       }
     }
@@ -894,6 +935,30 @@ export function outputPhase(
           prefix += `\x1b[${clearDistance}A`
         }
         prefix += "\r\x1b[J" // column 0, clear from cursor to end of screen
+      }
+
+      // Initialize STRICT verification states using a FULLSCREEN-mode rendering
+      // of the buffer. The persistent emulators (xterm/ghostty) and accumulated
+      // ANSI tracker only verify buffer-diff correctness — they don't need to
+      // mirror the terminal's actual cursor-relative state. Using fullscreen
+      // output (absolute CUP positioning) gives a canonical reference frame
+      // unaffected by inline cursor management (relative positioning,
+      // scrollback promotion, prevCursorRow tracking). See the matching block
+      // in inlineIncrementalRender for the per-frame counterpart.
+      if (isStrictAccumulate() || tvState.backends.length > 0) {
+        const savedMode = ctx.mode
+        ctx.mode = "fullscreen"
+        const fsFirstOutput = bufferToAnsi(next, ctx)
+        if (isStrictAccumulate()) {
+          accState.accumulatedAnsi = fsFirstOutput
+          accState.accumulateWidth = next.width
+          accState.accumulateHeight = next.height
+          accState.accumulateFrameCount = 0
+        }
+        if (tvState.backends.length > 0) {
+          initTerminalVerifyState(tvState, next.width, next.height, fsFirstOutput)
+        }
+        ctx.mode = savedMode
       }
 
       inlineState.prevBuffer = next
@@ -941,6 +1006,7 @@ export function outputPhase(
       cursorPos,
       ctx,
       tvState,
+      accState,
     )
   }
 
@@ -1273,6 +1339,7 @@ function inlineIncrementalRender(
   cursorPos?: CursorState | null,
   ctx: OutputContext = defaultContext,
   tvState?: TerminalVerifyState,
+  accState?: AccumulateState,
 ): string {
   const { termRows } = ctx
   // Guard: fall back to full render for complex cases
@@ -1282,7 +1349,7 @@ function inlineIncrementalRender(
     prev.height !== next.height ||
     state.prevCursorRow < 0
   ) {
-    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx)
+    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx, tvState, accState)
   }
 
   const nextContentLines = findLastContentLine(next) + 1
@@ -1304,7 +1371,7 @@ function inlineIncrementalRender(
   // When the visible window shifts (content exceeds termRows and startLine changes),
   // the entire visible region is different — fall back to full render.
   if (startLine !== prevStartLine) {
-    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx)
+    return inlineFullRender(state, prev, next, scrollbackOffset, cursorPos, ctx, tvState, accState)
   }
 
   // Diff buffers
@@ -1403,34 +1470,60 @@ function inlineIncrementalRender(
   output += inlineCursorSuffix(cursorPos ?? null, next, ctx)
 
   // STRICT verification for inline incremental renders.
+  //
   // Inline mode uses relative cursor positioning (CUU/CUD/CR) instead of
-  // absolute CUP, so we can't pass the inline output directly to
-  // verifyOutputEquivalence (which replays freshPrev + incrOutput — the cursor
-  // position after freshPrev differs from the tracked prevCursorRow). Instead,
-  // re-diff in fullscreen mode for vt100 verification. This verifies the buffer
-  // diff logic produces correct ANSI output, even though it doesn't test the
-  // inline cursor positioning specifically.
-  if (isStrictOutput() || tvState?.hasVt100) {
+  // absolute CUP. The inline `output` we just built is what the real terminal
+  // sees, but it can't be fed directly to verifyOutputEquivalence (which
+  // replays freshPrev + incrOutput — the cursor position after freshPrev
+  // differs from the tracked prevCursorRow), nor to a persistent xterm/ghostty
+  // terminal initialized in fullscreen mode (cursor positioning would diverge
+  // from frame 1).
+  //
+  // The strategy: re-diff prev → next in FULLSCREEN mode and verify with that
+  // canonical output. This is sound because all four verifiers ask the same
+  // invariant — "does applying the diff produce the same buffer state as a
+  // fresh full render?" — which is independent of cursor positioning. The
+  // matching first-render block in outputPhase initializes tvState/accState
+  // with a fullscreen-mode bufferToAnsi() so the persistent state is
+  // canonical, fullscreen-style, across the whole session.
+  //
+  // Coverage: this catches buffer-diff regressions (changesToAnsi correctness,
+  // OSC 66 / wide-char drift, SGR transitions) at the same fidelity as
+  // fullscreen mode. It does NOT catch inline-specific cursor-positioning
+  // bugs (relative CUU/CUD math, scrollback promotion, useCursor placement)
+  // — those are covered by tests/inline-mode.test.ts and the rest of the
+  // inline test suite, not by replay-equivalence STRICT checks.
+  const needsFsDiff =
+    isStrictOutput() ||
+    tvState?.hasVt100 ||
+    (tvState && tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) ||
+    (accState && isStrictAccumulate())
+  if (needsFsDiff) {
     const savedMode = ctx.mode
     ctx.mode = "fullscreen"
     const fsIncrOutput = changesToAnsi(pool, count, ctx, next).output
-    _verifyOutputEquivalence(
-      prev,
-      next,
-      fsIncrOutput,
-      ctx,
-      bufferToAnsi,
-      outputGraphemeWidth,
-      outputTextSizingEnabled,
-    )
+    if (isStrictOutput() || tvState?.hasVt100) {
+      _verifyOutputEquivalence(
+        prev,
+        next,
+        fsIncrOutput,
+        ctx,
+        bufferToAnsi,
+        outputGraphemeWidth,
+        outputTextSizingEnabled,
+      )
+    }
+    if (accState && isStrictAccumulate()) {
+      accState.accumulatedAnsi += fsIncrOutput
+      accState.accumulateFrameCount++
+      _verifyAccumulatedOutput(next, ctx, accState, bufferToAnsi)
+    }
+    if (tvState && tvState.backends.length > 0 && (tvState.terminal || tvState.ghosttyTerminal)) {
+      tvState.frameCount++
+      _verifyTerminalEquivalence(tvState, fsIncrOutput, next, ctx, bufferToAnsi)
+    }
     ctx.mode = savedMode
   }
-  // TODO: verifyTerminalEquivalence (xterm/ghostty) is skipped for inline mode.
-  // The persistent terminal emulators track cumulative state across frames, but
-  // inline mode's cursor management (relative positioning, scrollback promotion,
-  // cursor tracking via prevCursorRow) is incompatible with this model.
-  // verifyAccumulatedOutput is also skipped — inline has a different accumulation
-  // model (scrollback promotion, frozen content).
 
   // Update tracking
   updateInlineCursorRow(state, cursorPos, maxOutputLines, startLine)
@@ -1455,6 +1548,8 @@ function inlineFullRender(
   scrollbackOffset: number,
   cursorPos?: CursorState | null,
   ctx: OutputContext = defaultContext,
+  tvState?: TerminalVerifyState,
+  accState?: AccumulateState,
 ): string {
   const { termRows } = ctx
   const nextContentLines = findLastContentLine(next) + 1
@@ -1534,6 +1629,31 @@ function inlineFullRender(
   let startLine = 0
   if (termRows != null && nextContentLines > termRows) startLine = nextContentLines - termRows
   updateInlineCursorRow(state, cursorPos, maxOutputLines, startLine)
+
+  // Realign STRICT verification state. Inline full-render falls back from
+  // incremental for reasons that invalidate the persistent buffer/emulator
+  // state (dimension change, scrollback offset, uninitialized cursor). The
+  // simplest correct response is to re-initialize the verification state
+  // with a fullscreen rendering of `next` so subsequent incremental frames
+  // resume comparison against a consistent baseline. See the matching
+  // first-render block in outputPhase for the canonical-fullscreen rationale.
+  if (tvState || accState) {
+    if ((tvState && tvState.backends.length > 0) || (accState && isStrictAccumulate())) {
+      const savedMode = ctx.mode
+      ctx.mode = "fullscreen"
+      const fsFresh = bufferToAnsi(next, ctx)
+      if (accState && isStrictAccumulate()) {
+        accState.accumulatedAnsi = fsFresh
+        accState.accumulateWidth = next.width
+        accState.accumulateHeight = next.height
+        accState.accumulateFrameCount = 0
+      }
+      if (tvState && tvState.backends.length > 0) {
+        initTerminalVerifyState(tvState, next.width, next.height, fsFresh)
+      }
+      ctx.mode = savedMode
+    }
+  }
 
   return output
 }

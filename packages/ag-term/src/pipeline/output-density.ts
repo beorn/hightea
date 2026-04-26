@@ -4,12 +4,11 @@
  * Given a sorted dirty-cell pool, compute per-row density summaries and pick
  * the cheapest emission mode (whole-row / run-length / scatter).
  *
- * See: https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md
- * Tracking: km-silvery.hybrid-output
+ * Tracking: km-silvery.known-limits.hybrid-output
  *
- * This file is SCAFFOLD ONLY — all functions throw. Integration is a
- * follow-up in a separate commit that wires these into output-phase.ts
- * behind the SILVERY_HYBRID_OUTPUT feature flag.
+ * Phase 2 implementation. Phase 1 (scaffold) shipped earlier; Phase 3 will
+ * wire these into output-phase.ts behind the SILVERY_HYBRID_OUTPUT feature
+ * flag. Until then, this module is reachable only via direct unit tests.
  */
 
 import type { CellChange } from "./types"
@@ -25,11 +24,11 @@ export type EmissionMode = "whole-row" | "run-length" | "scatter"
  *
  * Wide characters whose main cell falls inside `[start, end]` are emitted as
  * a single unit by the run-length emitter; the continuation cell is widened
- * into the run automatically by the analyzer (see §6 of the design doc).
+ * into the run automatically by the analyzer.
  */
 export interface DirtyRunSpan {
-  readonly start: number
-  readonly end: number
+  start: number
+  end: number
 }
 
 /**
@@ -39,21 +38,21 @@ export interface DirtyRunSpan {
  */
 export interface DirtyRowSummary {
   /** Row index in the destination buffer. */
-  readonly y: number
+  y: number
   /** Number of dirty cells on the row (wide-char continuations deduped). */
-  readonly dirty: number
+  dirty: number
   /** Leftmost dirty column on the row. */
-  readonly minX: number
+  minX: number
   /** Rightmost dirty column on the row (inclusive). */
-  readonly maxX: number
+  maxX: number
   /** Number of maximal contiguous runs. */
-  readonly runCount: number
+  runCount: number
   /** Maximal contiguous dirty runs, ordered by `start`. */
-  readonly runs: readonly DirtyRunSpan[]
+  runs: DirtyRunSpan[]
   /** Inclusive pool index of the first cell change on this row. */
-  readonly poolStart: number
+  poolStart: number
   /** Exclusive pool index of the last cell change on this row. */
-  readonly poolEnd: number
+  poolEnd: number
 }
 
 /**
@@ -63,10 +62,61 @@ export interface DirtyRowSummary {
  */
 export interface DensityAnalysis {
   /** One summary per dirty row. Reused across frames. */
-  readonly rows: readonly DirtyRowSummary[]
+  rows: readonly DirtyRowSummary[]
   /** Number of valid entries in `rows`. */
-  readonly rowCount: number
+  rowCount: number
 }
+
+// ============================================================================
+// Module-scoped pools (zero per-frame allocation in steady state)
+// ============================================================================
+
+/** Per-row summaries — grow lazily. */
+const summaryPool: DirtyRowSummary[] = []
+
+/**
+ * Per-row run arrays. Each row owns its own `runs` array (sliced into via
+ * length manipulation). The arrays themselves grow lazily; we never shrink
+ * them so the JIT can keep monomorphic shapes.
+ */
+function getOrCreateSummary(index: number): DirtyRowSummary {
+  let summary = summaryPool[index]
+  if (!summary) {
+    summary = {
+      y: -1,
+      dirty: 0,
+      minX: -1,
+      maxX: -1,
+      runCount: 0,
+      runs: [],
+      poolStart: -1,
+      poolEnd: -1,
+    }
+    summaryPool[index] = summary
+  }
+  return summary
+}
+
+/** Cached result object — returned from every call. */
+const cachedAnalysis: { rows: DirtyRowSummary[]; rowCount: number } = {
+  rows: summaryPool,
+  rowCount: 0,
+}
+
+// ============================================================================
+// Cost estimator constants — see design doc §4.
+// ============================================================================
+
+/** Per-cell amortized cost in scatter mode (CUP + char). */
+const PER_CELL_SCATTER = 8
+/** One CUP per run preamble. */
+const RUN_PREAMBLE = 6
+/** Per-cell cost inside a run (relies on auto-advance). */
+const PER_CELL_IN_RUN = 2
+/** One CUP per whole-row preamble. */
+const ROW_PREAMBLE = 6
+/** Per-cell cost inside a whole-row emission. */
+const PER_CELL_IN_ROW = 2
 
 /**
  * Analyze a sorted dirty-cell pool and produce per-row summaries.
@@ -85,19 +135,98 @@ export interface DensityAnalysis {
  *   cover both halves of a wide char that straddles a run boundary.
  * - Zero per-frame allocation: summaries and runs come from module-scoped
  *   pools that grow lazily.
- *
- * TODO(hybrid-output phase 2): implement.
- *
- * See design doc §2 (density analysis) and §5 (data structures).
  */
 export function analyzeRowDensity(
-  _pool: readonly CellChange[],
-  _count: number,
+  pool: readonly CellChange[],
+  count: number,
   _width: number,
 ): DensityAnalysis {
-  throw new Error(
-    "analyzeRowDensity: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md",
-  )
+  cachedAnalysis.rowCount = 0
+
+  if (count === 0) {
+    return cachedAnalysis as DensityAnalysis
+  }
+
+  let rowIdx = 0
+  let i = 0
+
+  while (i < count) {
+    const rowY = pool[i]!.y
+    const summary = getOrCreateSummary(rowIdx)
+    summary.y = rowY
+    summary.dirty = 0
+    summary.minX = pool[i]!.x
+    summary.maxX = pool[i]!.x
+    summary.runCount = 0
+    summary.poolStart = i
+
+    // Walk this row's contiguous slice in the sorted pool, building runs.
+    let runStart = -1
+    let runEnd = -1
+
+    while (i < count && pool[i]!.y === rowY) {
+      const change = pool[i]!
+      const x = change.x
+      const isContinuation = change.cell.continuation === true
+      const isWide = change.cell.wide === true
+
+      if (!isContinuation) {
+        summary.dirty++
+      }
+      if (x < summary.minX) summary.minX = x
+      // Track maxX as the rightmost column actually touched (continuations
+      // count too, since the emitter must cover them).
+      const rightCol = isWide ? x + 1 : x
+      if (rightCol > summary.maxX) summary.maxX = rightCol
+
+      // Run building. A new cell extends the current run when it is
+      // adjacent to (or overlapping with) the previous run's end.
+      // Wide-char continuations don't appear separately if their main cell
+      // is in the pool (they share the same x+1 column the wide flag
+      // already widened); for orphan continuations we still want a span
+      // covering [x-1, x] so the emitter can re-emit the main cell.
+      const cellStart = isContinuation ? Math.max(0, x - 1) : x
+      const cellEnd = isContinuation ? x : isWide ? x + 1 : x
+
+      if (runStart === -1) {
+        runStart = cellStart
+        runEnd = cellEnd
+      } else if (cellStart <= runEnd + 1) {
+        // Extend current run (adjacent or overlapping).
+        if (cellEnd > runEnd) runEnd = cellEnd
+      } else {
+        // Close current run, open new one.
+        appendRun(summary, runStart, runEnd)
+        runStart = cellStart
+        runEnd = cellEnd
+      }
+
+      i++
+    }
+
+    if (runStart !== -1) {
+      appendRun(summary, runStart, runEnd)
+    }
+
+    summary.poolEnd = i
+    rowIdx++
+  }
+
+  cachedAnalysis.rowCount = rowIdx
+  return cachedAnalysis as DensityAnalysis
+}
+
+/** Append a run to a summary's run pool, growing the array lazily. */
+function appendRun(summary: DirtyRowSummary, start: number, end: number): void {
+  const idx = summary.runCount
+  const existing = summary.runs[idx]
+  if (existing) {
+    existing.start = start
+    existing.end = end
+  } else {
+    summary.runs[idx] = { start, end }
+  }
+  summary.runCount++
 }
 
 /**
@@ -110,19 +239,27 @@ export function analyzeRowDensity(
  *   runCost     = runCount * RUN_PREAMBLE + dirty * PER_CELL_IN_RUN
  *   wholeCost   = ROW_PREAMBLE + width * PER_CELL_IN_ROW
  *
- * The constants are tuned against the new bench scenarios in
- * `benchmarks/silvery-vs-ink.bench.ts`
- * (`Dense row update`, `Contiguous run update`, `Scatter update`).
- *
  * Fast paths (no estimator):
  * - `dirty <= 2` → scatter
  * - `dirty * 2 >= width` → whole-row
  * - `runCount === 1` → run-length
- *
- * TODO(hybrid-output phase 2): implement.
  */
-export function pickEmissionMode(_row: DirtyRowSummary, _width: number): EmissionMode {
-  throw new Error(
-    "pickEmissionMode: not implemented — see https://github.com/beorn/silvery-internal/blob/main/design/v05-layout/hybrid-output.md",
-  )
+export function pickEmissionMode(row: DirtyRowSummary, width: number): EmissionMode {
+  const { dirty, runCount } = row
+
+  // Fast paths
+  if (dirty <= 2) return "scatter"
+  if (dirty * 2 >= width) return "whole-row"
+  if (runCount === 1) return "run-length"
+
+  // Estimator
+  const scatterCost = dirty * PER_CELL_SCATTER
+  const runCost = runCount * RUN_PREAMBLE + dirty * PER_CELL_IN_RUN
+  const wholeCost = ROW_PREAMBLE + width * PER_CELL_IN_ROW
+
+  // Pick the minimum. Ties favor run-length (least over-emission risk),
+  // then whole-row (most predictable cursor state), then scatter.
+  if (runCost <= scatterCost && runCost <= wholeCost) return "run-length"
+  if (wholeCost <= scatterCost) return "whole-row"
+  return "scatter"
 }
