@@ -63,7 +63,7 @@ function UrgencyRow({
 
 export function UrgencyDemo(): React.ReactElement {
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection="column" gap={0}>
       <Box gap={1}>
         <Text color="$fg-accent" bold>
           ◆
@@ -72,14 +72,16 @@ export function UrgencyDemo(): React.ReactElement {
       </Box>
       <Small>
         <Muted>
-          Same color. Three urgency levels. Zero `priority` / `severity` prop. Component choice +
-          position + content carry urgency — not token vocabulary.
+          <Text wrap="wrap">
+            Same color. Three urgency levels. Zero `priority` / `severity` prop. Component choice +
+            position + content carry urgency — not token vocabulary.
+          </Text>
         </Muted>
       </Small>
 
       <Divider />
 
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column" gap={0}>
         <UrgencyRow
           level="low"
           levelLabel="low"
@@ -130,9 +132,11 @@ export function UrgencyDemo(): React.ReactElement {
         </Box>
         <Small>
           <Muted>
-            A system that shipped `priority="high"` would reinvent urgency in the token vocabulary.
-            Sterling keeps tokens status-only — components carry urgency by their <Kbd>shape</Kbd>{" "}
-            and <Kbd>placement</Kbd>.
+            <Text wrap="wrap">
+              A system that shipped `priority="high"` would reinvent urgency in the token
+              vocabulary. Sterling keeps tokens status-only — components carry urgency by their{" "}
+              <Kbd>shape</Kbd> and <Kbd>placement</Kbd>.
+            </Text>
           </Muted>
         </Small>
       </Box>

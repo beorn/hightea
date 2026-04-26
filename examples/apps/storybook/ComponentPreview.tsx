@@ -5,8 +5,9 @@
  * scheme. Everything here reads semantic $tokens; no hex values in JSX.
  *
  * MVP set: typography ramp, semantic color row, badges, surface stack,
- * alert-like inline boxes for each tone, a SelectList, a TextInput preview,
- * a ModalDialog preview (inline-flattened so it composes in a pane).
+ * alert-like inline boxes for each status variant, a SelectList, a
+ * TextInput preview, a ModalDialog preview (inline-flattened so it
+ * composes in a pane).
  *
  * All components sit inside an outer `<ThemeProvider theme={legacyTheme}>`
  * at the App root — swapping schemes there re-renders the whole tree.
@@ -184,7 +185,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
         <Muted>{mode}</Muted>
       </Box>
       <Divider />
-      <Box flexDirection="column" paddingX={1} gap={1}>
+      <Box flexDirection="column" paddingX={1} gap={0}>
         {/* Typography ramp */}
         <H1>Sterling Storybook</H1>
         <H2>Semantic tokens, one theme</H2>
@@ -215,12 +216,12 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         <Divider />
 
-        {/* Alert tones */}
+        {/* Alert demos — one per status variant */}
         <Box flexDirection="column" gap={0}>
           <Small>
             <Muted>ALERTS</Muted>
           </Small>
-          <Box flexDirection="column" gap={1}>
+          <Box flexDirection="column" gap={0}>
             <AlertBox
               variant="error"
               icon="✗"
@@ -269,26 +270,37 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
 
         <Divider />
 
-        {/* Input + list */}
-        <Box flexDirection="column" gap={1}>
+        {/* Input + list — laid out as 3 columns horizontally */}
+        <Box flexDirection="column" gap={0}>
           <Small>
             <Muted>INPUT · LIST</Muted>
           </Small>
-          <TextInputPreview
-            label="Search"
-            value=""
-            placeholder="Type to filter..."
-            focused={true}
-          />
-          <TextInputPreview label="Project" value="km-tui" focused={false} />
-          <Box borderStyle="single" borderColor="$border-default" paddingX={1} width={36}>
-            <SelectList
-              items={SELECT_ITEMS}
-              highlightedIndex={selectIdx}
-              onHighlight={setSelectIdx}
-              isActive={false}
-              indicator="▸ "
-            />
+          <Box flexDirection="row" gap={2} flexWrap="wrap" alignItems="flex-start">
+            <Box flexDirection="column" minWidth={20}>
+              <Muted>focused input</Muted>
+              <TextInputPreview
+                label="Search"
+                value=""
+                placeholder="Type to filter..."
+                focused={true}
+              />
+            </Box>
+            <Box flexDirection="column" minWidth={20}>
+              <Muted>blurred input</Muted>
+              <TextInputPreview label="Project" value="km-tui" focused={false} />
+            </Box>
+            <Box flexDirection="column" minWidth={20}>
+              <Muted>select list</Muted>
+              <Box borderStyle="single" borderColor="$border-default" paddingX={1}>
+                <SelectList
+                  items={SELECT_ITEMS}
+                  highlightedIndex={selectIdx}
+                  onHighlight={setSelectIdx}
+                  isActive={false}
+                  indicator="▸ "
+                />
+              </Box>
+            </Box>
           </Box>
         </Box>
 

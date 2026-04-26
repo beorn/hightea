@@ -45,9 +45,9 @@ function IntentRow({
         : undefined
   return (
     <Box flexDirection="column" gap={0}>
-      <Box gap={2}>
+      <Box gap={2} alignItems="flex-start">
         {button}
-        <Text>
+        <Text wrap="wrap">
           <Muted>→ </Muted>
           <Text color={annColor}>{annotation}</Text>
         </Text>
@@ -56,10 +56,10 @@ function IntentRow({
         <Muted>{code}</Muted>
       </Small>
       {warning ? (
-        <Box gap={1}>
+        <Box gap={1} alignItems="flex-start">
           <Text color="$fg-warning">⚠</Text>
           <Small>
-            <Text color="$fg-warning">{warning}</Text>
+            <Text color="$fg-warning" wrap="wrap">{warning}</Text>
           </Small>
         </Box>
       ) : null}
@@ -69,7 +69,7 @@ function IntentRow({
 
 export function IntentDemo(): React.ReactElement {
   return (
-    <Box flexDirection="column" gap={1}>
+    <Box flexDirection="column" gap={0}>
       <Box gap={1}>
         <Text color="$fg-accent" bold>
           ◆
@@ -79,18 +79,20 @@ export function IntentDemo(): React.ReactElement {
       </Box>
       <Small>
         <Muted>
-          `error` is STATUS — "this is an error". `destructive` is INTENT — "this does harm". Theme
-          owns status tokens; component layer owns intent. destructive aliases to error pixels by
-          default; no `destructive` Theme field.
+          <Text wrap="wrap">
+            `error` is STATUS — "this is an error". `destructive` is INTENT — "this does harm".
+            Theme owns status tokens; component layer owns intent. destructive aliases to error
+            pixels by default; no `destructive` Theme field.
+          </Text>
         </Muted>
       </Small>
 
       <Divider />
 
-      <Box flexDirection="column" gap={1}>
+      <Box flexDirection="column" gap={0}>
         <IntentRow
-          button={<Button label="Error tone" variant="error" onPress={() => {}} />}
-          code='<Button variant="error">Error tone</Button>'
+          button={<Button label="Error" variant="error" onPress={() => {}} />}
+          code='<Button variant="error">Error</Button>'
           annotation="status — displays an error state"
           annotationTone="success"
         />
@@ -103,7 +105,7 @@ export function IntentDemo(): React.ReactElement {
         <IntentRow
           button={<Button label="Delete" variant="error" onPress={() => {}} />}
           code='<Button variant="error">Delete</Button>'
-          annotation="BAD — action labelled with status tone"
+          annotation="BAD — action labelled with status variant"
           annotationTone="error"
           warning='use variant="destructive" for actions; reserve "error" for status'
         />
