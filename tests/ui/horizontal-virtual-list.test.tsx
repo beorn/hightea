@@ -355,3 +355,109 @@ describe("HorizontalVirtualList — boundary widths", () => {
     },
   )
 })
+
+// ============================================================================
+// Symmetric scroll-back (km-qlib7)
+// ============================================================================
+
+describe("HorizontalVirtualList — symmetric scroll-back", () => {
+  // 4 columns × 39 cols in a viewport that fits exactly 2 columns. Walking
+  // right with scrollTo: 0 → 1 → 2 advances the viewport when the cursor
+  // exits the right edge. Walking back (scrollTo 2 → 1) must symmetrically
+  // retreat — without the symmetric scroll-back rule in useVirtualizer, the
+  // viewport stays anchored at [col2, col3] even though the cursor moved to
+  // col2, leaving col1 hidden. Bug: km-qlib7 (asymmetric horizontal scroll).
+  //
+  // Re-renders the same component with successive scrollTo props; the
+  // virtualizer's scrollOffsetRef is preserved across renders by React's
+  // ref machinery (single component instance), so this exercises the same
+  // code path the live app hits when the user presses l, l, h.
+  test("walking l,l then h restores col1 visibility", () => {
+    const columns = makeColumns(4)
+    const indicatorWidth = 1
+    const itemWidth = 39
+    // viewport=80; effectiveViewport=80-2=78 → fits 2 items × 39
+    const width = 80
+
+    const App = ({ scrollTo }: { scrollTo: number }) => (
+      <HorizontalVirtualList
+        items={columns}
+        width={width}
+        height={3}
+        itemWidth={itemWidth}
+        scrollTo={scrollTo}
+        renderItem={renderColumn}
+        getKey={(c) => c.id}
+        overflowIndicatorWidth={indicatorWidth}
+        renderOverflowIndicator={(dir, n) => (
+          <Box width={indicatorWidth} flexShrink={0}>
+            <Text>{dir === "before" ? `◂${n}` : `${n}▸`}</Text>
+          </Box>
+        )}
+      />
+    )
+
+    const renderApp = createRenderer({ cols: width, rows: 8 })
+    const handle = renderApp(<App scrollTo={0} />)
+
+    // Initial: visible=[col0, col1]
+    expect(stripAnsi(handle.text)).toContain("Column 0")
+    expect(stripAnsi(handle.text)).toContain("Column 1")
+    expect(stripAnsi(handle.text)).not.toContain("Column 3")
+
+    // l → cursor=1, still visible (no shift)
+    handle.rerender(<App scrollTo={1} />)
+    expect(stripAnsi(handle.text)).toContain("Column 0")
+    expect(stripAnsi(handle.text)).toContain("Column 1")
+
+    // l → cursor=2, off-screen right → scroll forward, visible=[col1, col2]
+    handle.rerender(<App scrollTo={2} />)
+    expect(stripAnsi(handle.text)).toContain("Column 1")
+    expect(stripAnsi(handle.text)).toContain("Column 2")
+    expect(stripAnsi(handle.text)).not.toContain("Column 0")
+
+    // h → cursor=1, retreating into leading edge with col0 hidden →
+    // SYMMETRIC SCROLL-BACK: visible=[col0, col1]. Without the fix this
+    // assertion fails because viewport stays anchored at [col1, col2].
+    handle.rerender(<App scrollTo={1} />)
+    expect(
+      stripAnsi(handle.text),
+      "col0 should be visible after h-back from col2 to col1 (km-qlib7)",
+    ).toContain("Column 0")
+    expect(stripAnsi(handle.text)).toContain("Column 1")
+  })
+
+  // Mirror: walking l from col0 must NOT retreat (cursor-stuck-col-0
+  // regression). The symmetric pull-back should only fire on cursor
+  // RETREAT, never on cursor advance.
+  test("walking l from col0 keeps col0 visible (cursor-stuck regression)", () => {
+    const columns = makeColumns(4)
+    const itemWidth = 39
+    const width = 80
+
+    const App = ({ scrollTo }: { scrollTo: number }) => (
+      <HorizontalVirtualList
+        items={columns}
+        width={width}
+        height={3}
+        itemWidth={itemWidth}
+        scrollTo={scrollTo}
+        renderItem={renderColumn}
+        getKey={(c) => c.id}
+      />
+    )
+
+    const renderApp = createRenderer({ cols: width, rows: 8 })
+    const handle = renderApp(<App scrollTo={0} />)
+    expect(stripAnsi(handle.text)).toContain("Column 0")
+
+    // l → cursor=1 (trailing edge of visible window). Must NOT shift
+    // viewport — col0 must remain visible.
+    handle.rerender(<App scrollTo={1} />)
+    expect(
+      stripAnsi(handle.text),
+      "col0 must still be visible — cursor advance to trailing edge does not scroll",
+    ).toContain("Column 0")
+    expect(stripAnsi(handle.text)).toContain("Column 1")
+  })
+})
