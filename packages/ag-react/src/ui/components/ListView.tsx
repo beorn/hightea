@@ -153,6 +153,14 @@ export interface ListViewSearchConfig<T> {
  */
 export type VirtualizationStrategy = "none" | "index" | "measured"
 
+/**
+ * Auto-follow policy for `ListView`. See the `follow` prop docstring
+ * for the full contract. `"end"` mirrors the chat-style "stick to the
+ * end" behaviour previously gated by `stickyBottom={true}`; `"none"`
+ * is the default (no auto-follow).
+ */
+export type FollowPolicy = "none" | "end"
+
 export interface ListViewProps<T> {
   /** Array of items to render */
   items: T[]
@@ -292,20 +300,48 @@ export interface ListViewProps<T> {
   virtualizationThreshold?: number
 
   /**
+   * Auto-follow policy. Determines how the viewport tracks growing item
+   * count when the user is "at the end" of the list.
+   *
+   * - `"none"` (default): viewport never auto-follows. Cursor or scroll
+   *   prop drives position; items appended at the tail leave viewport
+   *   alone unless cursor pins to the last item.
+   * - `"end"`: chat-style auto-follow. When the LAST VISIBLE ROW is in
+   *   the viewport, items appended at the tail auto-scroll so the new
+   *   tail stays in view. When the user scrolls up (away from the
+   *   bottom), auto-follow is disabled — viewport stays put as items
+   *   are appended. When the user returns to the bottom, auto-follow
+   *   resumes.
+   *
+   * Crucially, "at end" is computed in VISUAL ROW space, not item-index
+   * space — `cursorKey === lastIdx` does NOT imply at-end when the last
+   * item is taller than the viewport (cursor on the last item but its
+   * tail is still off-screen below). The math uses HeightModel's
+   * effective heights to determine whether the bottom of the last
+   * item's row range is within the visible viewport.
+   *
+   * When `follow="end"` is set together with `cursorKey`, the cursor is
+   * a SELECTION marker only — it does NOT drive viewport position. This
+   * removes the historical race between cursor-pin (`ensureCursorVisible`)
+   * and sticky-bottom auto-follow that produced viewport jumps when the
+   * last item changed shape.
+   *
+   * Pair with `onAtBottomChange` to render a sticky-toggle UI or
+   * overscroll indicator. Default: `"none"`.
+   */
+  follow?: FollowPolicy
+
+  /**
+   * @deprecated Use `follow="end"` instead. `stickyBottom={true}` is
+   * an alias kept for one cycle to ease migration. Removal in a future
+   * release.
+   *
    * Chat-style "stick to the end" auto-follow. When `true` and the viewport
    * is at the bottom of the list, items appended at the tail trigger an
    * auto-scroll so the new tail stays in view. When the user scrolls up
    * (away from the bottom), auto-follow is disabled — the viewport stays
    * put as items are appended. When the user returns to the bottom,
    * auto-follow resumes.
-   *
-   * "At bottom" is computed as scroll-position dependent:
-   *   - In cursor-following mode (no wheel activity, scrollRow null): the
-   *     cursor key is at or past `items.length - 1`.
-   *   - After wheel activity (scrollRow set): scrollRow ≥ maxScrollRow.
-   *
-   * Pair with `onAtBottomChange` to render a sticky-toggle UI or overscroll
-   * indicator. Default: `false`.
    */
   stickyBottom?: boolean
 
@@ -548,6 +584,7 @@ function ListViewInner<T>(
     virtualization: virtualizationProp,
     virtualizationThreshold = DEFAULT_VIRTUALIZATION_THRESHOLD,
     maxEstimatedRows = DEFAULT_MAX_ESTIMATED_ROWS,
+    follow,
     stickyBottom = false,
     onAtBottomChange,
   }: ListViewProps<T>,
@@ -575,6 +612,27 @@ function ListViewInner<T>(
   const resolvedVirtualization: VirtualizationStrategy =
     virtualizationProp ??
     (items.length <= virtualizationThreshold ? "none" : isHeightIndependent ? "index" : "measured")
+
+  // ── Resolved follow policy ──────────────────────────────────────
+  //
+  // Bead `km-silvery.listview-followpolicy-split`: explicit `follow`
+  // prop is the canonical knob; `stickyBottom={true}` is a deprecated
+  // alias (kept one cycle for migration). When both are set, explicit
+  // `follow` wins.
+  const resolvedFollow: FollowPolicy = follow ?? (stickyBottom ? "end" : "none")
+
+  // `pendingFollowSnapRef` — true when a follow="end" snap-to-bottom
+  // is owed. Set on mount when `follow="end"` and on every transition
+  // back to atEnd via wheel; cleared once the snap is applied (when
+  // maxRow becomes known via layout). This survives the first 1-2
+  // pre-measurement commits where maxRow is 0. Declared early so the
+  // `scrollTo` resolution further down can read it.
+  const pendingFollowSnapRef = useRef<boolean>(false)
+  const followInitialisedRef = useRef<boolean>(false)
+  if (!followInitialisedRef.current) {
+    followInitialisedRef.current = true
+    pendingFollowSnapRef.current = resolvedFollow === "end"
+  }
 
   // ── Term context for cache capture width ─────────────────────────
   const term = useContext(TermContext)
@@ -1115,16 +1173,29 @@ function ListViewInner<T>(
   //   1. scrollToProp (declarative override — e.g. programmatic reveal)
   //   2. scrollRow set (wheel is driving — Box uses scrollOffset below,
   //      scrollTo stays undefined so it doesn't compete)
-  //   3. activeCursor (nav mode default — viewport follows cursor)
-  //   4. undefined (passive list with no scroll position opinion)
+  //   3. follow="end" + first paint pending snap → pin to the LAST
+  //      item's index so Box's ensure-visible math lands the viewport
+  //      at the bottom synchronously, even before the row-space snap
+  //      effect has run. After the first paint, scrollRow takes over.
+  //      Cursor is NOT used here — that's the bead's whole point
+  //      (`km-silvery.listview-followpolicy-split`: cursor is a
+  //      SELECTION marker, not a scroll authority).
+  //   4. activeCursor (nav mode default — viewport follows cursor)
+  //   5. undefined (passive list with no scroll position opinion)
+  const followEndPendingScrollTarget =
+    resolvedFollow === "end" && pendingFollowSnapRef.current && items.length > 0
+      ? items.length - 1
+      : undefined
   const scrollTo =
     scrollToProp !== undefined
       ? scrollToProp
       : scrollRow !== null
         ? undefined
-        : nav
-          ? activeCursor
-          : undefined
+        : resolvedFollow === "end"
+          ? followEndPendingScrollTarget
+          : nav
+            ? activeCursor
+            : undefined
 
   // ── Resolve cache config ─────────────────────────────────────────
   // When cache=true, use "auto" mode which reads CacheBackendContext.
@@ -1979,18 +2050,25 @@ function ListViewInner<T>(
   // ramp-up where height grows as items are measured but no content was
   // actually added. Same auto-hide timer as wheel events.
   const prevItemCountRef = useRef(activeItems.length)
-  // Sticky-bottom + atBottom transition tracking.
+  // Follow-end + atBottom transition tracking.
   //
   // `prevAtBottomRef` records the at-bottom state from the prior commit so
   // we can fire `onAtBottomChange` only on transitions (edge-triggered).
   // `prevMaxScrollRowRef` records the prior maxScrollRow so we can detect
   // "user was sitting at maxRow and items just grew" — the trigger for
-  // sticky auto-follow.
+  // follow="end" auto-follow.
   //
   // Initialised to a sentinel so the first effect run unconditionally
   // emits the initial at-bottom value to onAtBottomChange.
   const prevAtBottomRef = useRef<boolean | null>(null)
   const prevMaxScrollRowRef = useRef<number | null>(null)
+  // `pendingFollowSnapRef` is declared earlier (next to `resolvedFollow`)
+  // because `scrollTo` resolution reads it before this effect block.
+  // Snapshot the row-space measurements that the effect needs. The
+  // effect closes over `scrollRow` (state) but reads `maxScrollRowRef` /
+  // `rowsAboveViewportRef` via mutable refs — safe under React
+  // concurrent rendering because both refs are written synchronously
+  // during the SAME render that schedules the effect.
   useEffect(() => {
     const prevCount = prevItemCountRef.current
     const grew = activeItems.length > prevCount
@@ -2011,35 +2089,68 @@ function ListViewInner<T>(
     }
     prevItemCountRef.current = activeItems.length
 
-    // Compute current "at bottom" state.
+    // Compute current "at end" state in VISUAL ROW space.
     //
-    // In cursor-following mode (scrollRow === null), at-bottom is implied
-    // when the cursor key is at the last item (the chat default). In
-    // wheel-driving mode (scrollRow !== null), it's a direct comparison
-    // against maxScrollRow with a 1-row tolerance for sub-row drift.
+    // The bead-`km-silvery.listview-followpolicy-split` redesign:
+    // "atEnd" is no longer cursor-position dependent. A cursor at the
+    // last item does NOT imply at-end when that item is taller than
+    // the viewport (cursor-on-last-item, but its bottom row is still
+    // off-screen below). The math compares the bottom edge of the
+    // viewport against the total rendered row count:
+    //
+    //   topRow    = scrollRow ?? rowsAboveViewportRef.current
+    //   bottomRow = topRow + viewportHeight
+    //   atEnd     = bottomRow >= totalRows - 0.5  // 0.5-row tolerance
+    //
+    // For the legacy `scrollRow !== null` (wheel-driving) path the
+    // formula reduces to `scrollRow >= maxScrollRow - 0.5`; the
+    // unified form also handles cursor-following mode correctly when
+    // scrollRow is null.
     const maxRow = maxScrollRowRef.current
-    const lastIdx = activeItems.length - 1
-    const atBottomCursor = scrollRow === null && (!nav || activeCursor >= lastIdx)
-    const atBottomScroll = scrollRow !== null && scrollRow >= maxRow - 0.5
-    const atBottom = atBottomCursor || atBottomScroll
+    const topRow = scrollRow !== null ? scrollRow : rowsAboveViewportRef.current
+    const bottomRow = topRow + trackHeight
+    const totalContentRows = heightModel.totalRows()
+    const computedAtEnd = bottomRow >= totalContentRows - 0.5
 
-    // Sticky auto-follow: if items grew while the user was at the bottom in
-    // wheel-driving mode, advance scrollRow to the new maxRow so the
-    // appended tail stays in view. The cursor-following mode auto-follows
-    // for free via `cursorKey={items.length - 1}` → scrollTo logic.
-    if (
-      stickyBottom &&
-      grew &&
-      scrollRow !== null &&
-      prevMaxScrollRowRef.current !== null &&
-      prevAtBottomRef.current === true
-    ) {
-      // Snap float ref to the new max as well so wheel + scrollbar stay
-      // consistent with the viewport.
+    // Auto-follow: when `follow="end"` is engaged, snap scrollRow to
+    // maxRow when:
+    //   1. PENDING SNAP from initial mount or wheel-back-to-bottom.
+    //      `pendingFollowSnapRef` survives the first 1-2 pre-measurement
+    //      commits where maxRow is still 0 — once layout produces a
+    //      real maxRow, the snap fires and the flag clears.
+    //   2. ITEMS GREW while previously at-end. Keeps the appended tail
+    //      visible regardless of whether scrollRow was previously null
+    //      (the legacy gate required wheel-driving mode — follow="end"
+    //      owns the viewport unconditionally while atEnd holds).
+    const wasAtEndPrev = prevAtBottomRef.current === true
+    const pendingSnap = pendingFollowSnapRef.current
+    // Gate the snap on a *measured viewport* — avoids snapping during
+    // the first render where `trackHeight` falls back to 1
+    // (viewportSize not yet measured) and `scrollableRows` collapses
+    // to a phantom small number. Without this gate, the snap fires
+    // with a tiny `maxRow` and the viewport freezes near the top with
+    // `pendingFollowSnap` already cleared.
+    const viewportReady = !isHeightIndependent || (viewportSize?.h ?? 0) > 0
+    const shouldSnap =
+      resolvedFollow === "end" &&
+      viewportReady &&
+      maxRow > 0 &&
+      (pendingSnap || (grew && wasAtEndPrev))
+    if (shouldSnap) {
       scrollRowFloatRef.current = maxRow
       setScrollRow(maxRow)
+      pendingFollowSnapRef.current = false
     }
     prevMaxScrollRowRef.current = maxRow
+
+    // When we're snapping, the post-snap state IS at-end — even though
+    // the scrollRow we read above is stale (the previous frame's value,
+    // before the items grew). Treat the snap as the authoritative
+    // truth; otherwise an items-grew commit would fire a transient
+    // `false` transition before the snap-driven recommit fires `true`,
+    // doubling the callback emission rate. Bead:
+    // `km-silvery.listview-followpolicy-split`.
+    const atBottom = shouldSnap ? true : computedAtEnd
 
     // Edge-triggered transition callback. Fires on the initial commit
     // unconditionally (sentinel `null`) and on every subsequent change.
@@ -2053,7 +2164,20 @@ function ListViewInner<T>(
     scrollRow,
     activeCursor,
     nav,
-    stickyBottom,
+    resolvedFollow,
+    trackHeight,
+    // `measuredHeights.size` makes the effect re-run as new
+    // measurements arrive — required for the follow="end" snap-to-end
+    // path, where the first commit has size=0 (maxRow=0, snap deferred)
+    // and a later commit has size=N (maxRow=real, snap fires).
+    measuredHeights.size,
+    // `viewportSize.h` makes the effect re-run when the viewport
+    // becomes measurable — gates the follow="end" first-paint snap on
+    // a real `trackHeight` (without this, trackHeight=1 fallback fires
+    // a phantom snap before viewport is known).
+    viewportSize?.h,
+    isHeightIndependent,
+    heightModel,
     onAtBottomChange,
   ])
   // Rows scrolled past the viewport top — the exact measurement a browser
