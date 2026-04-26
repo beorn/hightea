@@ -2031,7 +2031,18 @@ function ListViewInner<T>(
         Math.floor((trackHeight * trackHeight) / Math.max(totalRowsStable, trackHeight + 1)),
       )
     : 0
-  const scrollableRows = Math.max(1, totalRows - trackHeight)
+  // SCROLL CAP — `scrollRow` is clamped to [0, scrollableRows] in wheel +
+  // momentum + keyboard handlers. Use the same `max(estimate, measured)`
+  // total as the visibility gate (Stream J). Estimate alone underestimates
+  // total content rows when items are taller than `estimateHeight`
+  // (silvercode shape: multi-line AssistantBlocks with default estimate=1).
+  // Measured alone is fine in steady state but `max(…)` keeps the cap
+  // honest the moment measurements arrive even before the avgMeasured
+  // fallback for unmeasured items has settled. Floor at 0 (not 1) so when
+  // content fits the viewport, `maxRow = 0` and `handleWheel` /
+  // `enterMomentum` early-return — no spurious overscroll bump on a list
+  // whose content fits.
+  const scrollableRows = Math.max(0, totalRowsForOverflow - trackHeight)
   const trackRemainder = trackHeight - thumbHeight
   // When the user is wheel-driving, derive thumb from our own `scrollRow`
   // (exact row offset). Otherwise use the virtualizer's measurement-based
