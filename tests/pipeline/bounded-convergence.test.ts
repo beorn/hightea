@@ -18,8 +18,10 @@ import { describe, test, expect } from "vitest"
 import {
   PASS_CAUSE_BOUNDS,
   MAX_CONVERGENCE_PASSES,
+  MAX_CLASSIC_LOOP_ITERATIONS,
   assertBoundedConvergence,
   type PassCause,
+  type ConvergenceLoopName,
 } from "@silvery/ag-term/runtime/pass-cause"
 
 describe("bounded-convergence: per-cause bound model", () => {
@@ -54,6 +56,14 @@ describe("bounded-convergence: per-cause bound model", () => {
     // every per-cause bound is 0 because each settles within the canonical
     // settle pass. Total = 1 initial + 1 settle = 2.
     expect(MAX_CONVERGENCE_PASSES).toBe(2)
+  })
+
+  test("MAX_CLASSIC_LOOP_ITERATIONS = 5 (legacy interleaved layout+effects loop)", () => {
+    // Classic loop interleaves runPipeline + flushSyncWork, so it absorbs
+    // both subscriber feedback AND layout-vs-React stabilisation.
+    // Virtualizer + scroll convergence on heterogeneous-height lists
+    // genuinely needs 3-4 iterations.
+    expect(MAX_CLASSIC_LOOP_ITERATIONS).toBe(5)
   })
 
   test("MAX_CONVERGENCE_PASSES is dramatically tighter than the prior magic constants", () => {
@@ -103,30 +113,52 @@ describe("bounded-convergence: assertion behaviour", () => {
     }
   }
 
+  function boundFor(loop: ConvergenceLoopName): number {
+    return loop === "classic" ? MAX_CLASSIC_LOOP_ITERATIONS : MAX_CONVERGENCE_PASSES
+  }
+
   test("at-bound passCount does not assert (boundary is inclusive of the bound)", () => {
     withStrict("2", () => {
-      expect(() =>
-        assertBoundedConvergence(MAX_CONVERGENCE_PASSES, "single-pass"),
-      ).not.toThrow()
+      const loops: ConvergenceLoopName[] = [
+        "single-pass",
+        "classic",
+        "effect-flush",
+        "production-flush",
+      ]
+      for (const loop of loops) {
+        expect(() => assertBoundedConvergence(boundFor(loop), loop)).not.toThrow()
+      }
     })
   })
 
   test("STRICT=2 throws when passCount exceeds the bound", () => {
     withStrict("2", () => {
-      expect(() =>
-        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "single-pass"),
-      ).toThrow(/convergence bound exceeded in single-pass/)
+      const loops: ConvergenceLoopName[] = [
+        "single-pass",
+        "classic",
+        "effect-flush",
+        "production-flush",
+      ]
+      for (const loop of loops) {
+        expect(() => assertBoundedConvergence(boundFor(loop) + 1, loop)).toThrow(
+          new RegExp(`convergence bound exceeded in ${loop}`),
+        )
+      }
     })
   })
 
-  test("STRICT=2 throws name the offending loop", () => {
+  test("classic loop has a wider bound than single-pass", () => {
+    // Classic loop's higher bound is intentional — see MAX_CLASSIC_LOOP_ITERATIONS
+    // JSDoc. A passCount of MAX_CONVERGENCE_PASSES + 1 must NOT throw for
+    // classic because that's still within its bound.
     withStrict("2", () => {
-      const loops = ["single-pass", "classic", "effect-flush", "production-flush"] as const
-      for (const loop of loops) {
-        expect(() =>
-          assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, loop),
-        ).toThrow(new RegExp(`convergence bound exceeded in ${loop}`))
-      }
+      expect(() =>
+        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "classic"),
+      ).not.toThrow()
+      // ...but the same passCount throws for single-pass.
+      expect(() =>
+        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "single-pass"),
+      ).toThrow(/single-pass/)
     })
   })
 
@@ -134,6 +166,9 @@ describe("bounded-convergence: assertion behaviour", () => {
     withStrict(undefined, () => {
       expect(() =>
         assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 100, "single-pass"),
+      ).not.toThrow()
+      expect(() =>
+        assertBoundedConvergence(MAX_CLASSIC_LOOP_ITERATIONS + 100, "classic"),
       ).not.toThrow()
     })
   })

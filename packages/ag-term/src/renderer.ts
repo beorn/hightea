@@ -62,6 +62,7 @@ import {
   recordPassCause,
   assertBoundedConvergence,
   MAX_CONVERGENCE_PASSES,
+  MAX_CLASSIC_LOOP_ITERATIONS,
   INSTRUMENT,
 } from "./runtime/pass-cause"
 // Side-effect import: arms `@silvery/ag`'s wrap-measurer registry with the
@@ -762,13 +763,15 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         buffer.markAllRowsDirty()
       }
     } else {
-      // Classic multi-pass layout stabilization loop. Same convergence bound
-      // as singlePassLayout — the loops differ in flush timing, not in the
-      // number of feedback edges they need to drain. See pass-cause.ts.
+      // Classic multi-pass layout stabilization loop. Bound:
+      // MAX_CLASSIC_LOOP_ITERATIONS (5), wider than MAX_CONVERGENCE_PASSES
+      // because the classic loop interleaves runPipeline + flushSyncWork
+      // in each iteration — it absorbs subscriber feedback AND
+      // layout-vs-React stabilisation in one drain. See pass-cause.ts.
       let iterationCount = 0
 
       if (INSTRUMENT) beginConvergenceLoop()
-      for (let iteration = 0; iteration < MAX_CONVERGENCE_PASSES; iteration++) {
+      for (let iteration = 0; iteration < MAX_CLASSIC_LOOP_ITERATIONS; iteration++) {
         hadReactCommit = false
         iterationCount++
         if (INSTRUMENT) beginPass(iteration)
@@ -830,13 +833,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (!hadReactCommit) break
         if (INSTRUMENT) {
           notePassCommit(iteration)
-          if (iteration === MAX_CONVERGENCE_PASSES - 1) {
+          if (iteration === MAX_CLASSIC_LOOP_ITERATIONS - 1) {
             recordPassCause({ cause: "unknown", detail: "classic-exhaustion" })
           }
         }
       }
 
-      if (hadReactCommit && iterationCount >= MAX_CONVERGENCE_PASSES) {
+      if (hadReactCommit && iterationCount >= MAX_CLASSIC_LOOP_ITERATIONS) {
         assertBoundedConvergence(iterationCount, "classic")
       }
 

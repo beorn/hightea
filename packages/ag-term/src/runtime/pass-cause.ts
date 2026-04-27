@@ -501,12 +501,26 @@ export const PASS_CAUSE_BOUNDS: Readonly<Record<PassCause, number>> = {
 } as const
 
 /**
- * Total convergence bound: 1 (initial) + 1 (one settle pass) + sum of
- * PASS_CAUSE_BOUNDS = 2. Replaces the historical magic constants
- * `MAX_SINGLE_PASS_ITERATIONS = 15`, `MAX_LAYOUT_ITERATIONS = 5`,
- * `MAX_EFFECT_FLUSHES = 5`, and `maxFlushes = 5` in the renderer's
- * convergence loops. Empirical envelope was pass 0 → 1; structural ceiling
- * matches.
+ * Total subscriber-feedback bound: 1 (initial) + 1 (one settle pass) + sum
+ * of PASS_CAUSE_BOUNDS = 2. This applies to loops where pipeline output and
+ * React effects flush in **separate phases** — singlePassLayout (one
+ * runPipeline + a separate effect-flush loop), the effect-flush loop
+ * itself, and the production processEventBatch flush.
+ *
+ * The `classic` loop in renderer.ts is structurally different: it runs
+ * runPipeline + flushSyncWork **interleaved** within the same loop, so a
+ * single iteration may emit a rect-signal change AND drain a virtualizer
+ * re-render that mounts new items, which then need ANOTHER iteration to
+ * lay out. That's not subscriber feedback — it's layout-vs-React
+ * stabilisation, and the historical empirical bound for it is 5. Tests
+ * that exercise virtualizer + scroll convergence (e.g.
+ * list-view-refinements with 100 items + indexed virtualization) actually
+ * use 3-4 of those iterations to settle the rendered window.
+ *
+ * Both bounds replace the four prior magic constants
+ * (MAX_SINGLE_PASS_ITERATIONS=15, MAX_LAYOUT_ITERATIONS=5,
+ * MAX_EFFECT_FLUSHES=5, maxFlushes=5) — the 15-pass cap is gone, and the
+ * 5 is now an explicit per-loop documented value, not a guess.
  */
 export const MAX_CONVERGENCE_PASSES =
   1 + // initial pass
@@ -519,6 +533,20 @@ export const MAX_CONVERGENCE_PASSES =
   PASS_CAUSE_BOUNDS.unknown
 
 /**
+ * Classic-loop bound: 5 iterations, mirroring the prior MAX_LAYOUT_ITERATIONS.
+ * The classic loop interleaves runPipeline + flushSyncWork in each iteration,
+ * so it absorbs both subscriber feedback AND layout-vs-React stabilisation
+ * in one drain. The historical 5 is empirical — virtualizer + scroll
+ * convergence on heterogeneous-height lists genuinely needs 3-4 iterations
+ * before useScrollState's window matches calculateScrollState's output.
+ *
+ * This is exported as a separate constant (rather than overloading
+ * MAX_CONVERGENCE_PASSES) so the bound model stays honest about the
+ * structural difference between the two loop shapes.
+ */
+export const MAX_CLASSIC_LOOP_ITERATIONS = 5
+
+/**
  * Loops that wrap their iterations in the bound assertion. Used as the
  * `loopName` argument to `assertBoundedConvergence` so an over-budget
  * regression names the offending loop.
@@ -528,6 +556,11 @@ export type ConvergenceLoopName =
   | "classic"
   | "effect-flush"
   | "production-flush"
+
+/** Map a loop name to its bound. */
+function boundFor(loopName: ConvergenceLoopName): number {
+  return loopName === "classic" ? MAX_CLASSIC_LOOP_ITERATIONS : MAX_CONVERGENCE_PASSES
+}
 
 /**
  * Assert the convergence loop did not exceed MAX_CONVERGENCE_PASSES.
@@ -543,7 +576,8 @@ export function assertBoundedConvergence(
   passCount: number,
   loopName: ConvergenceLoopName,
 ): void {
-  if (passCount <= MAX_CONVERGENCE_PASSES) return
+  const bound = boundFor(loopName)
+  if (passCount <= bound) return
   const strict = process?.env?.SILVERY_STRICT
   if (!strict) return
   const h = getPassHistogram()
@@ -552,7 +586,7 @@ export function assertBoundedConvergence(
     .join(", ")
   const msg =
     `convergence bound exceeded in ${loopName}: ${passCount} passes ran ` +
-    `but MAX_CONVERGENCE_PASSES=${MAX_CONVERGENCE_PASSES}. ` +
+    `but ${loopName === "classic" ? "MAX_CLASSIC_LOOP_ITERATIONS" : "MAX_CONVERGENCE_PASSES"}=${bound}. ` +
     `Per-cause breakdown: ${breakdown || "(no records — INSTRUMENT off)"}. ` +
     `Either a feedback edge broke its per-cause invariant, or a new edge ` +
     `needs a PassCause category in pass-cause.ts.`
