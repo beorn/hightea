@@ -65,8 +65,19 @@ import type {
  *   - emitPaint*     → paintOps
  *   - emitOverlay*   → overlayOps
  *   - setPostState*  → postStateOps
+ *
+ * Phase 2 Step 6.1: the sink also carries the frame's `width` / `height`
+ * so renderers don't need to read those off `buffer.width` /
+ * `buffer.height`. This eliminates ~30 universal read sites and is the
+ * prerequisite for `BackedPlanSink` (a sink that stands alone — no
+ * BufferSink fallback for reads).
  */
 export interface RenderSink {
+  /** Frame width in cells. Replaces `buffer.width` reads in renderers. */
+  readonly width: number
+  /** Frame height in cells. Replaces `buffer.height` reads in renderers. */
+  readonly height: number
+
   // -- transfer ops ---------------------------------------------------------
 
   /**
@@ -212,6 +223,13 @@ export interface RenderSink {
 export class BufferSink implements RenderSink {
   constructor(private readonly buffer: TerminalBuffer) {}
 
+  get width(): number {
+    return this.buffer.width
+  }
+  get height(): number {
+    return this.buffer.height
+  }
+
   emitScrollRegion(
     x: number,
     y: number,
@@ -321,6 +339,13 @@ export class TeeSink implements RenderSink {
     private readonly primary: RenderSink,
     private readonly secondary: RenderSink,
   ) {}
+
+  get width(): number {
+    return this.primary.width
+  }
+  get height(): number {
+    return this.primary.height
+  }
 
   emitScrollRegion(
     x: number,

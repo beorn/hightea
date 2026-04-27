@@ -550,9 +550,9 @@ function applyBgSegmentsToLine(
   ctx?: PipelineContext,
 ): void {
   if (bgSegments.length === 0) return
-  if (y < 0 || y >= buffer.height) return
-
   const sink: RenderSink = createFrameSink(buffer)
+  if (y < 0 || y >= sink.height) return
+
   // Reusable cell for readCellInto to avoid per-character allocation
   const bgCell = createMutableCell()
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
@@ -589,7 +589,7 @@ function applyBgSegmentsToLine(
         buffer.readCellInto(col, y, bgCell)
         bgCell.bg = seg.bg
         sink.emitSetCell(col, y, bgCell)
-        if (gWidth === 2 && col + 1 < buffer.width) {
+        if (gWidth === 2 && col + 1 < sink.width) {
           buffer.readCellInto(col + 1, y, bgCell)
           bgCell.bg = seg.bg
           sink.emitSetCell(col + 1, y, bgCell)
@@ -958,7 +958,7 @@ function renderGraphemes(
   const sink: RenderSink = createFrameSink(buffer)
   let col = startCol
   // Effective right boundary: text node's layout edge or buffer edge
-  const rightEdge = maxCol !== undefined ? Math.min(maxCol, buffer.width) : buffer.width
+  const rightEdge = maxCol !== undefined ? Math.min(maxCol, sink.width) : sink.width
   // Effective left boundary: max of clipBounds.left and 0 (no negative columns)
   const leftEdge = minCol !== undefined ? Math.max(minCol, 0) : 0
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
@@ -1037,7 +1037,7 @@ function renderGraphemes(
       hyperlink: style.hyperlink,
     })
 
-    if (width === 2 && col + 1 < buffer.width) {
+    if (width === 2 && col + 1 < sink.width) {
       const existingBg2 =
         style.bg !== null
           ? style.bg
@@ -1094,6 +1094,7 @@ function renderAnsiTextLineReturn(
   ctx?: PipelineContext,
   minCol?: number,
 ): number {
+  const sink: RenderSink = createFrameSink(buffer)
   const segments = parseAnsiText(text)
   let col = x
 
@@ -1112,7 +1113,7 @@ function renderAnsiTextLineReturn(
       segment.bg !== null
     ) {
       // Check if there's an existing background (from Text prop or parent Box fill)
-      const existingBufBg = col < buffer.width ? buffer.getCellBg(col, y) : null
+      const existingBufBg = col < sink.width ? buffer.getCellBg(col, y) : null
       const hasExistingBg = baseStyle.bg !== null || existingBufBg !== null
 
       if (hasExistingBg) {
@@ -1371,6 +1372,9 @@ export function renderText(
   inheritedFg?: Color,
   ctx?: PipelineContext,
 ): void {
+  // Phase 2 Step 6.1: dimension reads route through sink instead of
+  // buffer (buffer.width / buffer.height eliminated).
+  const sink: RenderSink = createFrameSink(buffer)
   const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
   let { y } = layout
@@ -1541,7 +1545,7 @@ export function renderText(
     // Clip right edge to horizontal clip bounds (overflow:hidden containers).
     // When internal_transform is active, expand maxCol to buffer width so the
     // transformed text (which may be wider than the original layout) is not clipped.
-    const layoutRight = internalTransform ? buffer.width : x + width
+    const layoutRight = internalTransform ? sink.width : x + width
     const maxCol =
       clipBounds && "right" in clipBounds && clipBounds.right !== undefined
         ? Math.min(layoutRight, clipBounds.right)
@@ -1582,7 +1586,6 @@ export function renderText(
     const clearStart = minCol !== undefined ? Math.max(endCol, minCol) : endCol
     if (clearStart < maxCol) {
       const clearBg = inheritedBg ?? null
-      const sink: RenderSink = createFrameSink(buffer)
       const clearCell = {
         char: " ",
         fg: style.fg,
@@ -1602,7 +1605,7 @@ export function renderText(
         wide: false,
         continuation: false,
       }
-      for (let cx = clearStart; cx < maxCol && cx < buffer.width; cx++) {
+      for (let cx = clearStart; cx < maxCol && cx < sink.width; cx++) {
         sink.emitClearCells(cx, lineY, 1, 1, clearCell)
       }
     }

@@ -170,15 +170,15 @@ export function renderBorder(
 
   // Helper to check if a row is visible within clip bounds
   const isRowVisible = (row: number): boolean => {
-    if (!clipBounds) return row >= 0 && row < buffer.height
-    return row >= clipBounds.top && row < clipBounds.bottom && row < buffer.height
+    if (!clipBounds) return row >= 0 && row < sink.height
+    return row >= clipBounds.top && row < clipBounds.bottom && row < sink.height
   }
 
   // Helper to check if a column is visible within clip bounds
   const isColVisible = (col: number): boolean => {
     if (clipBounds?.left === undefined || clipBounds.right === undefined)
-      return col >= 0 && col < buffer.width
-    return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
+      return col >= 0 && col < sink.width
+    return col >= clipBounds.left && col < clipBounds.right && col < sink.width
   }
 
   // Top border — corners use the bg of the horizontal side (top/bottom)
@@ -187,11 +187,11 @@ export function renderBorder(
       sink.emitSetCell(x, y, { char: chars.topLeft, fg: color, bg: topBg })
     const hStart = showLeft ? x + 1 : x
     const hEnd = showRight ? x + width - 1 : x + width
-    for (let col = hStart; col < hEnd && col < buffer.width; col++) {
+    for (let col = hStart; col < hEnd && col < sink.width; col++) {
       if (isColVisible(col))
         sink.emitSetCell(col, y, { char: chars.horizontal, fg: color, bg: topBg })
     }
-    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+    if (showRight && x + width - 1 < sink.width && isColVisible(x + width - 1)) {
       sink.emitSetCell(x + width - 1, y, { char: chars.topRight, fg: color, bg: topBg })
     }
   }
@@ -204,7 +204,7 @@ export function renderBorder(
     if (!isRowVisible(row)) continue
     if (showLeft && isColVisible(x))
       sink.emitSetCell(x, row, { char: chars.vertical, fg: color, bg: leftBg })
-    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+    if (showRight && x + width - 1 < sink.width && isColVisible(x + width - 1)) {
       sink.emitSetCell(x + width - 1, row, { char: rightVertical, fg: color, bg: rightBg })
     }
   }
@@ -218,11 +218,11 @@ export function renderBorder(
     }
     const bStart = showLeft ? x + 1 : x
     const bEnd = showRight ? x + width - 1 : x + width
-    for (let col = bStart; col < bEnd && col < buffer.width; col++) {
+    for (let col = bStart; col < bEnd && col < sink.width; col++) {
       if (isColVisible(col))
         sink.emitSetCell(col, bottomY, { char: bottomHorizontal, fg: color, bg: bottomBg })
     }
-    if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
+    if (showRight && x + width - 1 < sink.width && isColVisible(x + width - 1)) {
       sink.emitSetCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
@@ -270,15 +270,15 @@ export function renderOutline(
 
   // Helper to check if a row is visible within clip bounds
   const isRowVisible = (row: number): boolean => {
-    if (!clipBounds) return row >= 0 && row < buffer.height
-    return row >= clipBounds.top && row < clipBounds.bottom && row < buffer.height
+    if (!clipBounds) return row >= 0 && row < sink.height
+    return row >= clipBounds.top && row < clipBounds.bottom && row < sink.height
   }
 
   // Helper to check if a column is visible within clip bounds
   const isColVisible = (col: number): boolean => {
     if (clipBounds?.left === undefined || clipBounds.right === undefined)
-      return col >= 0 && col < buffer.width
-    return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
+      return col >= 0 && col < sink.width
+    return col >= clipBounds.left && col < clipBounds.right && col < sink.width
   }
 
   const showTop = props.outlineTop !== false
@@ -290,11 +290,11 @@ export function renderOutline(
   if (showTop && isRowVisible(oy)) {
     if (showLeft && isColVisible(ox))
       sink.emitSetCell(ox, oy, { char: chars.topLeft, fg: color, bg, attrs })
-    for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
+    for (let col = ox + 1; col < ox + ow - 1 && col < sink.width; col++) {
       if (isColVisible(col))
         sink.emitSetCell(col, oy, { char: chars.horizontal, fg: color, bg, attrs })
     }
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < sink.width && isColVisible(ox + ow - 1)) {
       sink.emitSetCell(ox + ow - 1, oy, { char: chars.topRight, fg: color, bg, attrs })
     }
   }
@@ -307,7 +307,7 @@ export function renderOutline(
     if (!isRowVisible(row)) continue
     if (showLeft && isColVisible(ox))
       sink.emitSetCell(ox, row, { char: chars.vertical, fg: color, bg, attrs })
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < sink.width && isColVisible(ox + ow - 1)) {
       sink.emitSetCell(ox + ow - 1, row, { char: outlineRightVertical, fg: color, bg, attrs })
     }
   }
@@ -319,11 +319,11 @@ export function renderOutline(
     if (showLeft && isColVisible(ox)) {
       sink.emitSetCell(ox, bottomY, { char: chars.bottomLeft, fg: color, bg, attrs })
     }
-    for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
+    for (let col = ox + 1; col < ox + ow - 1 && col < sink.width; col++) {
       if (isColVisible(col))
         sink.emitSetCell(col, bottomY, { char: outlineBottomHorizontal, fg: color, bg, attrs })
     }
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < sink.width && isColVisible(ox + ow - 1)) {
       sink.emitSetCell(ox + ow - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,

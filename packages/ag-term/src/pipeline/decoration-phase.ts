@@ -124,7 +124,7 @@ function walk(
   // Off-screen viewport clipping — mirrors renderNodeToBuffer. Keeps the
   // walker cheap: large scroll containers with many hidden children return
   // early for any node entirely outside the visible window.
-  if (y >= buffer.height || y + layout.height <= 0) return
+  if (y >= sink.height || y + layout.height <= 0) return
 
   // Compute the effective background the outline should inherit from this
   // box — matches the `boxInheritedBg` calculation in renderOwnContent.
@@ -154,7 +154,8 @@ function walk(
       layout.height,
       props,
       clipBounds,
-      buffer,
+      sink.width,
+      sink.height,
     )
     for (const pos of positions) {
       // Snapshot the cell BEFORE the outline overwrites it.
@@ -232,7 +233,8 @@ function collectOutlineCells(
   height: number,
   props: BoxProps,
   clipBounds: ClipBounds | undefined,
-  buffer: TerminalBuffer,
+  bufferWidth: number,
+  bufferHeight: number,
 ): { x: number; y: number }[] {
   const out: { x: number; y: number }[] = []
   const ox = x - 1
@@ -241,13 +243,13 @@ function collectOutlineCells(
   const oh = height + 2
 
   const isRowVisible = (row: number): boolean => {
-    if (!clipBounds) return row >= 0 && row < buffer.height
-    return row >= clipBounds.top && row < clipBounds.bottom && row < buffer.height
+    if (!clipBounds) return row >= 0 && row < bufferHeight
+    return row >= clipBounds.top && row < clipBounds.bottom && row < bufferHeight
   }
   const isColVisible = (col: number): boolean => {
     if (clipBounds?.left === undefined || clipBounds.right === undefined)
-      return col >= 0 && col < buffer.width
-    return col >= clipBounds.left && col < clipBounds.right && col < buffer.width
+      return col >= 0 && col < bufferWidth
+    return col >= clipBounds.left && col < clipBounds.right && col < bufferWidth
   }
 
   const showTop = props.outlineTop !== false
@@ -258,10 +260,10 @@ function collectOutlineCells(
   // Top row
   if (showTop && isRowVisible(oy)) {
     if (showLeft && isColVisible(ox)) out.push({ x: ox, y: oy })
-    for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
+    for (let col = ox + 1; col < ox + ow - 1 && col < bufferWidth; col++) {
       if (isColVisible(col)) out.push({ x: col, y: oy })
     }
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < bufferWidth && isColVisible(ox + ow - 1)) {
       out.push({ x: ox + ow - 1, y: oy })
     }
   }
@@ -272,7 +274,7 @@ function collectOutlineCells(
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
     if (showLeft && isColVisible(ox)) out.push({ x: ox, y: row })
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < bufferWidth && isColVisible(ox + ow - 1)) {
       out.push({ x: ox + ow - 1, y: row })
     }
   }
@@ -281,10 +283,10 @@ function collectOutlineCells(
   const bottomY = oy + oh - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft && isColVisible(ox)) out.push({ x: ox, y: bottomY })
-    for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
+    for (let col = ox + 1; col < ox + ow - 1 && col < bufferWidth; col++) {
       if (isColVisible(col)) out.push({ x: col, y: bottomY })
     }
-    if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
+    if (showRight && ox + ow - 1 < bufferWidth && isColVisible(ox + ow - 1)) {
       out.push({ x: ox + ow - 1, y: bottomY })
     }
   }
