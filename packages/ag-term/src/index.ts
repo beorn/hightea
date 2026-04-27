@@ -87,6 +87,29 @@ export { createDOMAdapter, DOMRenderBuffer, injectDOMStyles } from "./adapters/d
 export type { DOMAdapterConfig } from "./adapters/dom-adapter"
 
 // =============================================================================
+// Pass-cause instrumentation (SILVERY_INSTRUMENT=1)
+// =============================================================================
+
+export {
+  isInstrumentEnabled,
+  beginConvergenceLoop,
+  beginPass,
+  notePassCommit,
+  recordPassCause,
+  getPassHistogram,
+  resetPassHistogram,
+  formatPassHistogram,
+  printPassHistogram,
+  appendHistogramJson,
+} from "./runtime/pass-cause"
+export type {
+  PassCause,
+  PassCauseRecord,
+  PassHistogram,
+  PassHistogramEntry,
+} from "./runtime/pass-cause"
+
+// =============================================================================
 // ANSI Sanitizer
 // =============================================================================
 

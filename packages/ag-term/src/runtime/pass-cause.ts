@@ -227,12 +227,42 @@ export function formatPassHistogram(h: PassHistogram = getPassHistogram()): stri
   return lines.join("\n")
 }
 
-/** Print histogram to stderr (test runner / app teardown). No-op if disabled. */
+/**
+ * Print histogram to stderr (test runner / app teardown). No-op if disabled.
+ *
+ * In test environments where stdout/stderr are intercepted, prefer writing
+ * the histogram to a file via SILVERY_INSTRUMENT_FILE — `printPassHistogram`
+ * checks for it and writes there instead of stderr.
+ */
 export function printPassHistogram(): void {
   if (!instrumentEnabled) return
   const h = getPassHistogram()
   if (h.totalRecords === 0) return
-  process.stderr.write("\n" + formatPassHistogram(h) + "\n")
+  const formatted = formatPassHistogram(h)
+  const file = process.env.SILVERY_INSTRUMENT_FILE
+  if (file) {
+    // Use require because top-level fs import was avoided to keep module
+    // lazy; this branch only fires when the env var is explicitly set.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("node:fs") as typeof import("node:fs")
+    fs.appendFileSync(file, "\n" + formatted + "\n")
+    return
+  }
+  process.stderr.write("\n" + formatted + "\n")
+}
+
+/**
+ * Append a JSON-serialized histogram snapshot to a file. Used by the test
+ * runner's `process.on("exit")` hook to emit a single aggregated record per
+ * test run. JSON form is stable for downstream tooling (C3b's analysis).
+ */
+export function appendHistogramJson(file: string): void {
+  if (!instrumentEnabled) return
+  const h = getPassHistogram()
+  if (h.totalRecords === 0) return
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs")
+  fs.appendFileSync(file, JSON.stringify(h) + "\n")
 }
 
 /**
