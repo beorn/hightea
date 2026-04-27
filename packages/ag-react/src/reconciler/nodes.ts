@@ -225,6 +225,12 @@ export function createNode(
       // exceeds maxWidth is sliced into chunks of exactly maxWidth.
       const isHardWrap = wrap === "hard"
 
+      // internal_transform (set by <Transform>) is applied per-rendered-line
+      // and can change the line's display width. fit-content and other
+      // intrinsic-sizing queries must reflect the post-transform width — see
+      // pipeline-bugfixes.test.tsx "measure-fit-transform".
+      const internalTransform = (node.props as TextProps).internal_transform
+
       // Calculate actual dimensions based on wrapping
       // Use wrapText() for accurate line count — must match the render phase
       // (render-text.ts formatTextLines) which also uses wrapText()
@@ -237,6 +243,16 @@ export function createNode(
 
       const lh = getActiveLineHeight() // 1 in cell mode, lineHeightPx in pixel mode
 
+      // Track the index of each rendered line (post-wrap, pre-transform) so
+      // internal_transform receives the same (line, index) pairs the render
+      // phase will produce. Reset per measure call.
+      let renderedLineIndex = 0
+      const widthFor = (line: string): number => {
+        if (!internalTransform) return dw(line)
+        const transformed = internalTransform(line, renderedLineIndex)
+        return dw(transformed)
+      }
+
       for (const line of lines) {
         measureStats.displayWidthCalls++
         const lineWidth = dw(line)
@@ -247,7 +263,8 @@ export function createNode(
           // would lie about intrinsic size and force CSS auto-min-size to
           // collapse padded-text columns to the available width.
           totalHeight += lh
-          actualWidth = Math.max(actualWidth, lineWidth)
+          actualWidth = Math.max(actualWidth, widthFor(line))
+          renderedLineIndex++
         } else if (isHardWrap) {
           if (isMinContentQuery) {
             // Hard-wrap min-content: any character can break, so min = 1
@@ -255,16 +272,21 @@ export function createNode(
             // computes wrapped height at the allocated width.
             totalHeight += lh
             actualWidth = Math.max(actualWidth, lineWidth > 0 ? 1 : 0)
+            renderedLineIndex++
           } else if (lineWidth <= maxWidth) {
             totalHeight += lh
-            actualWidth = Math.max(actualWidth, lineWidth)
+            actualWidth = Math.max(actualWidth, widthFor(line))
+            renderedLineIndex++
           } else if (Number.isFinite(maxWidth) && maxWidth > 0) {
             // Character-level hard wrap: ceil(lineWidth / maxWidth) lines.
-            totalHeight += Math.ceil(lineWidth / maxWidth) * lh
+            const wrappedCount = Math.ceil(lineWidth / maxWidth)
+            totalHeight += wrappedCount * lh
             actualWidth = Math.max(actualWidth, maxWidth)
+            renderedLineIndex += wrappedCount
           } else {
             totalHeight += lh
-            actualWidth = Math.max(actualWidth, lineWidth)
+            actualWidth = Math.max(actualWidth, widthFor(line))
+            renderedLineIndex++
           }
         } else if (isMinContentQuery) {
           // Wrappable min-content: longest unbreakable token width.
@@ -286,16 +308,19 @@ export function createNode(
           // the assigned width.
           totalHeight += lh
           actualWidth = Math.max(actualWidth, longestWord)
+          renderedLineIndex++
         } else {
           // Wrappable text (wrap, even, undefined) under exact/at-most/undefined.
           if (lineWidth <= maxWidth) {
             totalHeight += lh
-            actualWidth = Math.max(actualWidth, lineWidth)
+            actualWidth = Math.max(actualWidth, widthFor(line))
+            renderedLineIndex++
           } else {
             const wrapped = wt(line, maxWidth, false, true)
             totalHeight += wrapped.length * lh
             for (const wl of wrapped) {
-              actualWidth = Math.max(actualWidth, dw(wl))
+              actualWidth = Math.max(actualWidth, widthFor(wl))
+              renderedLineIndex++
             }
           }
         }

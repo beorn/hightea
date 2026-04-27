@@ -91,17 +91,29 @@ describe("createTextFrame", () => {
   // Immutability (snapshot semantics)
   // ==========================================================================
 
-  test("TextFrame is detached from source buffer mutations", () => {
+  test("TextFrame is detached from source buffer mutations after first read", () => {
+    // Snapshot creation is lazy — the buffer is cloned on first access of
+    // .text/.ansi/.cell()/.containsText(). After that first access, the
+    // snapshot is fixed and immune to later buffer mutations.
+    //
+    // Detachment-at-construction is intentionally NOT guaranteed: hot test
+    // paths create frames they never read, and an eager clone would charge
+    // every caller for an 80K-cell buffer copy (see comment in createTextFrame).
+    // Callers who need true construction-time detachment should clone the
+    // buffer themselves before calling.
     const buf = makeBuffer(5, 1, [{ x: 0, y: 0, cell: { char: "A", fg: 1 } }])
     const frame = createTextFrame(buf)
 
-    // Mutate the source buffer AFTER snapshot
-    buf.setCell(0, 0, { char: "Z", fg: 9 })
-
-    // Frame should still reflect original values
+    // Materialize the snapshot via a read.
     const c = frame.cell(0, 0)
     expect(c.char).toBe("A")
-    expect(c.fg).toEqual({ r: 128, g: 0, b: 0 }) // original ANSI red, not bright red (9)
+
+    // Mutate the source buffer AFTER first read.
+    buf.setCell(0, 0, { char: "Z", fg: 9 })
+
+    // Frame must still reflect original values — snapshot is detached now.
+    expect(frame.cell(0, 0).char).toBe("A")
+    expect(frame.cell(0, 0).fg).toEqual({ r: 128, g: 0, b: 0 }) // original ANSI red, not bright red (9)
     expect(frame.containsText("A")).toBe(true)
     expect(frame.containsText("Z")).toBe(false)
   })

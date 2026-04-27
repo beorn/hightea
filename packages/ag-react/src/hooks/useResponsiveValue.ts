@@ -5,19 +5,24 @@
  * Reactive on viewport-size changes (SIGWINCH in TUI; later ResizeObserver /
  * matchMedia in DOM/canvas targets).
  *
- * Named breakpoints (sm/md/lg) are mobile-first cumulative thresholds:
- *   - default: applies below `sm`
+ * Named breakpoints follow Bootstrap / Tailwind / Polaris conventions —
+ * mobile-first cumulative thresholds:
+ *   - default: applies below `xs`
+ *   - xs:      applies at `xs` and above (until sm)
  *   - sm:      applies at `sm` and above (until md)
  *   - md:      applies at `md` and above (until lg)
- *   - lg:      applies at `lg` and above
+ *   - lg:      applies at `lg` and above (until xl)
+ *   - xl:      applies at `xl` and above
  *
- * Defaults:
- *   sm = 60 cols (compact-but-functional terminal)
- *   md = 100 cols (comfortable + side panel)
- *   lg = 160 cols (wide / desktop terminal)
+ * Defaults (terminal columns):
+ *   xs = 30  — very narrow (split pane, phone-like)
+ *   sm = 60  — compact terminal
+ *   md = 90  — code-width (~80 char + breathing room)
+ *   lg = 120 — code + sidebar comfortably
+ *   xl = 150 — desktop / wide terminal
  *
  * Override defaults per-call by passing `breakpoints`:
- *   useResponsiveValue({ default: ..., md: ... }, { md: 120 })
+ *   useResponsiveValue({ default: ..., md: ... }, { md: 100 })
  *
  * @example
  * ```tsx
@@ -34,14 +39,16 @@
 
 import { useTerm } from "./useTerm"
 
-/** Standard breakpoint names. Mobile-first cumulative. */
-export type Breakpoint = "sm" | "md" | "lg"
+/** Standard breakpoint names. Mobile-first cumulative — Bootstrap/Tailwind/Polaris convention. */
+export type Breakpoint = "xs" | "sm" | "md" | "lg" | "xl"
 
 /** Default breakpoint values in TUI columns. */
 export const DEFAULT_BREAKPOINTS: Record<Breakpoint, number> = {
+  xs: 30,
   sm: 60,
-  md: 100,
-  lg: 160,
+  md: 90,
+  lg: 120,
+  xl: 150,
 }
 
 export type ResponsiveValues<T> = { default: T } & Partial<Record<Breakpoint, T>>
@@ -64,11 +71,13 @@ export function useResponsiveValue<T>(values: ResponsiveValues<T>, options: UseR
 
   // Unknown size (mock term) → largest defined value.
   if (cols === 0) {
-    return values.lg ?? values.md ?? values.sm ?? values.default
+    return values.xl ?? values.lg ?? values.md ?? values.sm ?? values.xs ?? values.default
   }
 
+  if (cols >= bp.xl && values.xl !== undefined) return values.xl
   if (cols >= bp.lg && values.lg !== undefined) return values.lg
   if (cols >= bp.md && values.md !== undefined) return values.md
   if (cols >= bp.sm && values.sm !== undefined) return values.sm
+  if (cols >= bp.xs && values.xs !== undefined) return values.xs
   return values.default
 }

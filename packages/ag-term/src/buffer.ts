@@ -2567,10 +2567,13 @@ export function createTextFrame(buffer: TerminalBuffer): TextFrame {
   const width = buffer.width
   const height = buffer.height
 
-  // Snapshot: clone the buffer lazily — only when text/ansi/cell is accessed.
-  // The clone ensures lazy computation is safe from mutations to the original.
-  // At 400x200 (80K cells), eager clone + cellData construction costs ~10ms.
-  // Lazy: O(1) frame creation, clone on first access.
+  // Snapshot: lazy clone — only on first text/ansi/cell access. Hot test
+  // paths create frames they never read, so eager cloning charges every
+  // caller for an 80K-cell buffer copy that's discarded immediately.
+  // Callers who need true construction-time detachment (i.e. the frame
+  // must be safe across buffer mutations between createTextFrame() and
+  // first read) should request an eager/COW snapshot via a dedicated path
+  // instead of relying on createTextFrame()'s default.
   let _snapshot: TerminalBuffer | undefined
   function getSnapshot(): TerminalBuffer {
     if (!_snapshot) _snapshot = buffer.clone()

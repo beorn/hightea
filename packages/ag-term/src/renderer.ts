@@ -97,6 +97,44 @@ function pruneAndCountActiveRenders(): number {
 }
 
 /**
+ * Scrub a Container so it can't keep its RenderInstance alive after unmount.
+ *
+ * The FiberRoot retains its `containerInfo` (our `Container`) for some time
+ * after `updateContainerSync(null, …)` even with `flushSyncWork()`. The
+ * Container's `onRender` callback closes over the entire `RenderInstance`,
+ * so without breaking that closure the instance + frames + prev buffers stay
+ * reachable across mount/unmount cycles in tests.
+ *
+ * `clearContainer()` already removes children + frees their layout nodes
+ * during the React commit; this function additionally null-scrubs the root
+ * AgNode and frees its layout node so the per-cycle retention bottoms out.
+ */
+function releaseContainer(container: ReturnType<typeof createContainer>): void {
+  // Break FiberRoot → containerInfo → onRender → RenderInstance retention.
+  container.onRender = () => {}
+
+  const root = container.root
+  root.children = []
+  root.parent = null
+  root.boxRect = null
+  root.scrollRect = null
+  root.screenRect = null
+  root.prevLayout = null
+  root.prevScrollRect = null
+  root.prevScreenRect = null
+
+  if (root.layoutNode) {
+    try {
+      root.layoutNode.free()
+    } catch {
+      // best-effort; layout node may already have been released by the
+      // host-config clearContainer / removeChild path during commit.
+    }
+    root.layoutNode = null
+  }
+}
+
+/**
  * Assert that the layout engine is initialized before rendering.
  * This catches the common mistake of calling render() without await ensureEngine().
  */
@@ -1109,17 +1147,33 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     if (!instance.mounted) {
       throw new Error("Already unmounted")
     }
+    // The root is created as ConcurrentRoot (see createFiberRoot). Mount and
+    // rerender both use updateContainerSync + flushSyncWork; unmount must do
+    // the same so React layout-effect cleanups (e.g. useBoxMetrics's
+    // signalEffect disposers) actually run synchronously. The async
+    // updateContainer(null, …) path on a ConcurrentRoot leaves cleanups
+    // pending past unmount, which kept signal subscriptions + the whole
+    // RenderInstance graph alive across mount/unmount cycles.
+    const fiberRoot = instance.fiberRoot
     withActEnvironment(() => {
       act(() => {
-        reconciler.updateContainer(null, instance.fiberRoot, null, () => {})
+        reconciler.updateContainerSync(null, fiberRoot, null, null)
+        reconciler.flushSyncWork()
       })
     })
+
     instance.mounted = false
+    instance.rendering = false
+    autoRenderScheduled = false
+    inRenderCycle = false
+
     instance.inputEmitter.removeAllListeners()
+    stdoutEmitter.removeAllListeners()
 
     // Clean up stdin bridge
     if (stdinStream && stdinOnReadable) {
       stdinStream.removeListener("readable", stdinOnReadable)
+      stdinOnReadable = undefined
     }
 
     // Unregister node removal hook
@@ -1127,6 +1181,15 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
     // Untrack this render
     activeRenders.delete(renderRef)
+
+    // Drop heavy retained state and break the FiberRoot → Container.onRender
+    // → RenderInstance retention chain. Without releaseContainer(), even a
+    // synchronously-flushed unmount keeps the full instance reachable
+    // through the container that the FiberRoot still references.
+    clearFn()
+    instance.kittyActive = false
+    releaseContainer(instance.container)
+    instance.fiberRoot = null
 
     if (debug) {
       console.log("[silvery] Unmounted")

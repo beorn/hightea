@@ -30,7 +30,7 @@
  * Bead: km-silvery.boxmetrics-parity
  */
 
-import { useContext, useLayoutEffect, useReducer, type RefObject } from "react"
+import { useContext, useLayoutEffect, useReducer, useRef, type RefObject } from "react"
 import { effect as signalEffect } from "@silvery/signals"
 import { NodeContext } from "../context"
 import { getLayoutSignals } from "@silvery/ag/layout-signals"
@@ -123,9 +123,28 @@ function computeMetrics(node: AgNode): BoxMetrics {
  *
  * @param ref - Optional ref to a Box (BoxHandle). When omitted, reads from NodeContext.
  */
+/**
+ * Compare two BoxMetrics values for structural equality.
+ * Used to gate forceUpdate so signal fires that produce identical metrics
+ * (e.g. layout settling on the same value) don't kick React into a layout
+ * feedback loop. Mirrors the rectEqual() pattern in useLayout.ts.
+ */
+function metricsEqual(a: BoxMetrics | null, b: BoxMetrics | null): boolean {
+  if (a === b) return true
+  if (!a || !b) return false
+  return (
+    a.width === b.width &&
+    a.height === b.height &&
+    a.left === b.left &&
+    a.top === b.top &&
+    a.hasMeasured === b.hasMeasured
+  )
+}
+
 export function useBoxMetrics(ref?: RefObject<unknown>): BoxMetrics {
   const contextNode = useContext(NodeContext)
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
+  const prevRef = useRef<BoxMetrics | null>(null)
 
   // Resolve the target node: ref-based or context-based
   const node = ref ? resolveNode(ref.current) : contextNode
@@ -135,8 +154,20 @@ export function useBoxMetrics(ref?: RefObject<unknown>): BoxMetrics {
 
     const signals = getLayoutSignals(node)
     const dispose = signalEffect(() => {
-      signals.boxRect() // read to establish dependency
-      forceUpdate()
+      // Read the signal to establish the reactive dependency.
+      signals.boxRect()
+      // Only re-render when the derived metrics actually changed. Without
+      // this guard the hook calls forceUpdate() on every signal fire — even
+      // when boxRect resolved to the identical value — which schedules a
+      // React commit, which the renderer's layout loop interprets as a
+      // pending layout-feedback iteration. The loop then exhausts its
+      // 5-iteration budget and emits the "classic layout loop exhausted"
+      // warning (which the test harness treats as a failure).
+      const next = computeMetrics(node)
+      if (!metricsEqual(prevRef.current, next)) {
+        prevRef.current = next
+        forceUpdate()
+      }
     })
     return dispose
   }, [node])

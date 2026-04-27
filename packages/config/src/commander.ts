@@ -72,7 +72,7 @@ export function mountConfigCommand(
   const registries = opts.registries ?? {}
 
   async function getConfig(): Promise<Config> {
-    return typeof configOrFactory === "function" ? await configOrFactory() : configOrFactory
+    return typeof configOrFactory === "function" ?  configOrFactory() : configOrFactory
   }
 
   const cmd = program.command("config [args...]").description("get/set config values and manage named entries")
