@@ -43,6 +43,7 @@ import {
   setCachedAnalysis,
 } from "./prepared-text"
 import { buildTextAnalysis, balancedWidth as computeBalancedWidth, optimalWrap } from "./pretext"
+import { BufferSink, type RenderSink } from "./render-sink"
 import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
 import { createLogger } from "loggily"
 
@@ -551,6 +552,7 @@ function applyBgSegmentsToLine(
   if (bgSegments.length === 0) return
   if (y < 0 || y >= buffer.height) return
 
+  const sink: RenderSink = new BufferSink(buffer)
   // Reusable cell for readCellInto to avoid per-character allocation
   const bgCell = createMutableCell()
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
@@ -582,13 +584,15 @@ function applyBgSegmentsToLine(
       if (displayOffset >= relStart && displayOffset < relEnd) {
         // This character is within the bg segment -- set bg on its cells.
         // Use readCellInto to avoid allocating a new Cell per iteration.
+        // Note: this is a paint (bg overlay on existing chars). The read
+        // is an intra-frame buffer read that Phase 2 Step 6 will eliminate.
         buffer.readCellInto(col, y, bgCell)
         bgCell.bg = seg.bg
-        buffer.setCell(col, y, bgCell)
+        sink.emitSetCell(col, y, bgCell)
         if (gWidth === 2 && col + 1 < buffer.width) {
           buffer.readCellInto(col + 1, y, bgCell)
           bgCell.bg = seg.bg
-          buffer.setCell(col + 1, y, bgCell)
+          sink.emitSetCell(col + 1, y, bgCell)
         }
       }
 
@@ -951,6 +955,7 @@ function renderGraphemes(
   ctx?: PipelineContext,
   minCol?: number,
 ): number {
+  const sink: RenderSink = new BufferSink(buffer)
   let col = startCol
   // Effective right boundary: text node's layout edge or buffer edge
   const rightEdge = maxCol !== undefined ? Math.min(maxCol, buffer.width) : buffer.width
@@ -1004,7 +1009,7 @@ function renderGraphemes(
     // rendering — the owning container's dirty flag tracking doesn't cover
     // cells outside its layout area.
     if (width === 2 && col + 1 >= rightEdge) {
-      buffer.setCell(col, y, {
+      sink.emitSetCell(col, y, {
         char: " ",
         fg: style.fg,
         bg: existingBg,
@@ -1021,7 +1026,7 @@ function renderGraphemes(
     // For text-presentation emoji, add VS16 so terminals render at 2 columns
     const outputChar = width === 2 ? ensureEmojiPresentation(grapheme) : grapheme
 
-    buffer.setCell(col, y, {
+    sink.emitSetCell(col, y, {
       char: outputChar,
       fg: style.fg,
       bg: existingBg,
@@ -1039,7 +1044,7 @@ function renderGraphemes(
           : inheritedBg !== undefined
             ? inheritedBg
             : buffer.getCellBg(col + 1, y)
-      buffer.setCell(col + 1, y, {
+      sink.emitSetCell(col + 1, y, {
         char: "",
         fg: style.fg,
         bg: existingBg2,
@@ -1568,29 +1573,37 @@ export function renderText(
     // survive in the cloned buffer. This is safe: we only clear within our own
     // layout area, writing spaces with the correct inherited background.
     // Respect minCol so we don't clear cells inside the parent's left border.
+    //
+    // Phase 2 Step 4c: routes through sink.emitClearCells (intent: clear stale
+    // pixels in the trailing cells of a shrunk text node — destructive).
+    // Uses emitClearCells (not emitClearRect) because it preserves fg/attrs
+    // shape; the existing logic writes a fully-shaped cell with explicit
+    // attrs that emitClearRect's `{char:" ", bg}` would normalize away.
     const clearStart = minCol !== undefined ? Math.max(endCol, minCol) : endCol
     if (clearStart < maxCol) {
       const clearBg = inheritedBg ?? null
+      const sink: RenderSink = new BufferSink(buffer)
+      const clearCell = {
+        char: " ",
+        fg: style.fg,
+        bg: clearBg,
+        underlineColor: null,
+        attrs: {
+          bold: false,
+          dim: false,
+          italic: false,
+          underline: false,
+          overline: false,
+          inverse: false,
+          strikethrough: false,
+          blink: false,
+          hidden: false,
+        },
+        wide: false,
+        continuation: false,
+      }
       for (let cx = clearStart; cx < maxCol && cx < buffer.width; cx++) {
-        buffer.setCell(cx, lineY, {
-          char: " ",
-          fg: style.fg,
-          bg: clearBg,
-          underlineColor: null,
-          attrs: {
-            bold: false,
-            dim: false,
-            italic: false,
-            underline: false,
-            overline: false,
-            inverse: false,
-            strikethrough: false,
-            blink: false,
-            hidden: false,
-          },
-          wide: false,
-          continuation: false,
-        })
+        sink.emitClearCells(cx, lineY, 1, 1, clearCell)
       }
     }
 
