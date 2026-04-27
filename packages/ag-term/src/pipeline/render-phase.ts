@@ -19,7 +19,7 @@
 import { createLogger } from "loggily"
 import type { Color } from "../buffer"
 import { TerminalBuffer } from "../buffer"
-import type { BoxProps, AgNode, TextProps } from "@silvery/ag/types"
+import type { BoxProps, AgNode, Rect, TextProps } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderBox, renderScrollIndicators, getEffectiveBg } from "./render-box"
 import { clearPreviousOutlines, renderDecorationPass } from "./decoration-phase"
@@ -1259,6 +1259,47 @@ function applyBoxAttrOverlay(
 // Scroll Tier Planner
 // ============================================================================
 
+/**
+ * Check whether any sibling of this scroll container is an absolute-positioned
+ * Box whose rect overlaps with the scroll container's rect.
+ *
+ * This matters for Tier 1 (buffer shift) safety: when a sibling absolute child
+ * paints into our rect (e.g., ListView's scrollbar thumb at col=width-1), the
+ * shift would smear those pixels along with the content. STRICT detects the
+ * resulting incremental-vs-fresh divergence.
+ *
+ * O(siblings) — typically 1-3 siblings under common parents (ListView outer
+ * Box has scroll container + scrollbar + edge-bump indicator). Returns false
+ * for the common case (no parent or no absolute siblings).
+ */
+function checkOverlappingAbsoluteSibling(node: AgNode, scrollRect: Rect): boolean {
+  const parent = node.parent
+  if (!parent) return false
+  const siblings = parent.children
+  if (!siblings) return false
+  const sLeft = scrollRect.x
+  const sTop = scrollRect.y
+  const sRight = scrollRect.x + scrollRect.width
+  const sBottom = scrollRect.y + scrollRect.height
+  for (const sib of siblings) {
+    if (sib === node) continue
+    const sp = sib.props as BoxProps | undefined
+    if (sp?.position !== "absolute") continue
+    const r = sib.boxRect
+    if (!r) continue
+    // AABB overlap test (half-open intervals).
+    if (
+      r.x < sRight &&
+      r.x + r.width > sLeft &&
+      r.y < sBottom &&
+      r.y + r.height > sTop
+    ) {
+      return true
+    }
+  }
+  return false
+}
+
 /** Which tier strategy a scroll container uses for this frame. */
 export type ScrollTier = "shift" | "clear" | "subtree-only"
 
@@ -1282,6 +1323,13 @@ export interface ScrollPlanInputs {
   contentRegionCleared: boolean
   /** The bg to use for viewport clears (own bg or inherited). */
   scrollBg: Color | null
+  /**
+   * A sibling absolute child overlays this scroll container's rect. When true,
+   * Tier 1 (buffer shift) is unsafe — the shift would smear the absolute
+   * sibling's pixels along with content. Common case: ListView's scrollbar
+   * thumb at col=width-1, sibling of the scroll Box.
+   */
+  hasOverlappingAbsoluteSibling?: boolean
 }
 
 /** Result of the scroll tier decision. */
@@ -1325,17 +1373,21 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
     ancestorCleared,
     contentRegionCleared,
     scrollBg,
+    hasOverlappingAbsoluteSibling = false,
   } = inputs
 
   // Tier 1: Buffer shift -- scroll offset changed but nothing else.
   // Unsafe with sticky children (sticky second pass overwrites shifted pixels).
+  // Unsafe with overlapping absolute siblings (the shift would smear their
+  // pixels along with content — common case: ListView scrollbar thumb).
   const scrollOnly =
     hasPrevBuffer &&
     scrollOffsetChanged &&
     !childrenDirty &&
     !childrenNeedFreshRender &&
     !hasStickyChildren &&
-    !visibleRangeChanged
+    !visibleRangeChanged &&
+    !hasOverlappingAbsoluteSibling
 
   // Tier 2: Full viewport clear -- children restructured, scroll+sticky, or parent changed.
   const needsViewportClear =
@@ -1355,6 +1407,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
     if (childrenDirty) reasons.push("childrenDirty")
     if (childrenNeedFreshRender) reasons.push("childrenNeedFreshRender")
     if (visibleRangeChanged) reasons.push("visibleRangeChanged")
+    if (hasOverlappingAbsoluteSibling) reasons.push("overlappingAbsoluteSibling")
   }
   if (stickyForceRefresh) reasons.push("stickyForceRefresh")
 
@@ -1461,6 +1514,17 @@ function renderScrollContainerChildren(
         : inheritedBg.color
       : null
 
+  // Tier 1 (buffer shift) is unsafe when a sibling absolute child overlays
+  // this scroll container's rect. The shift moves pixels in our rect — but
+  // those pixels include any absolute overlay painted in the previous frame
+  // by a sibling under the same parent (e.g., ListView's scrollbar thumb
+  // sitting at col=width-1 above the scroll container). Without this gate,
+  // the absolute overlay's pixels smear with the content shift and the
+  // STRICT incremental-vs-fresh comparison detects the corruption.
+  //
+  // Bead: km-silvery.listview-test-failures.
+  const hasOverlappingAbsoluteSibling = checkOverlappingAbsoluteSibling(node, layout)
+
   // Plan the scroll tier strategy (pure decision, no side effects)
   const plan = planScrollRender({
     scrollOffsetChanged,
@@ -1472,6 +1536,7 @@ function renderScrollContainerChildren(
     ancestorCleared,
     contentRegionCleared,
     scrollBg,
+    hasOverlappingAbsoluteSibling,
   })
   const { tier, stickyForceRefresh } = plan
   const defaultChildHasPrev = plan.childHasPrev
