@@ -124,7 +124,9 @@ export function renderPhase(
 
   // Default: root is selectable (userSelect defaults to "text").
   // renderNodeToBuffer will override per-node as it traverses.
-  buffer.setSelectableMode(true)
+  // Phase 2 Step 4d: route post-state ops through sink.
+  const phaseSink: RenderSink = new BufferSink(buffer)
+  phaseSink.setSelectableMode(true)
 
   // Restore cells under previous-frame outlines BEFORE content rendering.
   // Outlines draw OUTSIDE their owning node into the parent's pixel space,
@@ -426,18 +428,22 @@ function renderNodeToBuffer(
   const props = node.props as BoxProps & TextProps
 
   // Resolve userSelect for SELECTABLE_FLAG stamping.
+  // Phase 2 Step 4d: setSelectableMode writes route through sink as
+  // post-state ops. The READ (getSelectableMode) is an intra-frame
+  // buffer read that Phase 2 Step 6 will eliminate.
+  const nodeSink: RenderSink = new BufferSink(buffer)
   const prevSelectableMode = buffer.getSelectableMode()
   const userSelect = props.userSelect
   if (userSelect === "none") {
-    buffer.setSelectableMode(false)
+    nodeSink.setSelectableMode(false)
   } else if (userSelect === "text" || userSelect === "contain") {
-    buffer.setSelectableMode(true)
+    nodeSink.setSelectableMode(true)
   }
 
   // Skip display="none" nodes
   if (props.display === "none") {
     clearDirtyFlags(node)
-    buffer.setSelectableMode(prevSelectableMode)
+    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
 
@@ -446,7 +452,7 @@ function renderNodeToBuffer(
   // flags intact so they render correctly when scrolled into view.
   const screenY = layout.y - scrollOffset
   if (screenY >= buffer.height || screenY + layout.height <= 0) {
-    buffer.setSelectableMode(prevSelectableMode)
+    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
 
@@ -518,7 +524,7 @@ function renderNodeToBuffer(
       }
     }
     clearDirtyFlags(node)
-    buffer.setSelectableMode(prevSelectableMode)
+    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
   if (instr.enabled) {
@@ -800,7 +806,7 @@ function renderNodeToBuffer(
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()
     // Restore parent's selectable mode
-    buffer.setSelectableMode(prevSelectableMode)
+    nodeSink.setSelectableMode(prevSelectableMode)
   }
 }
 
@@ -1136,7 +1142,10 @@ function renderOwnContent(
       const effectiveBg = style.bg !== null ? style.bg : (textInheritedBg ?? null)
       const { x, width, height } = layout
       const y = layout.y - nodeState.scrollOffset
-      buffer.restyleRegion(x, y, width, height, {
+      // Phase 2 Step 4d: text style-only fast path → sink.emitRestyleRegion
+      // (paint op — restyles existing cells in place).
+      const ownContentSink: RenderSink = new BufferSink(buffer)
+      ownContentSink.emitRestyleRegion(x, y, width, height, {
         fg: style.fg,
         bg: effectiveBg,
         underlineColor: style.underlineColor ?? null,
@@ -1274,7 +1283,10 @@ function applyBoxAttrOverlay(
     }
   }
 
-  buffer.mergeAttrsInRect(rx, ry, rw, rh, overlay.attrs, overlay.underlineColor)
+  // Phase 2 Step 4d: box attr overlay → sink.emitMergeAttrs (overlay op,
+  // applied AFTER paint so existing cells are merged in place).
+  const overlaySink: RenderSink = new BufferSink(buffer)
+  overlaySink.emitMergeAttrs(rx, ry, rw, rh, overlay.attrs, overlay.underlineColor)
   return true
 }
 
@@ -1587,7 +1599,13 @@ function renderScrollContainerChildren(
     )
   }
 
-  // Apply the plan: buffer shift, viewport clear, or sticky force refresh
+  // Apply the plan: buffer shift, viewport clear, or sticky force refresh.
+  // Phase 2 Step 4d: scroll-tier ops route through sink.
+  //   - Tier 1 shift: scrollRegion is a TRANSFER (shifts prev pixels);
+  //     leading indicator-row clears are CLEANUP (clear stale indicator).
+  //   - Tier 2 clear: viewport clear is CLEANUP.
+  //   - stickyForceRefresh: viewport pre-clear (CLEANUP).
+  const scrollSink: RenderSink = new BufferSink(buffer)
   const scrollDelta = ss.offset - (ss.prevOffset ?? ss.offset)
   if (tier === "shift" && clearHeight > 0) {
     // Clear scroll indicator rows before shifting to prevent stale indicator
@@ -1597,27 +1615,24 @@ function renderScrollContainerChildren(
       const topIndicatorY = clearY
       const bottomIndicatorY = clearY + clearHeight - 1
       if (ss.prevOffset != null && ss.prevOffset > 0) {
-        buffer.fill(contentX, topIndicatorY, contentWidth, 1, { char: " ", bg: plan.clearBg })
+        scrollSink.emitClearRect(contentX, topIndicatorY, contentWidth, 1, plan.clearBg)
       }
-      buffer.fill(contentX, bottomIndicatorY, contentWidth, 1, { char: " ", bg: plan.clearBg })
+      scrollSink.emitClearRect(contentX, bottomIndicatorY, contentWidth, 1, plan.clearBg)
     }
-    buffer.scrollRegion(contentX, clearY, contentWidth, clearHeight, scrollDelta, {
+    scrollSink.emitScrollRegion(contentX, clearY, contentWidth, clearHeight, scrollDelta, {
       char: " ",
       bg: plan.clearBg,
     })
   }
 
   if (tier === "clear" && clearHeight > 0) {
-    buffer.fill(contentX, clearY, contentWidth, clearHeight, {
-      char: " ",
-      bg: plan.clearBg,
-    })
+    scrollSink.emitClearRect(contentX, clearY, contentWidth, clearHeight, plan.clearBg)
   }
 
   // Tier 3 with sticky: clear viewport to null bg (matches fresh render state)
   // before re-rendering all items, so the sticky second pass works correctly.
   if (stickyForceRefresh && clearHeight > 0) {
-    buffer.fill(contentX, clearY, contentWidth, clearHeight, { char: " ", bg: null })
+    scrollSink.emitClearRect(contentX, clearY, contentWidth, clearHeight, null)
   }
 
   // Propagate ancestor layout change to scroll container children.
@@ -1817,7 +1832,9 @@ function renderNormalChildren(
       }
     }
     if (clearW > 0 && clearH > 0) {
-      buffer.fill(clearX, clearY, clearW, clearH, { char: " ", bg: null })
+      // Phase 2 Step 4d: sticky-force-refresh viewport pre-clear (CLEANUP).
+      const stickySink: RenderSink = new BufferSink(buffer)
+      stickySink.emitClearRect(clearX, clearY, clearW, clearH, null)
     }
   }
 
