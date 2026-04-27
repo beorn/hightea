@@ -13,28 +13,23 @@ import type { AgNodeHandle } from "silvery"
 import { hasLayoutSignals } from "@silvery/ag/layout-signals"
 
 describe("useAgNode", () => {
-  test("returns null outside component tree", () => {
-    // useAgNode uses useContext(NodeContext) — outside a silvery tree,
-    // NodeContext is null, so the hook should return null.
+  test("returns null when no enclosing Box provides NodeContext", () => {
+    // useAgNode reads useContext(NodeContext). createRenderer wraps the element
+    // in context providers (TermContext, RuntimeContext, etc.) but does NOT
+    // wrap in a <Box> — so NodeContext is null at the React root. The hook
+    // should return null in that case (matches its docstring).
     const render = createRenderer({ cols: 40, rows: 10 })
-    let result: AgNodeHandle | null = "sentinel" as any
+    let result: AgNodeHandle | null = "sentinel" as unknown as AgNodeHandle
 
     function Bare() {
-      // This component is rendered at the React root level, but
-      // without a Box parent providing NodeContext, it should get null.
-      // Actually, createRenderer wraps in a Box, so let's verify with
-      // the actual value.
+      // Rendered directly at the React root — no enclosing Box, so
+      // NodeContext is null. useAgNode should return null.
       result = useAgNode()
       return <Text>bare</Text>
     }
 
     render(<Bare />)
-    // createRenderer wraps in a root Box, so NodeContext is provided.
-    // The hook should return non-null when inside the tree.
-    // To test the null case, we'd need renderHook outside silvery —
-    // but since createRenderer always provides a root Box, the real
-    // test is that it returns a valid handle inside the tree.
-    expect(result).not.toBeNull()
+    expect(result).toBeNull()
   })
 
   test("returns node and signals inside component tree", () => {
@@ -67,33 +62,35 @@ describe("useAgNode", () => {
   })
 
   test("signals update after layout changes", () => {
+    // useAgNode returns the node corresponding to the closest enclosing Box
+    // (the parent context). To verify the signal updates when that Box's
+    // width changes, the inspector must be a child of the resized Box, not
+    // a sibling of it.
     const render = createRenderer({ cols: 40, rows: 10 })
     let handle: AgNodeHandle | null = null
 
-    function Resizable({ wide }: { wide: boolean }) {
+    function Inspector() {
       handle = useAgNode()
-      return (
-        <Box width={wide ? 30 : 10} height={3}>
-          <Text>content</Text>
-        </Box>
-      )
+      return null
     }
 
     const app = render(
-      <Box>
-        <Resizable wide={false} />
+      <Box width={10} height={3}>
+        <Inspector />
+        <Text>content</Text>
       </Box>,
     )
 
-    // Initial: width=10
+    // Initial: parent Box width=10
     const rect1 = handle!.signals.boxRect()
     expect(rect1).not.toBeNull()
     expect(rect1!.width).toBe(10)
 
-    // Rerender with wider size
+    // Rerender with wider parent
     app.rerender(
-      <Box>
-        <Resizable wide={true} />
+      <Box width={30} height={3}>
+        <Inspector />
+        <Text>content</Text>
       </Box>,
     )
 
@@ -169,16 +166,14 @@ describe("useAgNode", () => {
   })
 
   test("screenRect signal returns screen-space position", () => {
+    // useAgNode returns the closest enclosing Box's node. To capture the
+    // node placed below a spacer, put the Inspector INSIDE that Box.
     const render = createRenderer({ cols: 40, rows: 10 })
     let handle: AgNodeHandle | null = null
 
     function Inspector() {
       handle = useAgNode()
-      return (
-        <Box height={2}>
-          <Text>content</Text>
-        </Box>
-      )
+      return null
     }
 
     const app = render(
@@ -186,14 +181,17 @@ describe("useAgNode", () => {
         <Box height={3}>
           <Text>spacer</Text>
         </Box>
-        <Inspector />
+        <Box height={2}>
+          <Inspector />
+          <Text>content</Text>
+        </Box>
       </Box>,
     )
 
     expect(handle).not.toBeNull()
     const screenRect = handle!.signals.screenRect()
     expect(screenRect).not.toBeNull()
-    // Inspector is below a 3-row spacer, so y should be 3
+    // Inspector's parent Box is below a 3-row spacer, so y should be 3
     expect(screenRect!.y).toBe(3)
   })
 })
