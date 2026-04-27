@@ -1026,20 +1026,39 @@ function executeRegionClearing(
   // (km-silvery.paint-clear-invariant Phase 2 Step 4a; Smell #2 from the
   // 2026-04-27 dual-pro review consolidates ad-hoc local sinks onto this
   // single threaded one so PlanSink-authoritative is a signature change.)
+  //
+  // Smell #3 (Kimi K2.6 winner) — single coordinator pattern:
+  //   - clearNodeRegion handles "fill the node's NEW rect with inherited bg
+  //     because we have stale pixels and no own bg fill". One responsibility.
+  //   - clearExcessArea handles "node shrank, fill the OLD-minus-NEW area
+  //     with inherited bg". Different responsibility, different geometry.
+  //   - Both are bounded by the SAME stale-pixel precondition
+  //     (bufferIsCloned && hasPrevBuffer). Pre-decouple, clearNodeRegion
+  //     unconditionally tail-called clearExcessArea — meaning excess
+  //     clearing could fire on a fresh buffer (no stale pixels) when
+  //     contentRegionCleared=true && hasPrevBuffer=false && ancestorCleared=true.
+  //   - Post-decouple, executeRegionClearing is the SOLE coordinator: it
+  //     calls clearNodeRegion when its own gate is true, and INDEPENDENTLY
+  //     calls clearExcessArea when the shrink-cleanup gate is true. Step 4
+  //     of paint-clear-l5-final (delete clearExcessArea entirely, fold into
+  //     sectioned cleanupOps) becomes a single-call-site edit.
 
-  if (contentRegionCleared) {
+  const needsRegionClear = contentRegionCleared
+  const needsExcessClear =
+    bufferIsCloned && layoutChanged && node.prevLayout != null && hasPrevBuffer
+
+  if (needsRegionClear) {
     if (instrumentEnabled) stats.clearOps++
     clearNodeRegion(
       node,
-      buffer,
       sink,
       layout,
       scrollOffset,
       clipBounds,
-      layoutChanged,
       threadedInheritedBg,
     )
-  } else if (bufferIsCloned && layoutChanged && node.prevLayout && hasPrevBuffer) {
+  }
+  if (needsExcessClear) {
     // Even when contentRegionCleared is false, a shrinking node needs its excess
     // area cleared. Key scenario: nodes WITH backgroundColor that shrink —
     // renderBox fills only the NEW (smaller) region, leaving stale pixels in
@@ -2503,20 +2522,28 @@ function _clearDescendantOverflow(
 }
 
 /**
- * Clear a node's region with inherited bg when it has no backgroundColor.
- * Also clears excess area when the node shrank (previous layout was larger).
+ * Clear a node's CURRENT region with inherited bg when it has no backgroundColor.
+ *
+ * Single responsibility: fill the node's `layout` rect with `clearBg`,
+ * clipped to the parent's bounds and to the colored ancestor's bounds.
+ *
+ * Smell #3 (paint-clear-step2-followups) — pre-decouple, this function
+ * tail-called `clearExcessArea` unconditionally. That meant excess
+ * clearing could fire on a fresh buffer when contentRegionCleared=true
+ * but bufferIsCloned/hasPrevBuffer were false. Post-decouple,
+ * `executeRegionClearing` is the SOLE coordinator: it calls
+ * `clearNodeRegion` AND `clearExcessArea` independently when their
+ * respective gates are true.
  *
  * Clipping: clips to parent's boxRect (prevents overflow) and to the
  * colored ancestor's bounds (prevents bg color bleeding into siblings).
  */
 function clearNodeRegion(
   node: AgNode,
-  buffer: TerminalBuffer,
   sink: RenderSink,
   layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
-  layoutChanged: boolean,
   threadedInheritedBg: NodeRenderState["inheritedBg"],
 ): void {
   const inherited = threadedInheritedBg
@@ -2573,8 +2600,10 @@ function clearNodeRegion(
     sink.emitClearRect(clearX, clearY, clearWidth, clearHeight, clearBg)
   }
 
-  // Delegate excess area clearing to shared helper
-  clearExcessArea(node, buffer, sink, layout, scrollOffset, clipBounds, layoutChanged, inherited)
+  // Excess-area clearing is the responsibility of executeRegionClearing —
+  // see Smell #3 in paint-clear-step2-followups. clearNodeRegion no longer
+  // tail-calls clearExcessArea so that Step 4 (delete clearExcessArea
+  // entirely once the sectioned cleanupOps land) is a single edit site.
 }
 
 /**
