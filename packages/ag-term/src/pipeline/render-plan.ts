@@ -562,6 +562,16 @@ export type OverlayOp = {
 export type PostStateOp =
   | { kind: "setRowMeta"; row: number; softWrapped?: boolean; lastContentCol?: number }
   | { kind: "setSelectableMode"; selectable: boolean }
+  | {
+      // Outline snapshots — non-cell buffer state captured during the
+      // decoration pass so the next frame can restore the under-cells
+      // before drawing the new outlines (see decoration-phase.ts).
+      // Phase 2 Step 5: hoisted out of `buffer.outlineSnapshots` direct
+      // mutation onto the sink so the plan-shape captures all the
+      // surviving-across-frames state without buffer-side reach-around.
+      kind: "setOutlineSnapshots"
+      snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>
+    }
 
 /**
  * Sectioned RenderPlan — the L4 target for km-silvery.paint-clear-invariant.
@@ -755,6 +765,9 @@ function applyPostState(buffer: TerminalBuffer, op: PostStateOp): void {
       buffer.setRowMeta(op.row, meta)
       return
     }
+    case "setOutlineSnapshots":
+      buffer.outlineSnapshots = op.snapshots.slice()
+      return
   }
 }
 

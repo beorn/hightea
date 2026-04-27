@@ -186,6 +186,17 @@ export interface RenderSink {
     row: number,
     meta: { softWrapped?: boolean; lastContentCol?: number },
   ): void
+
+  /**
+   * Outline snapshots — non-cell buffer state captured during the
+   * decoration pass so the next frame can restore the under-cells before
+   * drawing the new outlines. Lives in `postStateOps`. Phase 2 Step 5
+   * hoists this off `buffer.outlineSnapshots` direct mutation onto the
+   * sink so the plan-shape captures all surviving-across-frames state.
+   */
+  setOutlineSnapshots(
+    snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>,
+  ): void
 }
 
 /**
@@ -280,6 +291,12 @@ export class BufferSink implements RenderSink {
     meta: { softWrapped?: boolean; lastContentCol?: number },
   ): void {
     this.buffer.setRowMeta(row, meta)
+  }
+
+  setOutlineSnapshots(
+    snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>,
+  ): void {
+    this.buffer.outlineSnapshots = snapshots.slice()
   }
 }
 
@@ -408,6 +425,12 @@ export class PlanSink implements RenderSink {
     meta: { softWrapped?: boolean; lastContentCol?: number },
   ): void {
     this.postStateOps.push({ kind: "setRowMeta", row, ...meta })
+  }
+
+  setOutlineSnapshots(
+    snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>,
+  ): void {
+    this.postStateOps.push({ kind: "setOutlineSnapshots", snapshots: snapshots.slice() })
   }
 
   /**

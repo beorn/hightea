@@ -57,9 +57,9 @@ export interface OutlineCellSnapshot {
  * phase, on the cloned buffer. No-op when there are no previous snapshots
  * (fresh render or no outlines last frame).
  *
- * Phase 2 Step 4b: cell restorations route through the sink as setCell ops.
- * Snapshots themselves still live on the buffer until Step 5 moves them to
- * RenderPostState.
+ * Phase 2 Step 5: cell restorations and snapshot reset both route through
+ * the sink (setCell + setOutlineSnapshots post-state). The plan-shape now
+ * captures all outline-snapshot mutations.
  */
 export function clearPreviousOutlines(buffer: TerminalBuffer): void {
   const snapshots = buffer.outlineSnapshots
@@ -68,7 +68,8 @@ export function clearPreviousOutlines(buffer: TerminalBuffer): void {
   for (const snap of snapshots) {
     sink.emitSetCell(snap.x, snap.y, snap.cell)
   }
-  buffer.outlineSnapshots = []
+  // Reset snapshots through the sink so the plan-shape captures it.
+  sink.setOutlineSnapshots([])
 }
 
 /**
@@ -79,12 +80,17 @@ export function clearPreviousOutlines(buffer: TerminalBuffer): void {
  * incremental). Mirrors `renderNodeToBuffer`'s state threading for scroll
  * offsets, clip bounds, and inherited background — but does nothing except
  * visit the tree and draw outlines.
+ *
+ * Phase 2 Step 5: snapshots stored via sink.setOutlineSnapshots (post-state
+ * op). The walk still pushes into a local array because outline drawing
+ * needs the latest snapshot list to be pin-set after every node; only the
+ * final assignment routes through the sink.
  */
 export function renderDecorationPass(buffer: TerminalBuffer, root: AgNode): void {
   const snapshots: OutlineCellSnapshot[] = []
   const sink: RenderSink = new BufferSink(buffer)
   walk(root, buffer, sink, 0, undefined, { color: null }, snapshots)
-  buffer.outlineSnapshots = snapshots
+  sink.setOutlineSnapshots(snapshots)
 }
 
 /**
