@@ -24,6 +24,11 @@
  */
 
 import { _trackCreate, _trackDispose } from "./trace.js"
+import {
+  adoptHandle as _adoptHandle,
+  isBrandedHandle as _isBrandedHandle,
+  type RegistrableHandle,
+} from "./handle.js"
 
 // =============================================================================
 // Scope
@@ -63,6 +68,38 @@ export class Scope extends AsyncDisposableStack {
   /** Create a child scope. Child's signal aborts when this scope's signal does. */
   child(name?: string): Scope {
     return new Scope(this, name)
+  }
+
+  /**
+   * Adopt an opaque {@link Handle} (from `defineHandle()`) into this scope's
+   * ownership registry. The handle is added to the inherited disposer stack
+   * (LIFO disposal) and tracked separately so {@link assertScopeBalance}
+   * can detect leaked handles per-scope without depending on global GC.
+   *
+   * See `./handle.ts` for the brand-+-registry pattern.
+   */
+  adoptHandle(handle: RegistrableHandle): void {
+    _adoptHandle(this, handle)
+  }
+
+  /**
+   * Adopt an `AsyncDisposable` for LIFO teardown.
+   *
+   * Branded handles (from `defineHandle()`) are routed through
+   * {@link adoptHandle} so per-scope accounting catches them.
+   * Non-branded `AsyncDisposable` values use the inherited stack directly.
+   *
+   * This closes the pro/Kimi-flagged "scope.use(handle) bypasses ownership"
+   * hole — a forged or hand-rolled `AsyncDisposable` claiming to be a
+   * branded handle still goes through the runtime authenticity gate in
+   * `adoptHandle`.
+   */
+  override use<T extends AsyncDisposable | Disposable | null | undefined>(value: T): T {
+    if (value !== null && value !== undefined && typeof value === "object" && _isBrandedHandle(value)) {
+      _adoptHandle(this, value as unknown as RegistrableHandle)
+      return value
+    }
+    return super.use(value)
   }
 
   /**
@@ -249,3 +286,20 @@ export function withScope(name?: string) {
     return { ...app, scope } as A & { readonly scope: Scope }
   }
 }
+
+// =============================================================================
+// Handle re-exports — opaque branded handles + per-scope ownership registry
+// =============================================================================
+
+export {
+  defineHandle,
+  finaliseHandle,
+  isBrandedHandle,
+  type Handle,
+  type RegistrableHandle,
+  type LeakedHandle,
+  LeakedHandlesError,
+  getAdoptedHandles,
+  getHandleKind,
+  assertScopeBalance,
+} from "./handle.js"
