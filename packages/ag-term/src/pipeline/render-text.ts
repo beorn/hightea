@@ -43,7 +43,7 @@ import {
   setCachedAnalysis,
 } from "./prepared-text"
 import { buildTextAnalysis, balancedWidth as computeBalancedWidth, optimalWrap } from "./pretext"
-import { BufferSink, type RenderSink } from "./render-sink"
+import { createFrameSink, type RenderSink } from "./render-sink"
 import type { BgConflictMode, NodeRenderState, PipelineContext } from "./types"
 import { createLogger } from "loggily"
 
@@ -552,7 +552,7 @@ function applyBgSegmentsToLine(
   if (bgSegments.length === 0) return
   if (y < 0 || y >= buffer.height) return
 
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
   // Reusable cell for readCellInto to avoid per-character allocation
   const bgCell = createMutableCell()
   const gWidthFn = ctx ? ctx.measurer.graphemeWidth : graphemeWidth
@@ -955,7 +955,7 @@ function renderGraphemes(
   ctx?: PipelineContext,
   minCol?: number,
 ): number {
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
   let col = startCol
   // Effective right boundary: text node's layout edge or buffer edge
   const rightEdge = maxCol !== undefined ? Math.min(maxCol, buffer.width) : buffer.width
@@ -1582,7 +1582,7 @@ export function renderText(
     const clearStart = minCol !== undefined ? Math.max(endCol, minCol) : endCol
     if (clearStart < maxCol) {
       const clearBg = inheritedBg ?? null
-      const sink: RenderSink = new BufferSink(buffer)
+      const sink: RenderSink = createFrameSink(buffer)
       const clearCell = {
         char: " ",
         fg: style.fg,

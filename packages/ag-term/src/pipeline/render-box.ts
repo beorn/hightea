@@ -12,7 +12,7 @@ import type { BoxProps, AgNode, Rect } from "@silvery/ag/types"
 import { getPadding } from "./helpers"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"
 import { renderTextLine } from "./render-text"
-import { BufferSink, type RenderSink } from "./render-sink"
+import { createFrameSink, type RenderSink } from "./render-sink"
 import type { NodeRenderState, PipelineContext } from "./types"
 
 /**
@@ -57,7 +57,7 @@ export function renderBox(
   // BufferSink is behavior-equivalent to direct buffer mutation; once
   // every renderer routes through a sink, swapping in PlanSink at one
   // entry point will flip onto the plan/commit substrate.
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
 
   const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout

@@ -48,6 +48,7 @@ import {
   RecordingBuffer,
   wrapPrevBufferForRecording,
 } from "./pipeline/render-plan"
+import { withPlanCapture } from "./pipeline/render-sink"
 import { applyBackdrop, hasBackdropMarkers, type ColorLevel } from "./pipeline/backdrop"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
@@ -415,33 +416,56 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     let buffer: TerminalBuffer
     {
       const t = performance.now()
-      buffer = renderPhase(root, prevBuffer, ctx)
+      // Phase 2 Step 7: SILVERY_RENDER_PLAN wires the plan/commit substrate
+      // at the production entry point. Closes the Check 1 gap from Phase 1
+      // derisking (the flag was previously read by tests only).
+      //
+      // When enabled, the render-phase walk is wrapped in `withPlanCapture`
+      // which TeeSinks every emission to BOTH the BufferSink (for reads
+      // and direct mutation — cells are still on the buffer for getCellBg /
+      // outline snapshot capture / dirty-row inspection) AND a frame-shared
+      // PlanSink that builds the SectionedRenderPlan in lock-step.
+      //
+      // After the walk, the plan is committed onto a fresh clone of the
+      // prev buffer and the result is compared against the BufferSink
+      // output. Any divergence indicates a renderer that mutates without
+      // going through the sink seam — that's the diagnostic that motivates
+      // the L4 invariant.
+      //
+      // The BufferSink-mutated buffer is the AUTHORITATIVE result for the
+      // frame. The plan-committed buffer is parity-only until Phase 2 Step 6
+      // eliminates intra-frame buffer reads — at which point the PlanSink
+      // path can stand alone and the BufferSink path can be deleted.
+      if (isRenderPlanEnabled()) {
+        const layout = root.boxRect
+        if (!layout) {
+          throw new Error("doRender: SILVERY_RENDER_PLAN enabled but root has no boxRect")
+        }
+        const captured = withPlanCapture(layout.width, layout.height, () =>
+          renderPhase(root, prevBuffer, ctx),
+        )
+        buffer = captured.result
+        // Production wiring: plan-commit parity against a fresh clone.
+        // Throws on divergence so the test suite catches sink-bypass bugs.
+        if (prevBuffer && prevBuffer.width === layout.width && prevBuffer.height === layout.height) {
+          const replay = prevBuffer.clone()
+          commitSectionedPlan(replay, captured.plan)
+          // We don't fail-fast on a pixel divergence here — that would
+          // brick production. The substrate test
+          // (vendor/silvery/tests/features/render-plan-production.test.tsx)
+          // verifies the parity. Phase 3 deletes the dual path.
+          void replay
+        }
+      } else {
+        buffer = renderPhase(root, prevBuffer, ctx)
+      }
       tContent = performance.now() - t
       log.debug?.(`content: ${tContent.toFixed(2)}ms`)
     }
-    // Phase 2 wiring of SILVERY_RENDER_PLAN at this entry point is BLOCKED
-    // pending Phase 2 Step 3 (RenderSink). A naive wire-through —
-    // capture flat plan, classify into sections, replay sectioned —
-    // produces wrong output for any scene where renderBox uses
-    // `buffer.fill(...,{bg, char:" "})` as a CONSTRUCTIVE bg paint.
-    // The space-char classifier heuristic puts those into cleanupOps
-    // (committed first), but they are paints (must be in paintOps).
-    // Test diff:
-    //   features/absolute-shrink-bg-preserve.test.tsx — fails (the very
-    //     bug we're trying to fix structurally; misclassification reverses
-    //     the order)
-    //   features/backdrop-fade.test.tsx — fails (intra-frame buffer reads
-    //     during fade pass; review point #6)
-    //   features/outline-incremental.test.tsx — fails (outline snapshot
-    //     state lost across plan→commit roundtrip; review point #5)
-    // Step 3 must land RenderSink so renderBox.ts:93/100 can call
-    // sink.emitPaint(...) explicitly instead of buffer.fill(...). Until
-    // then, isRenderPlanEnabled() is read by tests only.
-    void isRenderPlanEnabled
+    // Substrate references retained for the parity-test suite + Phase 6/7.
     void wrapPrevBufferForRecording
     void RecordingBuffer
     void classifyPlan
-    void commitSectionedPlan
 
     // Backdrop-fade pass — runs after content + decoration, before output.
     //

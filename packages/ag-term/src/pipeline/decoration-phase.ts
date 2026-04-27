@@ -37,7 +37,7 @@ import type { BoxProps, AgNode } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderOutline, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"
-import { BufferSink, type RenderSink } from "./render-sink"
+import { createFrameSink, type RenderSink } from "./render-sink"
 import type { ClipBounds } from "./types"
 
 /**
@@ -64,7 +64,7 @@ export interface OutlineCellSnapshot {
 export function clearPreviousOutlines(buffer: TerminalBuffer): void {
   const snapshots = buffer.outlineSnapshots
   if (!snapshots || snapshots.length === 0) return
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
   for (const snap of snapshots) {
     sink.emitSetCell(snap.x, snap.y, snap.cell)
   }
@@ -88,7 +88,7 @@ export function clearPreviousOutlines(buffer: TerminalBuffer): void {
  */
 export function renderDecorationPass(buffer: TerminalBuffer, root: AgNode): void {
   const snapshots: OutlineCellSnapshot[] = []
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
   walk(root, buffer, sink, 0, undefined, { color: null }, snapshots)
   sink.setOutlineSnapshots(snapshots)
 }

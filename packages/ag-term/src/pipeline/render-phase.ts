@@ -25,7 +25,7 @@ import { renderBox, renderScrollIndicators, getEffectiveBg } from "./render-box"
 import { clearPreviousOutlines, renderDecorationPass } from "./decoration-phase"
 import { getTextStyle, parseColor } from "./render-helpers"
 import { clearBgConflictWarnings, renderText, setBgConflictMode } from "./render-text"
-import { BufferSink, type RenderSink } from "./render-sink"
+import { createFrameSink, type RenderSink } from "./render-sink"
 import { pushContextTheme, popContextTheme } from "./state"
 import type { Theme } from "@silvery/ansi"
 // cascade-predicates is the imperative oracle — used for STRICT verification
@@ -125,7 +125,7 @@ export function renderPhase(
   // Default: root is selectable (userSelect defaults to "text").
   // renderNodeToBuffer will override per-node as it traverses.
   // Phase 2 Step 4d: route post-state ops through sink.
-  const phaseSink: RenderSink = new BufferSink(buffer)
+  const phaseSink: RenderSink = createFrameSink(buffer)
   phaseSink.setSelectableMode(true)
 
   // Restore cells under previous-frame outlines BEFORE content rendering.
@@ -431,7 +431,7 @@ function renderNodeToBuffer(
   // Phase 2 Step 4d: setSelectableMode writes route through sink as
   // post-state ops. The READ (getSelectableMode) is an intra-frame
   // buffer read that Phase 2 Step 6 will eliminate.
-  const nodeSink: RenderSink = new BufferSink(buffer)
+  const nodeSink: RenderSink = createFrameSink(buffer)
   const prevSelectableMode = buffer.getSelectableMode()
   const userSelect = props.userSelect
   if (userSelect === "none") {
@@ -997,7 +997,7 @@ function executeRegionClearing(
   // equivalent to direct buffer mutation; swapping in PlanSink (Phase 2
   // Step 7) would make these ops land in cleanupOps unconditionally.
   // (km-silvery.paint-clear-invariant Phase 2 Step 4a.)
-  const sink: RenderSink = new BufferSink(buffer)
+  const sink: RenderSink = createFrameSink(buffer)
 
   if (contentRegionCleared) {
     if (instrumentEnabled) stats.clearOps++
@@ -1144,7 +1144,7 @@ function renderOwnContent(
       const y = layout.y - nodeState.scrollOffset
       // Phase 2 Step 4d: text style-only fast path → sink.emitRestyleRegion
       // (paint op — restyles existing cells in place).
-      const ownContentSink: RenderSink = new BufferSink(buffer)
+      const ownContentSink: RenderSink = createFrameSink(buffer)
       ownContentSink.emitRestyleRegion(x, y, width, height, {
         fg: style.fg,
         bg: effectiveBg,
@@ -1285,7 +1285,7 @@ function applyBoxAttrOverlay(
 
   // Phase 2 Step 4d: box attr overlay → sink.emitMergeAttrs (overlay op,
   // applied AFTER paint so existing cells are merged in place).
-  const overlaySink: RenderSink = new BufferSink(buffer)
+  const overlaySink: RenderSink = createFrameSink(buffer)
   overlaySink.emitMergeAttrs(rx, ry, rw, rh, overlay.attrs, overlay.underlineColor)
   return true
 }
@@ -1605,7 +1605,7 @@ function renderScrollContainerChildren(
   //     leading indicator-row clears are CLEANUP (clear stale indicator).
   //   - Tier 2 clear: viewport clear is CLEANUP.
   //   - stickyForceRefresh: viewport pre-clear (CLEANUP).
-  const scrollSink: RenderSink = new BufferSink(buffer)
+  const scrollSink: RenderSink = createFrameSink(buffer)
   const scrollDelta = ss.offset - (ss.prevOffset ?? ss.offset)
   if (tier === "shift" && clearHeight > 0) {
     // Clear scroll indicator rows before shifting to prevent stale indicator
@@ -1833,7 +1833,7 @@ function renderNormalChildren(
     }
     if (clearW > 0 && clearH > 0) {
       // Phase 2 Step 4d: sticky-force-refresh viewport pre-clear (CLEANUP).
-      const stickySink: RenderSink = new BufferSink(buffer)
+      const stickySink: RenderSink = createFrameSink(buffer)
       stickySink.emitClearRect(clearX, clearY, clearW, clearH, null)
     }
   }

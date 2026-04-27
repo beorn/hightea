@@ -301,6 +301,185 @@ export class BufferSink implements RenderSink {
 }
 
 /**
+ * `RenderSink` that fans every emission out to a PRIMARY sink and a
+ * SECONDARY sink. Used by the SILVERY_RENDER_PLAN production wiring:
+ *
+ *   - primary = `BufferSink(buffer)`: keeps direct buffer mutation so
+ *     intra-frame buffer reads (`getCellBg`, dirty rows, snapshot reads)
+ *     return correct values during the render walk. Read-elimination is
+ *     the Phase 2 Step 6 follow-up.
+ *   - secondary = `PlanSink`: captures the same emissions into a
+ *     `SectionedRenderPlan` for parity verification or for committing
+ *     onto a fresh clone in plan-mode.
+ *
+ * The Tee fans every method to both sinks unconditionally. Since both
+ * are in lock-step, the plan captures exactly the ops that were applied
+ * to the buffer.
+ */
+export class TeeSink implements RenderSink {
+  constructor(
+    private readonly primary: RenderSink,
+    private readonly secondary: RenderSink,
+  ) {}
+
+  emitScrollRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    delta: number,
+    clearCell?: Partial<Cell>,
+  ): void {
+    this.primary.emitScrollRegion(x, y, width, height, delta, clearCell)
+    this.secondary.emitScrollRegion(x, y, width, height, delta, clearCell)
+  }
+
+  emitClearRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    bg: Color,
+  ): void {
+    this.primary.emitClearRect(x, y, width, height, bg)
+    this.secondary.emitClearRect(x, y, width, height, bg)
+  }
+
+  emitClearCells(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    cell: Partial<Cell>,
+  ): void {
+    this.primary.emitClearCells(x, y, width, height, cell)
+    this.secondary.emitClearCells(x, y, width, height, cell)
+  }
+
+  emitSetCell(x: number, y: number, cell: Partial<Cell>): void {
+    this.primary.emitSetCell(x, y, cell)
+    this.secondary.emitSetCell(x, y, cell)
+  }
+
+  emitPaintFill(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    cell: Partial<Cell>,
+  ): void {
+    this.primary.emitPaintFill(x, y, width, height, cell)
+    this.secondary.emitPaintFill(x, y, width, height, cell)
+  }
+
+  emitFillBg(x: number, y: number, width: number, height: number, bg: Color): void {
+    this.primary.emitFillBg(x, y, width, height, bg)
+    this.secondary.emitFillBg(x, y, width, height, bg)
+  }
+
+  emitRestyleRegion(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    style: Style,
+  ): void {
+    this.primary.emitRestyleRegion(x, y, width, height, style)
+    this.secondary.emitRestyleRegion(x, y, width, height, style)
+  }
+
+  emitMergeAttrs(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    attrs: CellAttrs,
+    underlineColor?: Color,
+  ): void {
+    this.primary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
+    this.secondary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
+  }
+
+  setSelectableMode(selectable: boolean): void {
+    this.primary.setSelectableMode(selectable)
+    this.secondary.setSelectableMode(selectable)
+  }
+
+  setRowMeta(
+    row: number,
+    meta: { softWrapped?: boolean; lastContentCol?: number },
+  ): void {
+    this.primary.setRowMeta(row, meta)
+    this.secondary.setRowMeta(row, meta)
+  }
+
+  setOutlineSnapshots(
+    snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>,
+  ): void {
+    this.primary.setOutlineSnapshots(snapshots)
+    this.secondary.setOutlineSnapshots(snapshots)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Frame-shared sink factory
+// ---------------------------------------------------------------------------
+
+/**
+ * The PlanSink that the current frame's BufferSink instances should also
+ * record to (when SILVERY_RENDER_PLAN is enabled). Set by `withPlanCapture`
+ * around a render-phase call; null at all other times.
+ *
+ * Module-level state because every renderer in render-phase / render-box /
+ * render-text / decoration-phase constructs its own local sink. The
+ * factory below reads this so all of them emit to the same plan.
+ */
+let _frameCapturePlanSink: PlanSink | null = null
+
+/**
+ * Run `fn` with frame-level plan capture enabled. Returns the plan
+ * captured during `fn` along with whatever `fn` returned.
+ *
+ * Production wire path for SILVERY_RENDER_PLAN: ag.ts wraps the
+ * `renderPhase()` call in `withPlanCapture(...)` and gets back both the
+ * rendered buffer (already mutated by BufferSink-on-real-buffer) and the
+ * matching `SectionedRenderPlan`. The plan can then be replayed onto a
+ * fresh clone for parity verification, or used directly when buffer-read
+ * elimination (Step 6) lets PlanSink stand alone.
+ */
+export function withPlanCapture<T>(
+  width: number,
+  height: number,
+  fn: () => T,
+): { result: T; plan: SectionedRenderPlan } {
+  const captured = new PlanSink(width, height)
+  const prev = _frameCapturePlanSink
+  _frameCapturePlanSink = captured
+  try {
+    const result = fn()
+    return { result, plan: captured.toPlan() }
+  } finally {
+    _frameCapturePlanSink = prev
+  }
+}
+
+/**
+ * Construct the right sink for a renderer call site. By default
+ * (`SILVERY_RENDER_PLAN` not set), returns a plain `BufferSink(buffer)`.
+ *
+ * When inside a `withPlanCapture` scope, returns a `TeeSink` that fans
+ * every emission to BOTH the BufferSink AND the frame-shared PlanSink.
+ * This is how every local sink construction in render-phase /
+ * render-box / render-text / decoration-phase contributes to a single
+ * SectionedRenderPlan for the frame.
+ */
+export function createFrameSink(buffer: TerminalBuffer): RenderSink {
+  const direct = new BufferSink(buffer)
+  if (_frameCapturePlanSink === null) return direct
+  return new TeeSink(direct, _frameCapturePlanSink)
+}
+
+/**
  * `RenderSink` implementation that builds a `SectionedRenderPlan` directly
  * — no heuristics, no backing buffer for reads (yet — see file header
  * REMAINING). Each emit method routes the op into the corresponding
