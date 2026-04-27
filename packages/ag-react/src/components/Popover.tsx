@@ -36,6 +36,7 @@ import React, {
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 import { Box } from "./Box"
 import { useHover } from "../hooks/useHover"
+import { useKineticScroll } from "../hooks/useKineticScroll"
 import { useWindowSize } from "../hooks/useWindowSize"
 
 // -----------------------------------------------------------------------------
@@ -221,6 +222,10 @@ function PopoverOverlay({
   onLeave: () => void
 }): React.ReactElement | null {
   const { columns, rows } = useWindowSize()
+  // Kinetic wheel scroll for tall content. `maxScroll` is left undefined —
+  // the layout engine clamps via `overflow="scroll"`, and resetting on
+  // content change is handled by the key prop on the inner Box below.
+  const { scrollOffset, onWheel } = useKineticScroll({})
   const { content, anchor } = state
   if (!content || !anchor) return null
 
@@ -270,6 +275,9 @@ function PopoverOverlay({
       maxWidth={maxWidth}
       maxHeight={maxHeight}
       flexDirection="column"
+      overflow="scroll"
+      scrollOffset={scrollOffset}
+      onWheel={onWheel}
       borderStyle={borderless ? undefined : "round"}
       borderColor={borderless ? undefined : "$fg-muted"}
       backgroundColor="$bg-surface-overlay"
