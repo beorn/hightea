@@ -1028,16 +1028,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     })
 
     // Pipe `silvery:trace`-namespaced loggily records to the trace log file.
-    // Filters by namespace literal in the formatted line so other silvery
-    // namespaces (silvery:app, silvery:render, etc.) don't pollute the file.
+    // The `{ ns: "silvery:trace" }` config routes only that namespace through
+    // the writer — other silvery namespaces (silvery:app, silvery:render,
+    // etc.) don't pollute the file.
     // Auto-lowers global log level to "debug" when above, so traceLog.debug?.()
     // banner records actually emit; restored on cleanup.
     const traceFileWriter = createFileWriter("/tmp/silvery-trace.log")
-    const unsubscribeTraceWriter = addWriter((formatted, _level) => {
-      if (formatted.includes("silvery:trace")) {
-        traceFileWriter.write(formatted)
-      }
-    })
+    const unsubscribeTraceWriter = addWriter(
+      { ns: "silvery:trace" },
+      (formatted) => traceFileWriter.write(formatted),
+    )
     const _prevLogLevel: LogLevel = getLogLevel()
     if (_prevLogLevel !== "trace" && _prevLogLevel !== "debug") {
       setLogLevel("debug")
