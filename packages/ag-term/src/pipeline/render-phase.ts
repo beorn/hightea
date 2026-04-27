@@ -129,11 +129,18 @@ export function renderPhase(
   // With PlanSink (Step 3, paint-clear-l5-final), independent sinks would
   // build 7 fragmented plans. Threading ONE sink through the tree walk makes
   // PlanSink-authoritative a signature change rather than a multi-site refactor.
-  //
+  const frameSink: RenderSink = createFrameSink(buffer)
+
   // Default: root is selectable (userSelect defaults to "text").
   // renderNodeToBuffer will override per-node as it traverses.
-  const frameSink: RenderSink = createFrameSink(buffer)
-  frameSink.setSelectableMode(true)
+  // Smell #4 from the 2026-04-27 dual-pro review (Gemini 3 Pro insight):
+  // selectableMode is a buffer-level state machine, NOT a sink op. The
+  // sectioned plan would otherwise bucket setSelectableMode separately from
+  // the cells it stamps and replay them out-of-order. We call buffer
+  // directly here and propagate the state via threaded `nodeState.selectableMode`
+  // — see Task 5 (paint-clear-l5-final per-cell selectable threading) for
+  // the residual scope that retires the buffer state machine entirely.
+  buffer.setSelectableMode(true)
 
   // Restore cells under previous-frame outlines BEFORE content rendering.
   // Outlines draw OUTSIDE their owning node into the parent's pixel space,
@@ -544,22 +551,21 @@ function renderNodeToBuffer(
   // block AFTER all early-return paths so the single try/finally below is the
   // only restoration site. Adding a future early-return above (before try) no
   // longer requires manual restore plumbing.
-  // Smell #2: routes through the frame-shared `sink` (threaded from
-  // renderPhase) — no ad-hoc createFrameSink at this site.
-  // Phase 2 Step 4d: setSelectableMode writes route through sink as
-  // post-state ops. Phase 2 Step 6 / paint-clear-l5-final Step 1a:
-  // the previous mode is now threaded via `nodeState.selectableMode`
-  // instead of read from buffer state — eliminates an intra-frame
-  // buffer read so the PlanSink can eventually stand alone.
+  // Smell #4 (Gemini 3 Pro insight): `setSelectableMode` is no longer a
+  // RenderSink op — it would otherwise be sectioned away from the cells
+  // it stamps and replay out-of-order. Until per-cell selectable threading
+  // ships (Variant B follow-up), we mutate the buffer's transitional state
+  // machine directly. The threaded `nodeState.selectableMode` carries the
+  // same value top-down so children read it without buffer reads.
   const prevSelectableMode = nodeState.selectableMode
   const userSelect = props.userSelect
   let currentSelectableMode = prevSelectableMode
   if (userSelect === "none") {
     currentSelectableMode = false
-    sink.setSelectableMode(false)
+    buffer.setSelectableMode(false)
   } else if (userSelect === "text" || userSelect === "contain") {
     currentSelectableMode = true
-    sink.setSelectableMode(true)
+    buffer.setSelectableMode(true)
   }
 
   // Push per-subtree theme override (if this Box has a theme prop).
@@ -834,8 +840,9 @@ function renderNodeToBuffer(
   } finally {
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()
-    // Restore parent's selectable mode
-    sink.setSelectableMode(prevSelectableMode)
+    // Restore parent's selectable mode (Smell #4: buffer state machine, not
+    // a sink op — see comment at sink construction in renderPhase).
+    buffer.setSelectableMode(prevSelectableMode)
   }
 }
 

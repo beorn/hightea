@@ -56,9 +56,12 @@ describe("RenderSink", () => {
     direct.setRowMeta(3, { softWrapped: true })
     sink.setRowMeta(3, { softWrapped: true })
 
-    // setSelectableMode
+    // setSelectableMode is no longer a sink op — Smell #4 from the
+    // 2026-04-27 dual-pro review (Gemini 3 Pro). Renderers call
+    // buffer.setSelectableMode directly so the buffer state machine
+    // doesn't get sectioned away from the cells it stamps.
     direct.setSelectableMode(true)
-    sink.setSelectableMode(true)
+    viaSink.setSelectableMode(true)
     direct.setCell(0, 4, { char: "C" })
     sink.emitSetCell(0, 4, { char: "C" })
 
@@ -77,7 +80,8 @@ describe("RenderSink", () => {
     sink.emitFillBg(0, 2, 10, 1, 3)
     sink.emitRestyleRegion(0, 3, 10, 1, { fg: 4, bg: null, attrs: {} })
     sink.emitMergeAttrs(0, 3, 10, 1, { bold: true })
-    sink.setSelectableMode(true)
+    // setSelectableMode is no longer a sink op (Smell #4) — buffer state
+    // machine, not a sectioned plan op. setRowMeta is the only postStateOp.
     sink.setRowMeta(4, { softWrapped: true })
 
     const plan = sink.toPlan()
@@ -98,9 +102,8 @@ describe("RenderSink", () => {
     expect(plan.overlayOps).toHaveLength(1)
     expect(plan.overlayOps[0]?.kind).toBe("mergeAttrsInRect")
 
-    expect(plan.postStateOps).toHaveLength(2)
-    expect(plan.postStateOps[0]?.kind).toBe("setSelectableMode")
-    expect(plan.postStateOps[1]?.kind).toBe("setRowMeta")
+    expect(plan.postStateOps).toHaveLength(1)
+    expect(plan.postStateOps[0]?.kind).toBe("setRowMeta")
   })
 
   test("PlanSink + commitSectionedPlan: replay matches BufferSink output (non-overlapping ops)", () => {
@@ -120,7 +123,9 @@ describe("RenderSink", () => {
     function emitTo(sink: BufferSink | PlanSink): void {
       // Non-overlapping regions: paint cells in row 0, clear region in
       // row 4, paint bg in row 5, set cells + overlay in row 1.
-      sink.setSelectableMode(true)
+      // Smell #4 (Gemini 3 Pro): setSelectableMode is no longer a sink op.
+      // For PlanSink we don't need it; for BufferSink the buffer state
+      // machine is buffer-level, not sink-level.
       // Row 0: text content.
       for (let i = 0; i < 5; i++) {
         sink.emitSetCell(i, 0, { char: String.fromCharCode(65 + i), fg: 3, bg: 1 })

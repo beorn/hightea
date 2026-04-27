@@ -183,14 +183,6 @@ export interface RenderSink {
   // -- post state -----------------------------------------------------------
 
   /**
-   * Configure selectable mode for subsequent cell writes. Hidden mutable
-   * buffer state per pro review — Phase 2 should eventually encode
-   * selectability into each cell op, but the sink interface accepts
-   * scoped setters in the meantime so the migration can be incremental.
-   */
-  setSelectableMode(selectable: boolean): void
-
-  /**
    * Row metadata (soft-wrap, last content col). Lives in `postStateOps`.
    */
   setRowMeta(
@@ -298,10 +290,6 @@ export class BufferSink implements RenderSink {
     underlineColor?: Color,
   ): void {
     this.buffer.mergeAttrsInRect(x, y, width, height, attrs, underlineColor)
-  }
-
-  setSelectableMode(selectable: boolean): void {
-    this.buffer.setSelectableMode(selectable)
   }
 
   setRowMeta(
@@ -423,11 +411,6 @@ export class TeeSink implements RenderSink {
   ): void {
     this.primary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
     this.secondary.emitMergeAttrs(x, y, width, height, attrs, underlineColor)
-  }
-
-  setSelectableMode(selectable: boolean): void {
-    this.primary.setSelectableMode(selectable)
-    this.secondary.setSelectableMode(selectable)
   }
 
   setRowMeta(
@@ -618,10 +601,6 @@ export class PlanSink implements RenderSink {
       attrs,
       underlineColor,
     })
-  }
-
-  setSelectableMode(selectable: boolean): void {
-    this.postStateOps.push({ kind: "setSelectableMode", selectable })
   }
 
   setRowMeta(

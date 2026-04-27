@@ -148,8 +148,8 @@ describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
       // Overlay: bold attr on the paint-row
       sink.emitMergeAttrs(2, 1, 2, 1, { bold: true } as never)
 
-      // Post-state
-      sink.setSelectableMode(true)
+      // Post-state — Smell #4 (Gemini 3 Pro): setSelectableMode is no
+      // longer a sink op, only setRowMeta is a postState op.
       sink.setRowMeta(0, { softWrapped: false })
 
       return buffer
