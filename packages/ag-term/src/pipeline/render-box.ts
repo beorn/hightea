@@ -12,6 +12,7 @@ import type { BoxProps, AgNode, Rect } from "@silvery/ag/types"
 import { getPadding } from "./helpers"
 import { getBorderChars, getBorderSize, parseColor } from "./render-helpers"
 import { renderTextLine } from "./render-text"
+import { BufferSink, type RenderSink } from "./render-sink"
 import type { NodeRenderState, PipelineContext } from "./types"
 
 /**
@@ -51,6 +52,13 @@ export function renderBox(
   bgOnlyChange = false,
   inheritedFg?: Color | null,
 ): void {
+  // Phase 2 Step 4b: paint emissions route through a RenderSink so the
+  // intent of each op is declared at the call site (paintFill vs fillBg).
+  // BufferSink is behavior-equivalent to direct buffer mutation; once
+  // every renderer routes through a sink, swapping in PlanSink at one
+  // entry point will flip onto the plan/commit substrate.
+  const sink: RenderSink = new BufferSink(buffer)
+
   const { scrollOffset, clipBounds } = nodeState
   const { x, width, height } = layout
   // Apply scroll offset to y position
@@ -88,23 +96,23 @@ export function renderBox(
       }
       if (clippedHeight > 0 && clippedWidth > 0) {
         if (bgOnlyChange) {
-          buffer.fillBg(clippedX, clippedY, clippedWidth, clippedHeight, bg)
+          sink.emitFillBg(clippedX, clippedY, clippedWidth, clippedHeight, bg)
         } else {
-          buffer.fill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
+          sink.emitPaintFill(clippedX, clippedY, clippedWidth, clippedHeight, { bg })
         }
       }
     } else {
       if (bgOnlyChange) {
-        buffer.fillBg(x, y, width, height, bg)
+        sink.emitFillBg(x, y, width, height, bg)
       } else {
-        buffer.fill(x, y, width, height, { bg })
+        sink.emitPaintFill(x, y, width, height, { bg })
       }
     }
   }
 
   // Render border if set
   if (props.borderStyle) {
-    renderBorder(buffer, x, y, width, height, props, clipBounds, inheritedBg, inheritedFg)
+    renderBorder(buffer, sink, x, y, width, height, props, clipBounds, inheritedBg, inheritedFg)
   }
 }
 
@@ -117,6 +125,7 @@ export function renderBox(
  */
 export function renderBorder(
   buffer: TerminalBuffer,
+  sink: RenderSink,
   x: number,
   y: number,
   width: number,
@@ -175,15 +184,15 @@ export function renderBorder(
   // Top border — corners use the bg of the horizontal side (top/bottom)
   if (showTop && isRowVisible(y)) {
     if (showLeft && isColVisible(x))
-      buffer.setCell(x, y, { char: chars.topLeft, fg: color, bg: topBg })
+      sink.emitSetCell(x, y, { char: chars.topLeft, fg: color, bg: topBg })
     const hStart = showLeft ? x + 1 : x
     const hEnd = showRight ? x + width - 1 : x + width
     for (let col = hStart; col < hEnd && col < buffer.width; col++) {
       if (isColVisible(col))
-        buffer.setCell(col, y, { char: chars.horizontal, fg: color, bg: topBg })
+        sink.emitSetCell(col, y, { char: chars.horizontal, fg: color, bg: topBg })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, y, { char: chars.topRight, fg: color, bg: topBg })
+      sink.emitSetCell(x + width - 1, y, { char: chars.topRight, fg: color, bg: topBg })
     }
   }
 
@@ -194,9 +203,9 @@ export function renderBorder(
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
     if (showLeft && isColVisible(x))
-      buffer.setCell(x, row, { char: chars.vertical, fg: color, bg: leftBg })
+      sink.emitSetCell(x, row, { char: chars.vertical, fg: color, bg: leftBg })
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, row, { char: rightVertical, fg: color, bg: rightBg })
+      sink.emitSetCell(x + width - 1, row, { char: rightVertical, fg: color, bg: rightBg })
     }
   }
 
@@ -205,16 +214,16 @@ export function renderBorder(
   const bottomY = y + height - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft && isColVisible(x)) {
-      buffer.setCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg: bottomBg })
+      sink.emitSetCell(x, bottomY, { char: chars.bottomLeft, fg: color, bg: bottomBg })
     }
     const bStart = showLeft ? x + 1 : x
     const bEnd = showRight ? x + width - 1 : x + width
     for (let col = bStart; col < bEnd && col < buffer.width; col++) {
       if (isColVisible(col))
-        buffer.setCell(col, bottomY, { char: bottomHorizontal, fg: color, bg: bottomBg })
+        sink.emitSetCell(col, bottomY, { char: bottomHorizontal, fg: color, bg: bottomBg })
     }
     if (showRight && x + width - 1 < buffer.width && isColVisible(x + width - 1)) {
-      buffer.setCell(x + width - 1, bottomY, {
+      sink.emitSetCell(x + width - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
         bg: bottomBg,
@@ -239,6 +248,7 @@ export function renderBorder(
  */
 export function renderOutline(
   buffer: TerminalBuffer,
+  sink: RenderSink,
   x: number,
   y: number,
   width: number,
@@ -279,13 +289,13 @@ export function renderOutline(
   // Top border (one row above the box)
   if (showTop && isRowVisible(oy)) {
     if (showLeft && isColVisible(ox))
-      buffer.setCell(ox, oy, { char: chars.topLeft, fg: color, bg, attrs })
+      sink.emitSetCell(ox, oy, { char: chars.topLeft, fg: color, bg, attrs })
     for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
       if (isColVisible(col))
-        buffer.setCell(col, oy, { char: chars.horizontal, fg: color, bg, attrs })
+        sink.emitSetCell(col, oy, { char: chars.horizontal, fg: color, bg, attrs })
     }
     if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
-      buffer.setCell(ox + ow - 1, oy, { char: chars.topRight, fg: color, bg, attrs })
+      sink.emitSetCell(ox + ow - 1, oy, { char: chars.topRight, fg: color, bg, attrs })
     }
   }
 
@@ -296,9 +306,9 @@ export function renderOutline(
   for (let row = sideStart; row < sideEnd; row++) {
     if (!isRowVisible(row)) continue
     if (showLeft && isColVisible(ox))
-      buffer.setCell(ox, row, { char: chars.vertical, fg: color, bg, attrs })
+      sink.emitSetCell(ox, row, { char: chars.vertical, fg: color, bg, attrs })
     if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
-      buffer.setCell(ox + ow - 1, row, { char: outlineRightVertical, fg: color, bg, attrs })
+      sink.emitSetCell(ox + ow - 1, row, { char: outlineRightVertical, fg: color, bg, attrs })
     }
   }
 
@@ -307,14 +317,14 @@ export function renderOutline(
   const bottomY = oy + oh - 1
   if (showBottom && isRowVisible(bottomY)) {
     if (showLeft && isColVisible(ox)) {
-      buffer.setCell(ox, bottomY, { char: chars.bottomLeft, fg: color, bg, attrs })
+      sink.emitSetCell(ox, bottomY, { char: chars.bottomLeft, fg: color, bg, attrs })
     }
     for (let col = ox + 1; col < ox + ow - 1 && col < buffer.width; col++) {
       if (isColVisible(col))
-        buffer.setCell(col, bottomY, { char: outlineBottomHorizontal, fg: color, bg, attrs })
+        sink.emitSetCell(col, bottomY, { char: outlineBottomHorizontal, fg: color, bg, attrs })
     }
     if (showRight && ox + ow - 1 < buffer.width && isColVisible(ox + ow - 1)) {
-      buffer.setCell(ox + ow - 1, bottomY, {
+      sink.emitSetCell(ox + ow - 1, bottomY, {
         char: chars.bottomRight,
         fg: color,
         bg,

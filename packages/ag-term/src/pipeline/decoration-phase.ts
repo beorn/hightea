@@ -37,6 +37,7 @@ import type { BoxProps, AgNode } from "@silvery/ag/types"
 import { getBorderSize, getPadding } from "./helpers"
 import { renderOutline, getEffectiveBg } from "./render-box"
 import { parseColor } from "./render-helpers"
+import { BufferSink, type RenderSink } from "./render-sink"
 import type { ClipBounds } from "./types"
 
 /**
@@ -55,12 +56,17 @@ export interface OutlineCellSnapshot {
  * state. Called at the start of each incremental render, before the content
  * phase, on the cloned buffer. No-op when there are no previous snapshots
  * (fresh render or no outlines last frame).
+ *
+ * Phase 2 Step 4b: cell restorations route through the sink as setCell ops.
+ * Snapshots themselves still live on the buffer until Step 5 moves them to
+ * RenderPostState.
  */
 export function clearPreviousOutlines(buffer: TerminalBuffer): void {
   const snapshots = buffer.outlineSnapshots
   if (!snapshots || snapshots.length === 0) return
+  const sink: RenderSink = new BufferSink(buffer)
   for (const snap of snapshots) {
-    buffer.setCell(snap.x, snap.y, snap.cell)
+    sink.emitSetCell(snap.x, snap.y, snap.cell)
   }
   buffer.outlineSnapshots = []
 }
@@ -76,7 +82,8 @@ export function clearPreviousOutlines(buffer: TerminalBuffer): void {
  */
 export function renderDecorationPass(buffer: TerminalBuffer, root: AgNode): void {
   const snapshots: OutlineCellSnapshot[] = []
-  walk(root, buffer, 0, undefined, { color: null }, snapshots)
+  const sink: RenderSink = new BufferSink(buffer)
+  walk(root, buffer, sink, 0, undefined, { color: null }, snapshots)
   buffer.outlineSnapshots = snapshots
 }
 
@@ -88,6 +95,7 @@ export function renderDecorationPass(buffer: TerminalBuffer, root: AgNode): void
 function walk(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
   inheritedBg: { color: Color },
@@ -148,6 +156,7 @@ function walk(
     }
     renderOutline(
       buffer,
+      sink,
       layout.x,
       y,
       layout.width,
@@ -178,7 +187,7 @@ function walk(
       const cp = child.props as BoxProps
       if (cp.position === "sticky") continue
       if (i < ss.firstVisibleChild || i > ss.lastVisibleChild) continue
-      walk(child, buffer, ss.offset, childClip, childInheritedBg, snapshots)
+      walk(child, buffer, sink, ss.offset, childClip, childInheritedBg, snapshots)
     }
     // Sticky children: rendered at their computed sticky offset.
     if (ss.stickyChildren) {
@@ -186,7 +195,7 @@ function walk(
         const child = node.children[sticky.index]
         if (!child) continue
         const stickyOffset = sticky.naturalTop - sticky.renderOffset
-        walk(child, buffer, stickyOffset, childClip, childInheritedBg, snapshots)
+        walk(child, buffer, sink, stickyOffset, childClip, childInheritedBg, snapshots)
       }
     }
   } else {
@@ -195,7 +204,7 @@ function walk(
         ? computeChildClip(layout, props, clipBounds, scrollOffset, clipX, clipY)
         : clipBounds
     for (const child of node.children) {
-      walk(child, buffer, scrollOffset, childClip, childInheritedBg, snapshots)
+      walk(child, buffer, sink, scrollOffset, childClip, childInheritedBg, snapshots)
     }
   }
 }
