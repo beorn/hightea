@@ -122,11 +122,18 @@ export function renderPhase(
     : new TerminalBuffer(layout.width, layout.height)
   const tClone = instr.enabled ? performance.now() - t0 : 0
 
+  // Single frame-shared RenderSink. Smell #2 from the 2026-04-27 dual-pro
+  // review (Kimi K2.6 winner): every helper used to call createFrameSink(buffer)
+  // ad hoc, fabricating up to 7 sinks per frame. With BufferSink that was
+  // behaviorally idempotent because all sinks point-mutate the same buffer.
+  // With PlanSink (Step 3, paint-clear-l5-final), independent sinks would
+  // build 7 fragmented plans. Threading ONE sink through the tree walk makes
+  // PlanSink-authoritative a signature change rather than a multi-site refactor.
+  //
   // Default: root is selectable (userSelect defaults to "text").
   // renderNodeToBuffer will override per-node as it traverses.
-  // Phase 2 Step 4d: route post-state ops through sink.
-  const phaseSink: RenderSink = createFrameSink(buffer)
-  phaseSink.setSelectableMode(true)
+  const frameSink: RenderSink = createFrameSink(buffer)
+  frameSink.setSelectableMode(true)
 
   // Restore cells under previous-frame outlines BEFORE content rendering.
   // Outlines draw OUTSIDE their owning node into the parent's pixel space,
@@ -141,6 +148,7 @@ export function renderPhase(
   renderNodeToBuffer(
     root,
     buffer,
+    frameSink,
     {
       scrollOffset: 0,
       clipBounds: undefined,
@@ -393,10 +401,17 @@ export { clearBgConflictWarnings, setBgConflictMode }
 
 /**
  * Render a single node to the buffer.
+ *
+ * `sink` is the frame-shared RenderSink threaded from `renderPhase`. All
+ * post-state writes (selectableMode), cleanup ops (executeRegionClearing),
+ * paint ops (renderOwnContent inner sinks), and overlay ops
+ * (applyBoxAttrOverlay) route through this single sink. See Smell #2 from
+ * the 2026-04-27 dual-pro review for the rationale.
  */
 function renderNodeToBuffer(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   nodeState: NodeRenderState,
   ctx?: PipelineContext,
 ): void {
@@ -529,21 +544,22 @@ function renderNodeToBuffer(
   // block AFTER all early-return paths so the single try/finally below is the
   // only restoration site. Adding a future early-return above (before try) no
   // longer requires manual restore plumbing.
+  // Smell #2: routes through the frame-shared `sink` (threaded from
+  // renderPhase) — no ad-hoc createFrameSink at this site.
   // Phase 2 Step 4d: setSelectableMode writes route through sink as
   // post-state ops. Phase 2 Step 6 / paint-clear-l5-final Step 1a:
   // the previous mode is now threaded via `nodeState.selectableMode`
   // instead of read from buffer state — eliminates an intra-frame
   // buffer read so the PlanSink can eventually stand alone.
-  const nodeSink: RenderSink = createFrameSink(buffer)
   const prevSelectableMode = nodeState.selectableMode
   const userSelect = props.userSelect
   let currentSelectableMode = prevSelectableMode
   if (userSelect === "none") {
     currentSelectableMode = false
-    nodeSink.setSelectableMode(false)
+    sink.setSelectableMode(false)
   } else if (userSelect === "text" || userSelect === "contain") {
     currentSelectableMode = true
-    nodeSink.setSelectableMode(true)
+    sink.setSelectableMode(true)
   }
 
   // Push per-subtree theme override (if this Box has a theme prop).
@@ -682,6 +698,7 @@ function renderNodeToBuffer(
     executeRegionClearing(
       node,
       buffer,
+      sink,
       layout,
       scrollOffset,
       clipBounds,
@@ -719,6 +736,7 @@ function renderNodeToBuffer(
       renderOwnContent(
         node,
         buffer,
+        sink,
         layout,
         props,
         nodeState,
@@ -765,6 +783,7 @@ function renderNodeToBuffer(
       renderScrollContainerChildren(
         node,
         buffer,
+        sink,
         props,
         childState,
         contentRegionCleared,
@@ -780,6 +799,7 @@ function renderNodeToBuffer(
       renderNormalChildren(
         node,
         buffer,
+        sink,
         props,
         childState,
         childPositionChanged,
@@ -800,7 +820,7 @@ function renderNodeToBuffer(
     // Sets `node.hadBoxAttrOverlay` so next frame's cascade can detect the
     // "overlay was removed" case and trigger a clear.
     if (node.type === "silvery-box") {
-      const applied = applyBoxAttrOverlay(buffer, layout, props, scrollOffset, clipBounds)
+      const applied = applyBoxAttrOverlay(buffer, sink, layout, props, scrollOffset, clipBounds)
       node.hadBoxAttrOverlay = applied
     }
 
@@ -815,7 +835,7 @@ function renderNodeToBuffer(
     // Pop per-subtree theme override (after ALL child passes including absolute/sticky)
     if (nodeTheme) popContextTheme()
     // Restore parent's selectable mode
-    nodeSink.setSelectableMode(prevSelectableMode)
+    sink.setSelectableMode(prevSelectableMode)
   }
 }
 
@@ -989,6 +1009,7 @@ function traceRenderDecision(
 function executeRegionClearing(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
@@ -1001,12 +1022,10 @@ function executeRegionClearing(
   threadedInheritedBg: NodeRenderState["inheritedBg"],
   hasPrevBuffer: boolean,
 ): void {
-  // Route cleanup-helper writes through a RenderSink so the seam declares
-  // "clear" intent at emission time. With BufferSink this is behavior-
-  // equivalent to direct buffer mutation; swapping in PlanSink (Phase 2
-  // Step 7) would make these ops land in cleanupOps unconditionally.
-  // (km-silvery.paint-clear-invariant Phase 2 Step 4a.)
-  const sink: RenderSink = createFrameSink(buffer)
+  // `sink` is the frame-shared RenderSink threaded from renderPhase.
+  // (km-silvery.paint-clear-invariant Phase 2 Step 4a; Smell #2 from the
+  // 2026-04-27 dual-pro review consolidates ad-hoc local sinks onto this
+  // single threaded one so PlanSink-authoritative is a signature change.)
 
   if (contentRegionCleared) {
     if (instrumentEnabled) stats.clearOps++
@@ -1092,6 +1111,7 @@ function executeRegionClearing(
 function renderOwnContent(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   layout: NonNullable<AgNode["boxRect"]>,
   props: BoxProps & TextProps,
   nodeState: NodeRenderState,
@@ -1152,9 +1172,9 @@ function renderOwnContent(
       const { x, width, height } = layout
       const y = layout.y - nodeState.scrollOffset
       // Phase 2 Step 4d: text style-only fast path → sink.emitRestyleRegion
-      // (paint op — restyles existing cells in place).
-      const ownContentSink: RenderSink = createFrameSink(buffer)
-      ownContentSink.emitRestyleRegion(x, y, width, height, {
+      // (paint op — restyles existing cells in place). Smell #2: routes
+      // through the frame-shared `sink` rather than fabricating a local one.
+      sink.emitRestyleRegion(x, y, width, height, {
         fg: style.fg,
         bg: effectiveBg,
         underlineColor: style.underlineColor ?? null,
@@ -1261,6 +1281,7 @@ function computeBoxAttrOverlay(props: BoxProps): {
  */
 function applyBoxAttrOverlay(
   buffer: TerminalBuffer,
+  sink: RenderSink,
   layout: NonNullable<AgNode["boxRect"]>,
   props: BoxProps,
   scrollOffset: number,
@@ -1293,9 +1314,9 @@ function applyBoxAttrOverlay(
   }
 
   // Phase 2 Step 4d: box attr overlay → sink.emitMergeAttrs (overlay op,
-  // applied AFTER paint so existing cells are merged in place).
-  const overlaySink: RenderSink = createFrameSink(buffer)
-  overlaySink.emitMergeAttrs(rx, ry, rw, rh, overlay.attrs, overlay.underlineColor)
+  // applied AFTER paint so existing cells are merged in place). Smell #2:
+  // routes through the frame-shared `sink` rather than fabricating a local one.
+  sink.emitMergeAttrs(rx, ry, rw, rh, overlay.attrs, overlay.underlineColor)
   return true
 }
 
@@ -1476,6 +1497,7 @@ export function planScrollRender(inputs: ScrollPlanInputs): ScrollPlan {
 function renderScrollContainerChildren(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   props: BoxProps,
   nodeState: NodeRenderState,
   contentRegionCleared = false,
@@ -1615,7 +1637,8 @@ function renderScrollContainerChildren(
   //     leading indicator-row clears are CLEANUP (clear stale indicator).
   //   - Tier 2 clear: viewport clear is CLEANUP.
   //   - stickyForceRefresh: viewport pre-clear (CLEANUP).
-  const scrollSink: RenderSink = createFrameSink(buffer)
+  // Smell #2: routes through the frame-shared `sink` rather than fabricating a
+  // local one — see Smell #2 from the 2026-04-27 dual-pro review.
   const scrollDelta = ss.offset - (ss.prevOffset ?? ss.offset)
   if (tier === "shift" && clearHeight > 0) {
     // Clear scroll indicator rows before shifting to prevent stale indicator
@@ -1625,24 +1648,24 @@ function renderScrollContainerChildren(
       const topIndicatorY = clearY
       const bottomIndicatorY = clearY + clearHeight - 1
       if (ss.prevOffset != null && ss.prevOffset > 0) {
-        scrollSink.emitClearRect(contentX, topIndicatorY, contentWidth, 1, plan.clearBg)
+        sink.emitClearRect(contentX, topIndicatorY, contentWidth, 1, plan.clearBg)
       }
-      scrollSink.emitClearRect(contentX, bottomIndicatorY, contentWidth, 1, plan.clearBg)
+      sink.emitClearRect(contentX, bottomIndicatorY, contentWidth, 1, plan.clearBg)
     }
-    scrollSink.emitScrollRegion(contentX, clearY, contentWidth, clearHeight, scrollDelta, {
+    sink.emitScrollRegion(contentX, clearY, contentWidth, clearHeight, scrollDelta, {
       char: " ",
       bg: plan.clearBg,
     })
   }
 
   if (tier === "clear" && clearHeight > 0) {
-    scrollSink.emitClearRect(contentX, clearY, contentWidth, clearHeight, plan.clearBg)
+    sink.emitClearRect(contentX, clearY, contentWidth, clearHeight, plan.clearBg)
   }
 
   // Tier 3 with sticky: clear viewport to null bg (matches fresh render state)
   // before re-rendering all items, so the sticky second pass works correctly.
   if (stickyForceRefresh && clearHeight > 0) {
-    scrollSink.emitClearRect(contentX, clearY, contentWidth, clearHeight, null)
+    sink.emitClearRect(contentX, clearY, contentWidth, clearHeight, null)
   }
 
   // Propagate ancestor layout change to scroll container children.
@@ -1702,6 +1725,7 @@ function renderScrollContainerChildren(
     renderNodeToBuffer(
       child,
       buffer,
+      sink,
       {
         scrollOffset: ss.offset,
         clipBounds: childClipBounds,
@@ -1745,6 +1769,7 @@ function renderScrollContainerChildren(
       renderNodeToBuffer(
         child,
         buffer,
+        sink,
         {
           scrollOffset: stickyScrollOffset,
           clipBounds: childClipBounds,
@@ -1768,6 +1793,7 @@ function renderScrollContainerChildren(
 function renderNormalChildren(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   props: BoxProps,
   nodeState: NodeRenderState,
   childPositionChanged = false,
@@ -1846,8 +1872,8 @@ function renderNormalChildren(
     }
     if (clearW > 0 && clearH > 0) {
       // Phase 2 Step 4d: sticky-force-refresh viewport pre-clear (CLEANUP).
-      const stickySink: RenderSink = createFrameSink(buffer)
-      stickySink.emitClearRect(clearX, clearY, clearW, clearH, null)
+      // Smell #2: routes through the frame-shared `sink`.
+      sink.emitClearRect(clearX, clearY, clearW, clearH, null)
     }
   }
 
@@ -1994,6 +2020,7 @@ function renderNormalChildren(
     renderNodeToBuffer(
       child,
       buffer,
+      sink,
       {
         scrollOffset,
         clipBounds: effectiveClipBounds,
@@ -2033,6 +2060,7 @@ function renderNormalChildren(
       renderNodeToBuffer(
         child,
         buffer,
+        sink,
         {
           scrollOffset: stickyScrollOffset,
           clipBounds: effectiveClipBounds,
@@ -2071,6 +2099,7 @@ function renderNormalChildren(
       renderNodeToBuffer(
         child,
         buffer,
+        sink,
         {
           scrollOffset,
           clipBounds: effectiveClipBounds,
