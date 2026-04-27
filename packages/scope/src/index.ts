@@ -26,6 +26,7 @@
 import { _trackCreate, _trackDispose } from "./trace.js"
 import {
   adoptHandle as _adoptHandle,
+  isBrandedHandle as _isBrandedHandle,
   type RegistrableHandle,
 } from "./handle.js"
 
@@ -79,6 +80,26 @@ export class Scope extends AsyncDisposableStack {
    */
   adoptHandle(handle: RegistrableHandle): void {
     _adoptHandle(this, handle)
+  }
+
+  /**
+   * Adopt an `AsyncDisposable` for LIFO teardown.
+   *
+   * Branded handles (from `defineHandle()`) are routed through
+   * {@link adoptHandle} so per-scope accounting catches them.
+   * Non-branded `AsyncDisposable` values use the inherited stack directly.
+   *
+   * This closes the pro/Kimi-flagged "scope.use(handle) bypasses ownership"
+   * hole — a forged or hand-rolled `AsyncDisposable` claiming to be a
+   * branded handle still goes through the runtime authenticity gate in
+   * `adoptHandle`.
+   */
+  override use<T extends AsyncDisposable | Disposable | null | undefined>(value: T): T {
+    if (value !== null && value !== undefined && typeof value === "object" && _isBrandedHandle(value)) {
+      _adoptHandle(this, value as unknown as RegistrableHandle)
+      return value
+    }
+    return super.use(value)
   }
 
   /**
@@ -272,6 +293,8 @@ export function withScope(name?: string) {
 
 export {
   defineHandle,
+  finaliseHandle,
+  isBrandedHandle,
   type Handle,
   type RegistrableHandle,
   type LeakedHandle,

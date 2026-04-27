@@ -1,5 +1,6 @@
 /**
- * scoped-tick.ts — first consumer of the C1 / Phase 1 handle pattern.
+ * scoped-tick.ts — first consumer of the C1 / Phase 1 handle pattern,
+ * hardened per pro/Kimi review (2026-04-26).
  *
  * `createScopedTick(scope, intervalMs)` returns an opaque `TickHandle`
  * (defined via `@silvery/scope`'s `defineHandle()` brand) and is registered
@@ -7,61 +8,62 @@
  * accounting catches the case where the consumer holds the handle past its
  * intended lifetime — `assertScopeBalance(scope)` flags it as a leak.
  *
- * Why this exists alongside `createTick(intervalMs, signal?)`:
+ * Two-layer defense (see `@silvery/scope/handle.ts` for full design):
+ *   - **Compile-time**: the `Handle<unique symbol>` brand prevents
+ *     accidental object-literal construction (TS2322). Doesn't stop
+ *     `as`-cast escapes — that's an acknowledged limit, addressed by lint.
+ *   - **Runtime**: the handle's identity is recorded in a module-private
+ *     `WeakSet` inside `@silvery/scope`. `adoptHandle()` and the wrapped
+ *     `Scope.use()` reject any value that isn't in the set. Forged values
+ *     fail at the library boundary.
  *
+ * The handle is `Object.freeze`d via `finaliseHandle` before return, so
+ * its surface (`iterable`, `emitted`, `[Symbol.asyncDispose]`) cannot be
+ * overwritten by callers.
+ *
+ * Why this exists alongside `createTick(intervalMs, signal?)`:
  *   - `createTick` takes an optional `AbortSignal` and a caller can forget
  *     to wire it; the resulting tick source leaks the underlying setTimeout
  *     until process exit.
  *   - `createScopedTick` requires a `Scope` token at the type level. The
- *     brand symbol on `TickHandle` cannot be forged outside this module,
- *     so `new` constructions or hand-rolled value-shapes don't compile.
- *   - The handle is registered into `scope` via `scope.adoptHandle(...)`,
- *     so `assertScopeBalance(scope)` inventories any forgotten ticks.
- *
- * The legacy `createTick` is kept as `@deprecated` until Phase 2 migrates
- * the remaining call sites (the public API has zero internal consumers in
- * silvery today; deprecation is a soft signal for downstream apps).
- *
- * Type-level prevention proof (verified 2026-04-26): the following
- * forge attempts fail `tsc --noEmit` with TS2322 — the `unique symbol`
- * brand on `Handle<typeof Tick.brand>` cannot be produced outside this
- * module, so the only path to a `TickHandle` value is `createScopedTick`.
- *
- *   // function forgeReturn(): TickHandle {
- *   //   return {
- *   //     iterable: ...,
- *   //     emitted: () => 0,
- *   //     [Symbol.asyncDispose]: async () => {},
- *   //   } // ← TS2322: missing the unique-symbol brand
- *   // }
- *   //
- *   // const fake: TickHandle = { ... } // ← same TS2322
- *
- * Re-verify by pasting the snippets into a sibling `*-tcheck.ts` file
- * and running `npx tsc --noEmit`.
+ *     factory is the only path to a `TickHandle` value that the runtime
+ *     authenticity gate accepts.
  *
  * @packageDocumentation
  */
 
-import { defineHandle, type Handle, type Scope } from "@silvery/scope"
+import {
+  defineHandle,
+  finaliseHandle,
+  type Handle,
+  type Scope,
+} from "@silvery/scope"
 
 // =============================================================================
-// Brand — module-private. Cannot be forged outside this file.
+// Brand — module-private. The unique-symbol brand is never exported, and
+// the runtime authenticity is in @silvery/scope's `branded` WeakSet.
 // =============================================================================
 
 const Tick = defineHandle("Tick")
 
+// Recover the `unique symbol` brand type from the factory's return shape so
+// `TickHandle` can name it. The runtime symbol stays inside @silvery/scope.
+type TickBrand = ReturnType<typeof Tick.create> extends Handle<infer B> ? B : never
+
 /**
- * Opaque handle for a scoped tick source. Treat as opaque outside this
- * module — callers can iterate via {@link tickIterable} and read
- * {@link tickCount}, but cannot construct a `TickHandle` value.
+ * Opaque handle for a scope-owned tick source. Treat as opaque outside
+ * this module — read `iterable` to async-iterate, `emitted()` for the
+ * count. Disposal is automatic on scope close; manual `await using` works.
  *
- * Disposal is automatic on scope close; manual `await using` works too.
+ * The brand `TickBrand` is module-private; external callers cannot
+ * construct a `TickHandle` from an object literal (compile-time TS2322),
+ * and forged values via `as TickHandle` are rejected at runtime by
+ * `adoptHandle()` / `Scope.use()`.
  */
-export type TickHandle = Handle<typeof Tick.brand> & {
-  /** Async-iterate emitted tick numbers (0, 1, 2, …). */
+export type TickHandle = Handle<TickBrand> & {
+  /** Async-iterate emitted tick numbers (0, 1, 2, …). Frozen / non-writable. */
   readonly iterable: AsyncIterable<number>
-  /** Snapshot the count of ticks emitted so far (for diagnostics). */
+  /** Snapshot the count of ticks emitted so far. Frozen / non-writable. */
   readonly emitted: () => number
 }
 
@@ -106,9 +108,9 @@ export function createScopedTick(scope: Scope, intervalMs: number): TickHandle {
     }
   }
 
-  // Dispose on scope abort (parent abort cascades naturally via Scope.signal).
-  // We register *before* adopting the handle so the listener reference is
-  // available; the scope's disposer stack handles cleanup ordering.
+  // Cascade abort from the owning scope's signal. This sits on `defer`, not
+  // on a separate listener pair, so it disposes in LIFO with the rest of
+  // the scope's teardown.
   if (scope.signal.aborted) {
     stopped = true
   } else {
@@ -143,16 +145,14 @@ export function createScopedTick(scope: Scope, intervalMs: number): TickHandle {
     },
   }
 
-  // Internal storage — readable through accessor closures, never the brand.
-  const internal = { iterable, emitted: () => count }
-
-  // Brand the handle. The `Tick.create()` call is the only path that can
-  // produce a value of type `Handle<typeof Tick.brand>` — outside this
-  // module, the brand is `unique symbol`-typed and cannot be forged.
-  const handle = Tick.create(internal, () => stop()) as TickHandle
-  // Augment the opaque value with the public accessor surface. These are
-  // safe to expose because they're plain getters, not constructors.
-  Object.assign(handle, internal)
+  // Brand → finalise (attach surface + freeze) → adopt. The factory in
+  // @silvery/scope/handle.ts records the bare handle in `branded`; the
+  // factory module then attaches surface and freezes via finaliseHandle.
+  const bare = Tick.create({ iterable, emitted: () => count }, () => stop())
+  const handle = finaliseHandle(bare, {
+    iterable,
+    emitted: () => count,
+  }) as TickHandle
 
   scope.adoptHandle(handle)
   return handle
