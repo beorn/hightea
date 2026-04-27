@@ -59,7 +59,7 @@ import {
   beginConvergenceLoop,
   beginPass,
   notePassCommit,
-  recordPassCause,
+  logPass,
   INSTRUMENT,
 } from "./runtime/pass-cause"
 // Side-effect import: arms `@silvery/ag`'s wrap-measurer registry with the
@@ -730,13 +730,13 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         // Pass N committed React work — pass N+1 will run. Record so the
         // histogram can show "how many passes had extra-pass causes attributed
         // to them?". Specific cause records are emitted by the pipeline phases
-        // and signal sync via recordPassCause().
+        // and signal sync via logPass().
         if (INSTRUMENT) {
           notePassCommit(pass)
           if (pass === MAX_SINGLE_PASS_ITERATIONS - 1) {
             // Loop will exit but committed work is still pending — surface as
             // unknown so the histogram doesn't undercount the loop tail.
-            recordPassCause({ cause: "unknown", detail: "single-pass-exhaustion" })
+            logPass({ cause: "unknown", detail: "single-pass-exhaustion" })
           }
         }
       }
@@ -825,7 +825,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (INSTRUMENT) {
           notePassCommit(iteration)
           if (iteration === MAX_LAYOUT_ITERATIONS - 1) {
-            recordPassCause({ cause: "unknown", detail: "classic-exhaustion" })
+            logPass({ cause: "unknown", detail: "classic-exhaustion" })
           }
         }
       }
@@ -1080,7 +1080,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         if (INSTRUMENT) {
           notePassCommit(flush)
           if (flush === MAX_EFFECT_FLUSHES - 1) {
-            recordPassCause({ cause: "unknown", detail: "effect-flush-exhaustion" })
+            logPass({ cause: "unknown", detail: "effect-flush-exhaustion" })
           }
         }
         // React committed new work from effects — re-render

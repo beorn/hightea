@@ -165,7 +165,7 @@ import {
   beginConvergenceLoop,
   beginPass,
   notePassCommit,
-  recordPassCause,
+  logPass,
   printPassHistogram,
   appendHistogramJson,
   resetPassHistogram,
@@ -2834,7 +2834,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       if (INSTRUMENT) {
         notePassCommit(flushCount)
         if (flushCount === maxFlushes - 1) {
-          recordPassCause({ cause: "unknown", detail: "production-flush-exhaustion" })
+          logPass({ cause: "unknown", detail: "production-flush-exhaustion" })
         }
       }
       try {

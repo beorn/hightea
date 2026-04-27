@@ -34,7 +34,7 @@ import {
   type SelectionTheme,
 } from "../selection-renderer"
 import { hexToRgb } from "../pipeline/backdrop/color"
-import { INSTRUMENT, recordPassCause } from "./pass-cause"
+import { INSTRUMENT, logPass } from "./pass-cause"
 import type { Buffer, Dims, RenderTarget } from "./types"
 import type { PipelineConfig } from "../pipeline"
 import type { createVirtualScrollback } from "../virtual-scrollback"
@@ -168,7 +168,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
             // viewport-resize is a depth-0 root trigger, not a feedback edge.
             // It still gets recorded so the histogram can reason about
             // resize-driven extra passes (resize-resettle) downstream.
-            recordPassCause({
+            logPass({
               cause: "viewport-resize",
               edge: widthChanged && heightChanged ? "wh" : widthChanged ? "w" : "h",
               producerPhase: "renderer",

@@ -96,7 +96,7 @@ export {
   beginConvergenceLoop,
   beginPass,
   notePassCommit,
-  recordPassCause,
+  logPass,
   getPassHistogram,
   resetPassHistogram,
   formatPassHistogram,
@@ -104,6 +104,7 @@ export {
   appendHistogramJson,
   getPassAggregator,
   createPassCauseAggregator,
+  getPassLog,
 } from "./runtime/pass-cause"
 export type {
   PassCause,
