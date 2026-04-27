@@ -36,26 +36,35 @@ import {
 import { compareBuffers, formatMismatch } from "@silvery/test"
 
 describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
-  test("isRenderPlanEnabled reads SILVERY_RENDER_PLAN", () => {
+  test("isRenderPlanEnabled defaults ON (Phase 3); opt-out via SILVERY_RENDER_PLAN=0", () => {
     const original = process.env.SILVERY_RENDER_PLAN
     try {
-      process.env.SILVERY_RENDER_PLAN = "1"
+      // Phase 3: default ON. Unset env var → enabled.
+      delete process.env.SILVERY_RENDER_PLAN
       expect(isRenderPlanEnabled()).toBe(true)
 
+      // Explicit opt-out values disable.
       process.env.SILVERY_RENDER_PLAN = "0"
+      expect(isRenderPlanEnabled()).toBe(false)
+
+      process.env.SILVERY_RENDER_PLAN = "false"
       expect(isRenderPlanEnabled()).toBe(false)
 
       process.env.SILVERY_RENDER_PLAN = ""
       expect(isRenderPlanEnabled()).toBe(false)
 
-      delete process.env.SILVERY_RENDER_PLAN
+      process.env.SILVERY_RENDER_PLAN = "off"
       expect(isRenderPlanEnabled()).toBe(false)
+
+      process.env.SILVERY_RENDER_PLAN = "no"
+      expect(isRenderPlanEnabled()).toBe(false)
+
+      // Any other value (including legacy "1" / "true") enables.
+      process.env.SILVERY_RENDER_PLAN = "1"
+      expect(isRenderPlanEnabled()).toBe(true)
 
       process.env.SILVERY_RENDER_PLAN = "true"
       expect(isRenderPlanEnabled()).toBe(true)
-
-      process.env.SILVERY_RENDER_PLAN = "false"
-      expect(isRenderPlanEnabled()).toBe(false)
     } finally {
       if (original === undefined) delete process.env.SILVERY_RENDER_PLAN
       else process.env.SILVERY_RENDER_PLAN = original

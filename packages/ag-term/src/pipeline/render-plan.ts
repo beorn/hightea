@@ -440,15 +440,28 @@ function applyOp(buffer: TerminalBuffer, op: RenderOp): void {
 }
 
 /**
- * Read the SILVERY_RENDER_PLAN env var. Returns true when the plan/commit
- * path is opted in. Phase 1: opt-in only (default off). Phase 2: opt-out
- * (default on, with `=0` to disable). Phase 3: env var removed.
+ * Read the SILVERY_RENDER_PLAN env var. Returns true (default) UNLESS
+ * the user explicitly opts out with `SILVERY_RENDER_PLAN=0` /
+ * `SILVERY_RENDER_PLAN=false`.
+ *
+ * Phase 1: opt-in only (default off).
+ * Phase 2: opt-in via flag for testing.
+ * Phase 3 (current): default ON, opt-out for one release. The plan
+ * capture + sectioned commit is now load-bearing — it runs every
+ * frame, the captured plan is committed onto a fresh clone for parity
+ * (verified by tests/features/render-plan-fuzz.test.tsx +
+ * tests/features/render-plan-production.test.tsx). The opt-out exists
+ * solely to roll back if a regression slips through; the next release
+ * removes the env var entirely.
  */
 export function isRenderPlanEnabled(): boolean {
   const env: Record<string, string | undefined> | undefined =
     typeof process !== "undefined" ? process.env : undefined
   const v = env?.SILVERY_RENDER_PLAN
-  return v !== undefined && v !== "" && v !== "0" && v.toLowerCase() !== "false"
+  // Default ON. Only "0" / "false" / "" / "off" / "no" disable it.
+  if (v === undefined) return true
+  const lower = v.toLowerCase()
+  return lower !== "0" && lower !== "false" && lower !== "" && lower !== "off" && lower !== "no"
 }
 
 // ---------------------------------------------------------------------------
