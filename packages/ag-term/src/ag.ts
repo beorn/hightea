@@ -41,6 +41,13 @@ import {
   strictLayoutOverflowCheck,
 } from "./pipeline/layout-phase"
 import { renderPhase, clearBgConflictWarnings } from "./pipeline/render-phase"
+import {
+  classifyPlan,
+  commitSectionedPlan,
+  isRenderPlanEnabled,
+  RecordingBuffer,
+  wrapPrevBufferForRecording,
+} from "./pipeline/render-plan"
 import { applyBackdrop, hasBackdropMarkers, type ColorLevel } from "./pipeline/backdrop"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
@@ -412,6 +419,29 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       tContent = performance.now() - t
       log.debug?.(`content: ${tContent.toFixed(2)}ms`)
     }
+    // Phase 2 wiring of SILVERY_RENDER_PLAN at this entry point is BLOCKED
+    // pending Phase 2 Step 3 (RenderSink). A naive wire-through —
+    // capture flat plan, classify into sections, replay sectioned —
+    // produces wrong output for any scene where renderBox uses
+    // `buffer.fill(...,{bg, char:" "})` as a CONSTRUCTIVE bg paint.
+    // The space-char classifier heuristic puts those into cleanupOps
+    // (committed first), but they are paints (must be in paintOps).
+    // Test diff:
+    //   features/absolute-shrink-bg-preserve.test.tsx — fails (the very
+    //     bug we're trying to fix structurally; misclassification reverses
+    //     the order)
+    //   features/backdrop-fade.test.tsx — fails (intra-frame buffer reads
+    //     during fade pass; review point #6)
+    //   features/outline-incremental.test.tsx — fails (outline snapshot
+    //     state lost across plan→commit roundtrip; review point #5)
+    // Step 3 must land RenderSink so renderBox.ts:93/100 can call
+    // sink.emitPaint(...) explicitly instead of buffer.fill(...). Until
+    // then, isRenderPlanEnabled() is read by tests only.
+    void isRenderPlanEnabled
+    void wrapPrevBufferForRecording
+    void RecordingBuffer
+    void classifyPlan
+    void commitSectionedPlan
 
     // Backdrop-fade pass — runs after content + decoration, before output.
     //

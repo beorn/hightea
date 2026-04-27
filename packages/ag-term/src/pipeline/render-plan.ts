@@ -591,27 +591,35 @@ export interface SectionedRenderPlan {
 /**
  * Classify a flat `RenderPlan` (Phase 1 substrate) into a sectioned plan.
  *
- * Phase 2 Step 1 transitional helper. The classifier uses heuristics that
- * hold for the CURRENT silvery renderer:
+ * **CLASSIFIER IS NOT PRODUCTION-CORRECT.** Wiring this through `ag.ts`
+ * was attempted (see commit on feat/render-plan-commit-phase1 branch) and
+ * produced wrong output for: `absolute-shrink-bg-preserve` (the very bug
+ * we're trying to fix structurally), `backdrop-fade`, and
+ * `outline-incremental`. The classifier IS sound enough for substrate
+ * tests (it produces the same buffer the legacy renderer does on the
+ * current parity-test scenes) but a heuristic cannot reliably tell a
+ * "clear" `buffer.fill` from a "paint" `buffer.fill` — both use the same
+ * shape (space char + bg). The split is intent, not data.
  *
- *   - `fill` with `char === " "` (or undefined, which defaults to space)
- *     classifies as `clearCells` (cleanup). Verified by audit: every
- *     `buffer.fill` call site in render-phase.ts and render-box.ts uses
- *     space chars or omits the char entirely. There are no
- *     `buffer.fill(...,{ char: 'X' })` paint sites.
- *   - `fillBg` always classifies as `fillBg` paint (opaque sibling bg).
- *   - `setCell` always classifies as `setCell` paint.
- *   - `restyleRegion` always classifies as paint (it's text restyle).
- *   - `scrollRegion` always classifies as transfer.
- *   - `mergeAttrsInRect` always classifies as overlay.
- *   - `setSelectableMode` and `setRowMeta` classify as postState.
+ * Per pro/Kimi review: Phase 2 Step 3 must introduce an explicit
+ * `RenderSink` interface so the renderer marks intent at emission time
+ * (`sink.emitClear(...)` vs `sink.emitPaint(...)`). The classifier is
+ * retired once Step 3 lands; until then it's a transitional helper for
+ * tests of the sectioned commit machinery.
  *
- * Phase 2 Step 2 introduces an explicit `RenderSink` interface so the
- * renderer marks intent at emission time, eliminating the classifier
- * entirely. The current heuristic is sound for shipping the substrate
- * but the dependency on "fill char is always space" is fragile — adding
- * a paint-fill site somewhere would silently misclassify it as a clear.
- * The unit tests pin this property so a future change can't slip past.
+ * Current heuristic (NOT a structural invariant — limitations above):
+ *
+ *   - `fill` with `char === " "` (or undefined) → `clearCells`.
+ *     This is wrong for `render-box.ts`'s opaque bg paints
+ *     (`buffer.fill(rect, {bg})`), which use space char but ARE paints.
+ *     The audit test `Phase 2: classifier audit — every fill in current
+ *     renderer uses space char` pins the char-shape; it does NOT pin
+ *     intent. Phase 2 Step 3 closes this.
+ *   - `fillBg` → `fillBg` paint.
+ *   - `setCell`, `restyleRegion` → paint.
+ *   - `scrollRegion` → transfer.
+ *   - `mergeAttrsInRect` → overlay.
+ *   - `setSelectableMode`, `setRowMeta` → postState.
  */
 export function classifyPlan(flat: RenderPlan): SectionedRenderPlan {
   const transferOps: TransferOp[] = []
