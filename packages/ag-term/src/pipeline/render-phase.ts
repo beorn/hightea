@@ -428,28 +428,9 @@ function renderNodeToBuffer(
 
   const props = node.props as BoxProps & TextProps
 
-  // Resolve userSelect for SELECTABLE_FLAG stamping.
-  // Phase 2 Step 4d: setSelectableMode writes route through sink as
-  // post-state ops. Phase 2 Step 6 / paint-clear-l5-final Step 1a:
-  // the previous mode is now threaded via `nodeState.selectableMode`
-  // instead of read from buffer state — eliminates an intra-frame
-  // buffer read so the PlanSink can eventually stand alone.
-  const nodeSink: RenderSink = createFrameSink(buffer)
-  const prevSelectableMode = nodeState.selectableMode
-  const userSelect = props.userSelect
-  let currentSelectableMode = prevSelectableMode
-  if (userSelect === "none") {
-    currentSelectableMode = false
-    nodeSink.setSelectableMode(false)
-  } else if (userSelect === "text" || userSelect === "contain") {
-    currentSelectableMode = true
-    nodeSink.setSelectableMode(true)
-  }
-
   // Skip display="none" nodes
   if (props.display === "none") {
     clearDirtyFlags(node)
-    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
 
@@ -458,7 +439,6 @@ function renderNodeToBuffer(
   // flags intact so they render correctly when scrolled into view.
   const screenY = layout.y - scrollOffset
   if (screenY >= buffer.height || screenY + layout.height <= 0) {
-    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
 
@@ -530,7 +510,6 @@ function renderNodeToBuffer(
       }
     }
     clearDirtyFlags(node)
-    nodeSink.setSelectableMode(prevSelectableMode)
     return
   }
   if (instr.enabled) {
@@ -543,6 +522,28 @@ function renderNodeToBuffer(
     if (isDirty(node.dirtyBits, node.dirtyEpoch, CHILDREN_BIT)) instr.stats.flagChildrenDirty++
     if (childPositionChanged) instr.stats.flagChildPositionChanged++
     if (ancestorLayoutChanged) instr.stats.flagAncestorLayoutChanged++
+  }
+
+  // Resolve userSelect for SELECTABLE_FLAG stamping.
+  // Smell #1 from the 2026-04-27 dual-pro review (Kimi K2.6 winner): keep this
+  // block AFTER all early-return paths so the single try/finally below is the
+  // only restoration site. Adding a future early-return above (before try) no
+  // longer requires manual restore plumbing.
+  // Phase 2 Step 4d: setSelectableMode writes route through sink as
+  // post-state ops. Phase 2 Step 6 / paint-clear-l5-final Step 1a:
+  // the previous mode is now threaded via `nodeState.selectableMode`
+  // instead of read from buffer state — eliminates an intra-frame
+  // buffer read so the PlanSink can eventually stand alone.
+  const nodeSink: RenderSink = createFrameSink(buffer)
+  const prevSelectableMode = nodeState.selectableMode
+  const userSelect = props.userSelect
+  let currentSelectableMode = prevSelectableMode
+  if (userSelect === "none") {
+    currentSelectableMode = false
+    nodeSink.setSelectableMode(false)
+  } else if (userSelect === "text" || userSelect === "contain") {
+    currentSelectableMode = true
+    nodeSink.setSelectableMode(true)
   }
 
   // Push per-subtree theme override (if this Box has a theme prop).
