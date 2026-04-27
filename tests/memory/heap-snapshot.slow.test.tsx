@@ -58,7 +58,10 @@ function forceGc(): void {
 function fiberRootCount(): number {
   forceGc()
 
-  const path = join(tmpdir(), `silvery-heap-${Date.now()}-${Math.random().toString(36).slice(2)}.heapsnapshot`)
+  const path = join(
+    tmpdir(),
+    `silvery-heap-${Date.now()}-${Math.random().toString(36).slice(2)}.heapsnapshot`,
+  )
   writeHeapSnapshot(path)
   const raw = readFileSync(path, "utf8")
   try {

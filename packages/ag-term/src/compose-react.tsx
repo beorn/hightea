@@ -84,6 +84,12 @@ export function withReact(element: ReactElement) {
     // Minimal runtime context for useExit — trimmed to lifecycle only.
     const runtimeValue: RuntimeContextValue = {
       exit() {
+        // Guard against double-unmount: useExit may fire, then app.defer
+        // (Symbol.dispose) also fires from the host. Both arrive here.
+        // The reconciler is idempotent on null updates and the helper's
+        // layoutNode.free is wrapped in try/catch, but skipping the
+        // redundant work is cleaner than relying on that.
+        if (!mounted) return
         mounted = false
         // Synchronous unmount + container scrub. The async path leaks
         // useLayoutEffect cleanups + the captured `app` graph through
@@ -111,8 +117,10 @@ export function withReact(element: ReactElement) {
     reconciler.updateContainerSync(wrapped, fiberRoot, null, null)
     reconciler.flushSyncWork()
 
-    // Register cleanup
+    // Register cleanup. Guarded against double-unmount when useExit
+    // already fired before the host dispose.
     app.defer(() => {
+      if (!mounted) return
       mounted = false
       unmountFiberRoot(fiberRoot, container)
     })

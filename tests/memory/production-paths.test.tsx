@@ -72,48 +72,39 @@ async function warmup(cycles: number, fn: () => void | Promise<void>): Promise<v
 // ============================================================================
 
 describe("memory: withReact compose path", () => {
-  test(
-    "200 mount/dispose cycles with bounded growth",
-    { timeout: 30_000, retry: 2 },
-    async () => {
-      await ensureLayoutEngine()
+  test("200 mount/dispose cycles with bounded growth", { timeout: 30_000, retry: 2 }, async () => {
+    await ensureLayoutEngine()
 
-      const cycle = (): void => {
-        const term = createTerm({ cols: 80, rows: 24 })
-        // pipe(...) builds the app; app.defer(() => unmountFiberRoot(...))
-        // is registered by withReact. Calling [Symbol.dispose]() drains
-        // the defer stack, which fires the unmount.
-        const app = pipe(
-          create(),
-          withAg(),
-          withTerm(term),
-          withReact(<MountUnmountCycle visible />),
-        )
-        // Force a render so React commit + layout-effect subscriptions
-        // are real before we tear down — without this we'd never exercise
-        // the cleanup path the test is supposed to verify.
-        app.render()
-        app[Symbol.dispose]()
+    const cycle = (): void => {
+      const term = createTerm({ cols: 80, rows: 24 })
+      // pipe(...) builds the app; app.defer(() => unmountFiberRoot(...))
+      // is registered by withReact. Calling [Symbol.dispose]() drains
+      // the defer stack, which fires the unmount.
+      const app = pipe(create(), withAg(), withTerm(term), withReact(<MountUnmountCycle visible />))
+      // Force a render so React commit + layout-effect subscriptions
+      // are real before we tear down — without this we'd never exercise
+      // the cleanup path the test is supposed to verify.
+      app.render()
+      app[Symbol.dispose]()
+    }
+
+    await warmup(50, cycle)
+    const heapBefore = getHeapUsedMB()
+
+    let peak = heapBefore
+    for (let i = 0; i < 200; i++) {
+      cycle()
+      if (i % 50 === 49) {
+        const cur = getHeapUsedMB()
+        if (cur > peak) peak = cur
       }
+    }
 
-      await warmup(50, cycle)
-      const heapBefore = getHeapUsedMB()
+    const peakDelta = peak - heapBefore
 
-      let peak = heapBefore
-      for (let i = 0; i < 200; i++) {
-        cycle()
-        if (i % 50 === 49) {
-          const cur = getHeapUsedMB()
-          if (cur > peak) peak = cur
-        }
-      }
-
-      const peakDelta = peak - heapBefore
-
-      // 200 cycles with cleanup should not grow more than 15MB peak.
-      expect(peakDelta).toBeLessThan(15)
-    },
-  )
+    // 200 cycles with cleanup should not grow more than 15MB peak.
+    expect(peakDelta).toBeLessThan(15)
+  })
 
   test("dispose runs unmount cleanup synchronously", async () => {
     await ensureLayoutEngine()
@@ -226,12 +217,7 @@ describe("memory: regression sentinel for the unmount asymmetry leak", () => {
 
       const cycle = (): void => {
         const term = createTerm({ cols: 80, rows: 24 })
-        const app = pipe(
-          create(),
-          withAg(),
-          withTerm(term),
-          withReact(<HeavySubscriber />),
-        )
+        const app = pipe(create(), withAg(), withTerm(term), withReact(<HeavySubscriber />))
         app.render()
         app[Symbol.dispose]()
       }

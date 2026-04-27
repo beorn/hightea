@@ -122,10 +122,20 @@ function main(argv: string[]): number {
   const root = resolve(import.meta.dir, "..")
   const hits: Hit[] = []
 
-  // Scan the silvery package source. Tests + dist + node_modules are excluded
-  // by isTestPath / isGenerated.
+  // Scan silvery's public surface: package source, top-level barrels, plus
+  // examples + apps that ship as runnable showcases. Tests + dist +
+  // node_modules are excluded by isTestPath / isGenerated.
   walk(join(root, "packages"), root, hits)
   walk(join(root, "src"), root, hits)
+  // examples/ and apps/ are public showcases — async unmount there leaks
+  // for their users too. Skip silently if the directory doesn't exist.
+  for (const sub of ["examples", "apps", "bin", "components", "layout"]) {
+    try {
+      walk(join(root, sub), root, hits)
+    } catch {
+      // directory missing — skip
+    }
+  }
 
   if (json) {
     process.stdout.write(JSON.stringify({ hits }, null, 2) + "\n")
