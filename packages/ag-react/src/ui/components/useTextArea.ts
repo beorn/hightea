@@ -640,6 +640,13 @@ export function useTextArea({
         if (cursor > lineStart) {
           addToKillRing(value.slice(lineStart, cursor))
           updateValue(value.slice(0, lineStart) + value.slice(cursor), lineStart)
+        } else if (lineStart > 0) {
+          // Already at line start: join with the previous line by removing
+          // the preceding newline — same effect as Backspace at column 0.
+          // Without this, Ctrl+U here is a no-op, which surprises users who
+          // expect it to keep deleting backward.
+          addToKillRing("\n")
+          updateValue(value.slice(0, lineStart - 1) + value.slice(lineStart), lineStart - 1)
         }
         return
       }
