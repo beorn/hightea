@@ -40,7 +40,41 @@ measure -> layout -> scroll -> sticky -> scrollRect -> [notify] -> content -> de
 | **decoration** | **decoration-phase.ts** | **Draw outlines (outside-node overlays) and snapshot under-cells for next-frame restore**  |
 | output         | output-phase.ts         | Diff current buffer against previous, emit minimal ANSI escape sequences                   |
 
-The **decoration phase** is separate from content so overlays that draw OUTSIDE their owning node's rect (currently: outlines) don't have to participate in the per-node incremental cascade. Before the content phase runs, `clearPreviousOutlines` restores cells under last frame's outlines from snapshots carried in via the cloned prev buffer. After content, `renderDecorationPass` walks the tree, draws outlines, and captures fresh snapshots. This makes outline removal "just work" — the decoration pass redraws every frame, so there's no false-positive cascade to debug.
+The **decoration phase** is separate from content so overlays that draw OUTSIDE their owning node's rect (currently: outlines) don't have to participate in the per-node incremental cascade. Before the content phase runs, `clearPreviousOutlines` restores cells under last frame's outlines from snapshots carried on the `RenderPostState` carrier (see [`render-post-state.ts`](render-post-state.ts)). After content, `renderDecorationPass` walks the tree, draws outlines, and captures fresh snapshots into the same carrier for the next frame. This makes outline removal "just work" — the decoration pass redraws every frame, so there's no false-positive cascade to debug.
+
+### Carrier ownership — load-bearing for per-frame-Ag callers
+
+The `RenderPostState` carrier MUST persist across frames. It defaults to a per-`createAg` instance field (`_postState`), which is correct for **long-lived-Ag callers** that reuse the same `Ag` across frames (`runtime/renderer.ts`, plugin-style hosts).
+
+For **per-frame-Ag callers** that throw away the `Ag` after every render (the test driver `renderer.ts`, `scheduler.ts`), the Ag-internal default fails silently: every frame's carrier starts empty, `clearPreviousOutlines` finds no snapshots to restore, and stale outline pixels carried in via `prevBuffer.clone()` leak through. STRICT diverges immediately (incremental keeps the prior outline, fresh has blanks).
+
+Such callers MUST hold the carrier at the instance level alongside `prevBuffer` and pass it explicitly via `ag.render({ prevBuffer, postState })`:
+
+```ts
+// renderer.ts / scheduler.ts pattern:
+class RenderInstance {
+  prevBuffer: TerminalBuffer | null = null
+  postState: RenderPostState = createRenderPostState()
+}
+
+// Each frame:
+const ag = createAg(this.root)
+ag.layout(...)
+ag.render({ prevBuffer: this.prevBuffer, postState: this.postState })
+//                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+// Same reference every frame → snapshots survive Ag recycle.
+
+// On resize / clear / pause:
+this.prevBuffer = null
+this.postState = createRenderPostState()  // ALWAYS reset together — coordinates
+                                          // reference the discarded buffer.
+```
+
+Reset rule: `postState` is buffer-coordinate-bound. Whenever `prevBuffer` is cleared (resize, pause, clear, unmount), `postState` MUST be reset alongside, otherwise the next `clearPreviousOutlines` writes at out-of-bounds coordinates from old dimensions.
+
+For STRICT comparisons, the fresh-render path must NOT read from or write to the incremental path's carrier. Either pass `{ fresh: true }` to `ag.render()` (which substitutes a throw-away empty carrier) or supply a fresh `createRenderPostState()` explicitly. Both renderer.ts (`doFreshRenderFull` → `runPipeline(..., { fresh: true })`) and scheduler.ts (STRICT `doFreshRender` → `freshAg.render({ fresh: true })`) take this path.
+
+**Bead history**: km-silvery.outline-incremental-clear (2026-04-28) — STRICT mismatch when child outline toggled off; root cause was renderer/scheduler creating fresh `Ag` per frame without exposing `_postState`. Fix: `AgRenderOptions.postState` + `AgRenderResult.postState`, instance-level carriers in both call sites. Same shape as km-yej6 (column-resize STRICT mismatch) — a second class of incremental-vs-fresh divergence caused by per-frame state living on a transient object instead of the long-lived caller.
 
 > **Note:** TerminalBuffer is the internal mutable representation. The public read API is `TextFrame` (created via `createTextFrame(buffer)` in `buffer.ts`), which provides an immutable snapshot with resolved RGB colors. App structurally implements TextFrame. `Term.paint(buffer, prev)` wraps the output phase and stores a TextFrame as `term.frame`. `RenderAdapter` is internal — use `term.paint()` for the public paint API.
 

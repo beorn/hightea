@@ -50,6 +50,7 @@ import {
 } from "./pipeline/render-plan"
 import { withPlanCapture } from "./pipeline/render-sink"
 import { createRenderPostState, type RenderPostState } from "./pipeline/render-post-state"
+export { createRenderPostState, type RenderPostState } from "./pipeline/render-post-state"
 import { applyBackdrop, hasBackdropMarkers, type ColorLevel } from "./pipeline/backdrop"
 import { CURSOR_RESTORE, CURSOR_SAVE, kittyDeleteAllScrimPlacements } from "@silvery/ansi"
 import { clearDirtyTracking, hasScrollDirty } from "@silvery/ag/dirty-tracking"
@@ -72,6 +73,24 @@ export interface AgRenderOptions {
   fresh?: boolean
   /** Override prevBuffer for this render (bypasses internal tracking). */
   prevBuffer?: TerminalBuffer | null
+  /**
+   * Override post-state carrier (outline snapshots) for this render. When
+   * provided, both reads (clearPreviousOutlines at the start of the render)
+   * and writes (renderDecorationPass after content) target this carrier
+   * instead of the Ag-internal `_postState`.
+   *
+   * Required for callers that create a fresh `Ag` instance per frame
+   * (renderer.ts, scheduler.ts) — without it, every frame starts with an
+   * empty snapshot list and stale outline pixels from `prevBuffer.clone()`
+   * leak through the incremental render. Long-lived-Ag callers
+   * (runtime/renderer.ts) can omit this and let the Ag manage `_postState`
+   * internally.
+   *
+   * Mutated in place: after `render()` returns, the carrier holds the
+   * current frame's outline snapshots, ready to be passed in again on the
+   * next frame so `clearPreviousOutlines` can restore those cells.
+   */
+  postState?: RenderPostState
 }
 
 export interface CreateAgOptionsInternal {
@@ -121,6 +140,19 @@ export interface AgRenderResult {
    * disabled, or no wide cells in the faded region).
    */
   readonly overlay: string
+  /**
+   * Post-state carrier with this frame's snapshots (outline cells, etc.).
+   *
+   * When the caller passed `options.postState` into `render()`, this is the
+   * SAME reference (mutated in place) — exposed here so the call site doesn't
+   * have to hold its own carrier separately. When no carrier was passed, this
+   * is the Ag-internal `_postState`.
+   *
+   * Per-frame-Ag callers (renderer.ts, scheduler.ts) should hold their own
+   * carrier and pass it back in next frame; reading from the result is fine
+   * but is the same object they already own.
+   */
+  readonly postState: RenderPostState
 }
 
 export interface Ag {
@@ -421,6 +453,22 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       : opts?.prevBuffer !== undefined
         ? opts.prevBuffer
         : _prevBuffer
+    // Resolve the post-state carrier for this render.
+    //
+    // Three cases:
+    //   1. `opts.fresh` → throw-away carrier. Fresh renders must not consume
+    //      the cross-frame snapshots (there's no prev buffer to clear from)
+    //      and must not stomp the carried-forward snapshots (the next
+    //      incremental render still needs them).
+    //   2. `opts.postState` provided → use the caller-owned carrier. Required
+    //      for renderer.ts / scheduler.ts which create a fresh Ag per frame
+    //      and hold the carrier alongside `prevBuffer` at the instance level.
+    //   3. Default → use the Ag-internal `_postState`. Correct for
+    //      long-lived-Ag callers (runtime/renderer.ts) that reuse the same
+    //      Ag instance across frames.
+    const postState: RenderPostState = opts?.fresh
+      ? createRenderPostState()
+      : (opts?.postState ?? _postState)
 
     let tContent: number
     let buffer: TerminalBuffer
@@ -452,7 +500,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
           throw new Error("doRender: SILVERY_RENDER_PLAN enabled but root has no boxRect")
         }
         const captured = withPlanCapture(layout.width, layout.height, () =>
-          renderPhase(root, prevBuffer, ctx, _postState),
+          renderPhase(root, prevBuffer, ctx, postState),
         )
         buffer = captured.result
         // Production wiring: plan-commit parity against a fresh clone.
@@ -471,7 +519,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
           void replay
         }
       } else {
-        buffer = renderPhase(root, prevBuffer, ctx, _postState)
+        buffer = renderPhase(root, prevBuffer, ctx, postState)
       }
       tContent = performance.now() - t
       log.debug?.(`content: ${tContent.toFixed(2)}ms`)
@@ -544,7 +592,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
     }
 
     const frame = createTextFrame(buffer)
-    return { frame, buffer, carryForwardBuffer, prevBuffer, tContent, overlay }
+    return { frame, buffer, carryForwardBuffer, prevBuffer, tContent, overlay, postState }
   }
 
   // -------------------------------------------------------------------------
@@ -628,6 +676,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
         carryForwardBuffer: result.carryForwardBuffer,
         prevBuffer: result.prevBuffer,
         overlay: result.overlay,
+        postState: result.postState,
       }
     },
 

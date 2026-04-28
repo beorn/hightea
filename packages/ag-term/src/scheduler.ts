@@ -33,7 +33,7 @@ import { copyToClipboard as copyToClipboardImpl } from "./clipboard"
 import { ANSI, notify as notifyTerminal, setCursorStyle, resetCursorStyle } from "./output"
 import type { PipelineConfig } from "./pipeline"
 import { outputPhase } from "./pipeline/output-phase"
-import { createAg } from "./ag"
+import { createAg, createRenderPostState, type RenderPostState } from "./ag"
 import { runWithMeasurer } from "./unicode"
 import type { RenderPhaseStats } from "./pipeline/types"
 import type { AgNode } from "@silvery/ag/types"
@@ -173,6 +173,18 @@ export class RenderScheduler {
 
   /** Previous buffer for diffing */
   private prevBuffer: TerminalBuffer | null = null
+
+  /**
+   * Cross-frame post-state carrier (outline snapshots, etc.).
+   *
+   * Held at the scheduler level — not on `Ag` — because each `doRender()`
+   * creates a fresh `Ag` per frame, so an Ag-internal `_postState` would be
+   * empty every time and `clearPreviousOutlines` would never find prior
+   * snapshots to restore. Mirrors the `prevBuffer` lifecycle: invalidated
+   * together on resize / pause / clear so the snapshot coordinates always
+   * match the buffer they reference.
+   */
+  private postState: RenderPostState = createRenderPostState()
 
   /** Line count of previous render (for non-TTY modes) */
   private prevLineCount = 0
@@ -412,6 +424,8 @@ export class RenderScheduler {
 
     // Reset buffer for full redraw (alt screen was switched)
     this.prevBuffer = null
+    // Outline snapshots reference cells in the discarded buffer — reset together.
+    this.postState = createRenderPostState()
 
     // If anything was deferred, render now
     if (this.pendingWhilePaused) {
@@ -438,6 +452,8 @@ export class RenderScheduler {
 
     // Reset buffer so next render outputs everything
     this.prevBuffer = null
+    // Outline snapshots reference cells in the discarded buffer — reset together.
+    this.postState = createRenderPostState()
   }
 
   /**
@@ -579,7 +595,15 @@ export class RenderScheduler {
           // structural superset (same fields), so a direct assign is safe.
           inlineCursor = c
         }
-        const { buffer, overlay } = ag.render({ prevBuffer: this.prevBuffer })
+        // Pass the scheduler-owned post-state carrier so outline snapshots
+        // survive the per-frame `createAg(this.root)` recycle. Without this,
+        // every frame's `clearPreviousOutlines` runs against an empty list
+        // and stale outline pixels from `prevBuffer.clone()` leak through —
+        // the same shape as km-yej6 / km-silvery.outline-incremental-clear.
+        const { buffer, overlay } = ag.render({
+          prevBuffer: this.prevBuffer,
+          postState: this.postState,
+        })
 
         const start = performance.now()
         const outputFn = this.pipelineConfig?.outputPhaseFn ?? outputPhase
@@ -706,7 +730,10 @@ export class RenderScheduler {
         const doFreshRender = () => {
           const freshAg = createAg(this.root, { measurer })
           freshAg.layout({ cols: width, rows: height }, { skipLayoutNotifications: true })
-          return freshAg.render()
+          // Fresh render must NOT consume or mutate `this.postState` (which
+          // tracks the incremental path's snapshots). Pass `fresh: true` so
+          // the Ag uses a throw-away empty carrier for this comparison.
+          return freshAg.render({ fresh: true })
         }
         const { buffer: freshBuffer, overlay: freshOverlay } = measurer
           ? runWithMeasurer(measurer, doFreshRender)
@@ -826,6 +853,10 @@ export class RenderScheduler {
 
         // Reset buffer to force full redraw
         this.prevBuffer = null
+        // Outline snapshots are buffer-coordinate-bound; reset together so
+        // post-resize clearPreviousOutlines doesn't write at out-of-bounds
+        // coordinates from the old dimensions.
+        this.postState = createRenderPostState()
 
         // Schedule render
         this.scheduleRender()

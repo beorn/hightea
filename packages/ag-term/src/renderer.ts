@@ -29,7 +29,7 @@ import {
   isLayoutEngineInitialized,
   setLayoutEngine,
 } from "./layout-engine.js"
-import { createAg } from "./ag.js"
+import { createAg, createRenderPostState, type RenderPostState } from "./ag.js"
 import { outputPhase } from "./pipeline/output-phase.js"
 import {
   CURSOR_SAVE as _CURSOR_SAVE,
@@ -272,6 +272,15 @@ interface RenderInstance {
    * markers exist, the two are identical.
    */
   prevPaintedBuffer: TerminalBuffer | null
+  /**
+   * Cross-frame post-state carrier (outline snapshots, etc.). Held at the
+   * instance level — not on `Ag` — because this driver creates a fresh
+   * `Ag` per `runPipeline()` call, so an Ag-internal carrier would be
+   * empty every frame and `clearPreviousOutlines` would never find prior
+   * snapshots to restore. Mirrors the `prevBuffer` pattern: invalidated on
+   * resize / explicit reset alongside it.
+   */
+  postState: RenderPostState
   mounted: boolean
   /** True while inside act() or doRender() — detects re-entrant calls */
   rendering: boolean
@@ -379,6 +388,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     fiberRoot: null,
     prevBuffer: null,
     prevPaintedBuffer: null,
+    postState: createRenderPostState(),
     mounted: true,
     rendering: false,
     columns: cols,
@@ -608,7 +618,19 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     cols: number,
     rows: number,
     prevBuffer: TerminalBuffer | null,
-    opts?: { skipLayoutNotifications?: boolean; skipScrollStateUpdates?: boolean },
+    opts?: {
+      skipLayoutNotifications?: boolean
+      skipScrollStateUpdates?: boolean
+      /**
+       * When true, render against a throw-away empty post-state carrier
+       * instead of `instance.postState`. Used by `doFreshRenderFull` so
+       * STRICT's fresh-render comparison neither consumes the
+       * carried-forward outline snapshots nor stomps them with the fresh
+       * pass's own snapshots — the next incremental render still sees the
+       * snapshot set captured by the previous incremental render.
+       */
+      fresh?: boolean
+    },
   ): {
     output: string
     buffer: TerminalBuffer
@@ -620,7 +642,21 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // `buffer` is post-fade (what we paint); `carryForwardBuffer` is pre-fade
     // (what the NEXT frame's incremental render must clone). See ag.ts
     // `AgRenderResult.carryForwardBuffer` for the invariant rationale.
-    const { buffer, carryForwardBuffer, overlay } = ag.render({ prevBuffer })
+    //
+    // `postState` is the instance-level outline-snapshot carrier (see
+    // `RenderInstance.postState`). The Ag mutates it in place during the
+    // decoration phase: `clearPreviousOutlines` reads the previous frame's
+    // snapshots, `renderDecorationPass` writes this frame's. Because the
+    // same reference is passed every call, the data survives the
+    // per-frame `createAg(root)` recycle.
+    //
+    // For fresh renders (STRICT comparison only), pass a throw-away carrier
+    // so the fresh pass doesn't observe or mutate the cross-frame snapshots
+    // — see the `fresh` option doc above.
+    const { buffer, carryForwardBuffer, overlay } = ag.render({
+      prevBuffer,
+      postState: opts?.fresh ? createRenderPostState() : instance.postState,
+    })
     // Output-phase diff uses the previously painted (post-fade) buffer.
     // `prevPaintedBuffer` is set by the caller (see singlePass/classic loops)
     // and stored as `instance.prevPaintedBuffer`.
@@ -958,6 +994,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     const { buffer, overlay } = runPipeline(root, instance.columns, instance.rows, null, {
       skipLayoutNotifications: true,
       skipScrollStateUpdates: true,
+      // Throw-away post-state — fresh renders are STRICT-only; they must not
+      // observe or mutate `instance.postState` (which is owned by the
+      // incremental path).
+      fresh: true,
     })
     return { buffer, overlay }
   }
@@ -1243,6 +1283,8 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     instance.frames.length = 0
     instance.prevBuffer = null
     instance.prevPaintedBuffer = null
+    // Snapshots reference cells in the discarded prev buffer; reset alongside.
+    instance.postState = createRenderPostState()
   }
 
   const debugFn = () => {
@@ -1278,6 +1320,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // Clear prevBuffer to force full redraw (matches scheduler.setupResizeListener)
     instance.prevBuffer = null
     instance.prevPaintedBuffer = null
+    // Outline snapshots reference cells in the OLD-dimensions buffer; if we
+    // kept them, the next frame's clearPreviousOutlines would write at
+    // potentially out-of-bounds coordinates. Reset alongside prevBuffer.
+    instance.postState = createRenderPostState()
     // Re-render at new dimensions
     let newFrame = doRender()
 
