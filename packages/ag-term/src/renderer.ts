@@ -651,6 +651,17 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     // render's overlay (determinism invariant — see pipeline/backdrop/).
     let incrementalOverlay = ""
 
+    // True when the multi-pass loop drained all React work (hadReactCommit
+    // was false at the exit iteration). When false, React state is still
+    // pending — the buffer reflects the pre-commit tree but the React tree
+    // has uncommitted layout-subscriber updates. STRICT comparison against
+    // a fresh render would compare apples to oranges (fresh re-runs
+    // calculateLayout against the post-commit React tree). The outer
+    // drain loop in sendInput / resizeFn handles this by calling doRender
+    // again after flushing — that subsequent doRender's STRICT check runs
+    // on a stable state. (km-yej6 column-resize-incremental-mismatch.)
+    let multiPassConverged = false
+
     if (instance.singlePassLayout) {
       // Production-matching single-pass: one runPipeline, no stabilization
       // loop. This matches create-app.tsx doRender() which does a single
@@ -735,7 +746,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
             throw renderError
           }
         }
-        if (!hadReactCommit) break
+        if (!hadReactCommit) {
+          multiPassConverged = true
+          break
+        }
         // Pass N committed React work — pass N+1 will run. Record so the
         // histogram can show "how many passes had extra-pass causes attributed
         // to them?". Specific cause records are emitted by the pipeline phases
@@ -830,7 +844,10 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
 
         // If React didn't commit any new work from layout notifications,
         // the layout is stable — no more iterations needed.
-        if (!hadReactCommit) break
+        if (!hadReactCommit) {
+          multiPassConverged = true
+          break
+        }
         if (INSTRUMENT) {
           notePassCommit(iteration)
           if (iteration === MAX_CLASSIC_LOOP_ITERATIONS - 1) {
@@ -854,8 +871,16 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     }
 
     // SILVERY_STRICT: Compare incremental vs fresh on every render (like scheduler)
-    // Skip first render (nothing to compare against)
-    if (strictMode && instance.renderCount > 1) {
+    //
+    // Skip when:
+    //   - First render (nothing to compare against)
+    //   - Multi-pass loop exited with React work pending (multiPassConverged
+    //     === false). The buffer reflects pre-commit React tree state, but
+    //     fresh would re-run calculateLayout against the post-commit tree.
+    //     The OUTER drain (sendInput / resizeFn) calls doRender again after
+    //     flushing — that subsequent doRender's STRICT check runs on a
+    //     stable tree. (km-yej6 column-resize-incremental-mismatch.)
+    if (strictMode && instance.renderCount > 1 && multiPassConverged) {
       const root = getContainerRoot(instance.container)
       const { buffer: freshBuffer, overlay: freshOverlay } = doFreshRenderFull()
 
@@ -1254,7 +1279,52 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     instance.prevBuffer = null
     instance.prevPaintedBuffer = null
     // Re-render at new dimensions
-    const newFrame = doRender()
+    let newFrame = doRender()
+
+    // Drain any remaining React effects (matches the sendInput drain loop in
+    // singlePass mode — see line ~1200). Resize at production-like
+    // singlePassLayout=true is a worst-case for layout-subscriber feedback:
+    //
+    //   1. Pass 0 of doRender's internal multi-pass: prevRootLayout is OLD
+    //      dims (e.g. 160x45). dimensionsChanged=true. yoga calculates fresh.
+    //      `useBoxRect` subscribers are notified with NEW rects.
+    //   2. React commits the subscriber re-renders. Components like
+    //      `<Card columnHeight={cardAreaHeight} />` receive new props
+    //      derived from the new useBoxRect values. Reconciler dirties yoga.
+    //   3. Pass 1 of doRender's internal multi-pass: yoga dirty → recalculates.
+    //      But notify may fire AGAIN with second-order rect changes.
+    //   4. MAX_CONVERGENCE_PASSES=2 → loop exits. Yoga still dirty for the
+    //      pending subscriber update from pass 1.
+    //
+    // The fresh STRICT comparison runs calculateLayout(), draining the dirty
+    // bit. If the calculation produces a DIFFERENT layout than pass 1
+    // captured (because fresh sees post-pass-1 React state), the
+    // comparison fails. (km-yej6 column-resize-incremental-mismatch.)
+    //
+    // Mirror the post-doRender drain that `sendInput` uses for keypresses:
+    // flushSyncWork until React quiesces, calling doRender between drains
+    // so the captured buffer reflects the FINAL React tree state.
+    let doRenderCount = 1
+    if (instance.singlePassLayout) {
+      for (let flush = 0; flush < MAX_CONVERGENCE_PASSES; flush++) {
+        hadReactCommit = false
+        withActEnvironment(() => {
+          act(() => {
+            reconciler.flushSyncWork()
+          })
+        })
+        if (!hadReactCommit) break
+        // React committed new work from effects — re-render at the same
+        // (already-applied) dimensions to capture the post-effect tree.
+        newFrame = doRender()
+        doRenderCount++
+      }
+    }
+
+    if (incremental && doRenderCount > 1 && instance.prevBuffer) {
+      instance.prevBuffer.markAllRowsDirty()
+    }
+
     instance.frames.push(newFrame)
     onFrame?.(newFrame, instance.prevBuffer!, getRootContentHeight())
     if (debug) {
