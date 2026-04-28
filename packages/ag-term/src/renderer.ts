@@ -1367,8 +1367,9 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       }
     }
 
-    if (incremental && doRenderCount > 1 && instance.prevBuffer) {
-      instance.prevBuffer!.markAllRowsDirty()
+    const prevBufferForDirtying = instance.prevBuffer as TerminalBuffer | null
+    if (incremental && doRenderCount > 1 && prevBufferForDirtying) {
+      prevBufferForDirtying.markAllRowsDirty()
     }
 
     instance.frames.push(newFrame)
