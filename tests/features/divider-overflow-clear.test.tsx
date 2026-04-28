@@ -8,8 +8,8 @@
  * `<PaneDivider direction="column">` between top and bottom panes:
  *
  *     <Box flexShrink={0} flexGrow={0} flexBasis={1} height={1} flexDirection="row">
- *       <Box flexGrow={1} flexShrink={1}>
- *         <Text color="$border" wrap="wrap">{"─".repeat(400)}</Text>
+ *       <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
+ *         <Text color="$border" wrap="wrap" minHeight={0}>{"─".repeat(400)}</Text>
  *       </Box>
  *     </Box>
  *
@@ -46,6 +46,14 @@ const ROWS = 20
 // "Containers narrower than the longest unbreakable word" rule. Without it,
 // the divider's wrap-Text overflows past its parent's pinned size and bleeds
 // glyphs into sibling regions on a CSS-correct fresh render.
+//
+// Empirical note (2026-04-28): both /pro recommendations to "improve" this
+// pattern (outer-Box-only minWidth=0; both-axes minWidth+minHeight=0 on the
+// Text) FAILED this regression test. The shape below is the load-bearing
+// invariant: 0-min on inner Box (both axes) + 0-min on Text (CROSS-axis only).
+// Adding the main-axis 0-min on Text lets the wrappable filler collapse to 0
+// in the direction it's supposed to fill. Don't refactor without re-running
+// this test.
 function VDivider(): React.ReactElement {
   return (
     <Box flexShrink={0} flexGrow={0} flexBasis={1} width={1} flexDirection="column">
