@@ -1050,52 +1050,33 @@ function executeRegionClearing(
   //     of paint-clear-l5-final (delete clearExcessArea entirely, fold into
   //     sectioned cleanupOps) becomes a single-call-site edit.
 
-  const needsRegionClear = contentRegionCleared
-  const needsExcessClear =
-    bufferIsCloned && layoutChanged && node.prevLayout != null && hasPrevBuffer
-
-  if (needsRegionClear) {
+  if (contentRegionCleared) {
     if (instrumentEnabled) stats.clearOps++
-    clearNodeRegion(
-      node,
-      sink,
-      layout,
-      scrollOffset,
-      clipBounds,
-      threadedInheritedBg,
-    )
+    clearNodeRegion(node, sink, layout, scrollOffset, clipBounds, threadedInheritedBg)
   }
-  if (needsExcessClear) {
-    // Even when contentRegionCleared is false, a shrinking node needs its excess
-    // area cleared. Key scenario: nodes WITH backgroundColor that shrink —
-    // renderBox fills only the NEW (smaller) region, leaving stale pixels in
-    // the excess area beyond the new bounds.
-    //
-    // Gated on bufferIsCloned: on a fresh buffer (e.g., multi-pass resize where
-    // dimensions changed between passes), there are no stale pixels to clear.
-    // Without this guard, clearExcessArea writes inherited bg into cells that
-    // doFreshRender leaves as default, causing STRICT mismatches.
-    //
-    // Gated on hasPrevBuffer: when hasPrevBuffer=false, the node is rendering
-    // fresh — typically a second-pass absolute/sticky child or a first-pass
-    // child with childrenNeedFreshRender cascade. In both cases, the
-    // PARENT has already handled cleanup of stale pixels:
-    //   - First-pass cascade: parent's clearNodeRegion covered the parent's
-    //     full rect (including the child's prev rect inside it).
-    //   - Second-pass absolute: absoluteChildMutated triggered parent's full
-    //     repaint AND normal-flow siblings re-rendered into the prev-overlay
-    //     area. Excess clearing here would corrupt those fresh sibling pixels
-    //     with this node's inherited bg (e.g., scrollbar shrink overwriting
-    //     newly-painted user-row bg at column 118 — see
-    //     km-silvery.ai-chat-incremental-mismatch).
+  // Promote the four-condition runtime guard to a structural invariant:
+  // requireExcessClearGate is the SOLE constructor of ExcessClearGate, and
+  // clearExcessArea takes the gate as its first parameter. The wrong-order
+  // call site (excess-clear during a second-pass dispatch where
+  // hasPrevBuffer=false but bufferIsCloned=true) is unrepresentable —
+  // requireExcessClearGate returns null in that case, so the typed `if
+  // (excessGate)` check is the only path to the call.
+  // Tracking: km-silvery.paint-clear-invariant.
+  const excessGate = requireExcessClearGate(
+    bufferIsCloned,
+    layoutChanged,
+    node.prevLayout,
+    hasPrevBuffer,
+  )
+  if (excessGate) {
     clearExcessArea(
+      excessGate,
       node,
       buffer,
       sink,
       layout,
       scrollOffset,
       clipBounds,
-      layoutChanged,
       threadedInheritedBg,
     )
   }
@@ -2614,34 +2595,98 @@ function clearNodeRegion(
 }
 
 /**
+ * Brand-typed witness that the four excess-clear preconditions hold:
+ *   bufferIsCloned && layoutChanged && node.prevLayout != null && hasPrevBuffer
+ *
+ * Only constructed by `requireExcessClearGate`. `clearExcessArea` requires it
+ * as its first parameter, so the wrong-order call site (excess-clear during a
+ * second-pass walk where hasPrevBuffer=false but bufferIsCloned=true) cannot
+ * be expressed — TypeScript narrowing forbids passing `null` where the brand
+ * is required, and there is no other way to obtain a value of this type.
+ *
+ * Why brand instead of a plain boolean: a boolean parameter can be derived
+ * incorrectly at the call site (e.g., a future refactor flattens the four
+ * conditions into three and forgets the second-pass distinction). The brand
+ * forces every call to flow through `requireExcessClearGate`, where the
+ * derivation is centralized and audited. A second-pass dispatch site that
+ * tries to call `clearExcessArea` directly will not type-check because it
+ * cannot construct the gate without going through the factory, which always
+ * returns null when `hasPrevBuffer === false`.
+ *
+ * Tracking: km-silvery.paint-clear-invariant. Promotes the runtime guard at
+ * silvery 168b4989 (the `&& hasPrevBuffer` term in `needsExcessClear`) to a
+ * structural invariant. The full L5 win — deleting clearExcessArea entirely
+ * in favor of sectioned cleanupOps — depends on Phase 2 Steps 5/6 retiring
+ * BufferSink as authoritative output (see render-plan.ts).
+ */
+declare const ExcessClearGateBrand: unique symbol
+export type ExcessClearGate = {
+  readonly [ExcessClearGateBrand]: never
+  readonly prevLayout: NonNullable<AgNode["prevLayout"]>
+}
+
+/**
+ * Construct an `ExcessClearGate` if and only if all four preconditions hold.
+ * Returns null otherwise. This is the SOLE constructor for the brand.
+ *
+ * Preconditions (each enforces one structural invariant):
+ *   - bufferIsCloned: there are stale pixels to clear (false for fresh buffers).
+ *   - layoutChanged: the node's rect changed this frame (no shrink → no excess).
+ *   - prevLayout != null: we have an old rect to compute the excess from.
+ *   - hasPrevBuffer: the buffer at this node's position contains the *previous
+ *     frame's* pixels (not first-pass-painted current-frame siblings — the
+ *     latter is what second-pass absolute/sticky/overlap-forced dispatch sites
+ *     pass with hasPrevBuffer=false). Excess-clearing on top of fresh sibling
+ *     paint corrupts the in-progress frame; see km-silvery.ai-chat-incremental-mismatch.
+ */
+export function requireExcessClearGate(
+  bufferIsCloned: boolean,
+  layoutChanged: boolean,
+  prevLayout: AgNode["prevLayout"],
+  hasPrevBuffer: boolean,
+): ExcessClearGate | null {
+  if (!bufferIsCloned) return null
+  if (!layoutChanged) return null
+  if (prevLayout == null) return null
+  if (!hasPrevBuffer) return null
+  // The brand field is compile-time-only (declared as a unique symbol with
+  // no runtime emission); `as ExcessClearGate` is the canonical assertion
+  // pattern and is local to this single factory function.
+  return { prevLayout } as unknown as ExcessClearGate
+}
+
+/**
  * Clear the excess area when a node shrinks (old bounds were larger than new).
  *
- * This is separated from clearNodeRegion because excess area clearing must happen
- * even when contentRegionCleared is false. Key scenario: absolute-positioned overlays
- * (e.g., search dialog) that shrink while normal-flow siblings are dirty. The
- * forceRepaint path sets hasPrevBuffer=false + ancestorCleared=false, making
- * contentRegionCleared=false — but the cloned buffer still has stale pixels from
- * the old larger layout that must be cleared.
+ * Requires an `ExcessClearGate` as the first parameter — only obtainable via
+ * `requireExcessClearGate`, which checks the four preconditions. This makes
+ * the wrong-order second-pass call site (the bug that motivated silvery
+ * 168b4989) structurally unrepresentable: a caller cannot write
+ * `clearExcessArea(...)` without first flowing through the factory, which
+ * returns null when hasPrevBuffer=false (the second-pass case).
  *
- * Clips to the COLORED ANCESTOR's content area (not immediate parent's full rect)
- * to prevent inherited color from bleeding into sibling areas with different bg.
+ * Clips to the COLORED ANCESTOR's content area (not immediate parent's full
+ * rect) to prevent inherited color from bleeding into sibling areas with
+ * different bg.
  *
  * IMPORTANT: Uses content area (inside border/padding), not full boxRect.
  * Without this, excess clearing of a child that previously filled the parent's
- * content area will extend into the parent's border row, overwriting border chars.
+ * content area will extend into the parent's border row, overwriting border
+ * chars.
  */
 function clearExcessArea(
+  gate: ExcessClearGate,
   node: AgNode,
   buffer: TerminalBuffer,
   sink: RenderSink,
   layout: NonNullable<AgNode["boxRect"]>,
   scrollOffset: number,
   clipBounds: ClipBounds | undefined,
-  layoutChanged: boolean,
   inherited: NodeRenderState["inheritedBg"],
 ): void {
-  if (!layoutChanged || !node.prevLayout) return
-  const prev = node.prevLayout
+  // The gate's existence is the proof of preconditions; `prevLayout` comes
+  // from the gate so the type system guarantees it's non-null here.
+  const prev = gate.prevLayout
 
   const _cellDbg3 = getCellDebug()
   const _prevCoversCell3 =
