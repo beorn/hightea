@@ -1778,8 +1778,24 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             <TermContext.Provider value={mockTerm}>
               <StdoutContext.Provider
                 value={{
-                  stdout: mockStdout,
-                  write: () => {},
+                  // Headless backends: keep the mock stdout (no real terminal to write to).
+                  // Real terminals: expose the actual stdout so consumers (e.g., Image)
+                  // can read columns/rows and receive Kitty/Sixel escapes via `write`.
+                  stdout: headless ? mockStdout : stdout,
+                  // The render pipeline owns the silvery frame; out-of-band writes
+                  // (image escapes, hyperlink protocol, etc.) need a path that
+                  // bypasses the Output guard's stdout intercept. Prefer the Output
+                  // owner's `write` (bypasses the intercept by design) when active;
+                  // otherwise fall back to direct `stdout.write`. Headless = no-op.
+                  write: headless
+                    ? () => {}
+                    : (data: string) => {
+                        if (output) {
+                          output.write(data)
+                        } else {
+                          stdout.write(data)
+                        }
+                      },
                   notifyScrollback: (lines: number) => runtime.addScrollbackLines(lines),
                   promoteScrollback: (content: string, lines: number) =>
                     runtime.promoteScrollback(content, lines),
