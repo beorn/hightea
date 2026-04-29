@@ -79,6 +79,20 @@ function Header() {
 
 In practice, both renders happen before the first paint, so this is usually invisible.
 
+### MeasuredBox primitive
+
+For the common pattern of "render based on my own measured size," use the [`<MeasuredBox>`](../api/measured-box.md) primitive instead of writing the `useBoxRect() + width > 0 ? <Inner /> : null` dance by hand:
+
+```tsx
+import { MeasuredBox } from "silvery"
+
+;<MeasuredBox width="100%" flexDirection="column" alignItems="center">
+  {({ width }) => <Banner availableWidth={width} />}
+</MeasuredBox>
+```
+
+`MeasuredBox` defers rendering its render-prop children until the outer Box's measured width is non-zero — eliminating the width=0 sentinel frame.
+
 ## useTerm
 
 Access the Term instance for terminal capabilities and styling.
