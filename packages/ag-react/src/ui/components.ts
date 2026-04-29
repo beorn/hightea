@@ -12,6 +12,13 @@
 // Layout Components
 // =============================================================================
 
+export { MeasuredBox } from "./components/MeasuredBox"
+export type {
+  MeasuredBoxProps,
+  MeasuredBoxRect,
+  MeasuredBoxRenderFn,
+} from "./components/MeasuredBox"
+
 export { ListView } from "./components/ListView"
 export type {
   ListViewProps,
