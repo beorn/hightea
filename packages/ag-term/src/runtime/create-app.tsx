@@ -1861,14 +1861,70 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   })
   const doRender = renderer.doRender
 
-  // Enter alternate screen FIRST (before the initial render) so that React
-  // effects fired during reconcile (e.g., <Image>'s useEffect writing Kitty
-  // graphics escapes) land on the alt screen rather than the main screen
-  // and then get wiped when alt-screen entry clears its buffer.
+  // Startup ordering — both invariants must hold:
   //
-  // Sequence: alt-screen ON → clear → first doRender (effects write to alt
-  // screen, surviving subsequent cell paints because Kitty/Sixel images
-  // live above the text layer with z>=0) → paintFrame writes the buffer.
+  //   (1) Output owner activates BEFORE alt-screen entry so any
+  //       stderr/console write during startup (React render, accountly
+  //       init, recall index, loggily startup ticks, etc.) is captured
+  //       by buffer-and-replay instead of flashing on the user's main
+  //       screen for one frame and then being wiped by `\x1b[2J\x1b[H`.
+  //       (Bug: silvercode startup log line briefly visible then lost.)
+  //
+  //   (2) Alt-screen entry happens BEFORE the initial doRender() so that
+  //       React effects fired during reconcile (e.g., <Image>'s
+  //       useEffect writing Kitty graphics escapes) land on the alt
+  //       screen rather than the main screen and then get wiped when
+  //       alt-screen entry clears its buffer.
+  //
+  // Sequence: output.activate() → alt-screen ON → clear → cursor hide →
+  // first doRender (effects write to alt screen, surviving subsequent
+  // cell paints because Kitty/Sixel images live above the text layer
+  // with z>=0) → paintFrame writes the buffer.
+  //
+  // Capture model (Output owner):
+  //   - DEBUG_LOG set       → mirror stderr/console writes to that file
+  //   - DEBUG_LOG unset     → buffer stderr/console writes; replay to the
+  //                           normal terminal on exit so the operator sees
+  //                           what was logged (no silent drop, no sidecar
+  //                           file by default)
+  //   - SILVERY_NO_CAPTURE  → opt out for debugging, leave streams as-is
+  //
+  // Once active, process.stdout.write is patched to suppress non-silvery
+  // writes — every silvery-owned write below (alt-screen sequences,
+  // paintFrame target.write) must therefore go through `output.write`,
+  // which toggles the silveryWriting flag so it bypasses the suppress
+  // sink. The render `target` already routes through `output.write` when
+  // `output` is set (see RenderTarget.write above), and the explicit
+  // alt-screen sequences below mirror that via `writeOwned`.
+  if (shouldGuardOutput && process.env.SILVERY_NO_CAPTURE !== "1") {
+    // Prefer the injected Term's Output sub-owner (single writer per
+    // resource). Fall back to constructing a local one when no Term is
+    // injected or the Term has no Output (headless / emulator backends).
+    const termOutput = injectedTerm?.output
+    if (termOutput) {
+      output = termOutput
+      ownsOutput = false
+    } else {
+      output = createOutput()
+      ownsOutput = true
+    }
+    // Default: buffer-and-replay when DEBUG_LOG isn't set. The buffer
+    // flushes to the original stderr on deactivate(), so the operator
+    // sees the captured output on exit instead of silently losing it.
+    output.activate({ bufferStderr: !process.env.DEBUG_LOG })
+  }
+
+  // Local helper: route a transient write through the output owner when
+  // active (so the suppress sink doesn't eat it), else through the raw
+  // stdout. Used by the alt-screen entry block below for sequences that
+  // don't naturally go through `target.write` or the modes owner.
+  const writeOwned = (data: string): void => {
+    if (output) output.write(data)
+    else stdout.write(data)
+  }
+
+  // Enter alternate screen if requested, then clear and hide cursor —
+  // BEFORE initial render so reconciler effects land on alt screen.
   if (!headless) {
     if (_ansiTrace) {
       traceLog.debug?.("=== ALT SCREEN + CLEAR ===")
@@ -1876,11 +1932,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (alternateScreen) {
       // Route through modes so the owner tracks state for race-free dispose.
       // Clear + home still go through stdout — they're transient cursor moves,
-      // not mode toggles.
+      // not mode toggles. Use the owned writer so the (now-active) Output
+      // sink doesn't suppress them.
       modes.altScreen(true)
-      stdout.write("\x1b[2J\x1b[H")
+      writeOwned("\x1b[2J\x1b[H")
     }
-    stdout.write("\x1b[?25l")
+    writeOwned("\x1b[?25l")
   }
 
   // Initial render — must run AFTER alt-screen entry so reconciler effects
@@ -1954,36 +2011,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     )
   }
 
-  // Activate output owner after protocol setup and initial render are done.
-  // This intercepts process.stdout/stderr writes so that only silvery's
-  // render pipeline can write to stdout — all other writes are suppressed
-  // (stdout) or redirected to DEBUG_LOG (stderr) or BUFFERED for replay
-  // on exit (the foolproof default — bead km-silvery.console-hygiene-default).
-  //
-  // Capture model:
-  //   - DEBUG_LOG set       → mirror stderr/console writes to that file
-  //   - DEBUG_LOG unset     → buffer stderr/console writes; replay to the
-  //                           normal terminal on exit so the operator sees
-  //                           what was logged (no silent drop, no sidecar
-  //                           file by default)
-  //   - SILVERY_NO_CAPTURE  → opt out for debugging, leave streams as-is
-  if (shouldGuardOutput && process.env.SILVERY_NO_CAPTURE !== "1") {
-    // Prefer the injected Term's Output sub-owner (single writer per
-    // resource). Fall back to constructing a local one when no Term is
-    // injected or the Term has no Output (headless / emulator backends).
-    const termOutput = injectedTerm?.output
-    if (termOutput) {
-      output = termOutput
-      ownsOutput = false
-    } else {
-      output = createOutput()
-      ownsOutput = true
-    }
-    // Default: buffer-and-replay when DEBUG_LOG isn't set. The buffer
-    // flushes to the original stderr on deactivate(), so the operator
-    // sees the captured output on exit instead of silently losing it.
-    output.activate({ bufferStderr: !process.env.DEBUG_LOG })
-  }
+  // (Output owner is now activated earlier — before alt-screen entry — so
+  // pre-render stderr writes are buffered. See the activate block above.)
 
   // Assign pause/resume now that doRender and runtime are available.
   // Update runtimeContextValue in-place so useApp()/useRuntime() sees the latest values.
