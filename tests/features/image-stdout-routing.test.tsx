@@ -20,7 +20,7 @@
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
-import { Box, Image } from "../../src/index.js"
+import { Box, Image, Text } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
 import { getInternalStreams } from "../../packages/ag-term/src/runtime/term-internal"
 import "@termless/test/matchers"
@@ -30,17 +30,10 @@ const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))
 // Minimal valid PNG (1x1 transparent pixel) so encodeKittyImage has real bytes
 // to base64-encode. The exact bytes don't matter for routing — only that a
 // Kitty APC envelope reaches the output stream.
-const TINY_PNG = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG magic
-  0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR length + tag
-  0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1
-  0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, // bit depth/color/etc + CRC
-  0x89, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x44, 0x41, // IDAT length + tag
-  0x54, 0x78, 0x9c, 0x62, 0x00, 0x01, 0x00, 0x00,
-  0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00, // IDAT body + CRC
-  0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, // IEND
-  0x42, 0x60, 0x82,
-])
+const TINY_PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGIAAQAABQABDQottAAAAABJRU5ErkJggg==",
+  "base64",
+)
 
 const APC_OPEN = "\x1b_G"
 const APC_CLOSE = "\x1b\\"
@@ -80,6 +73,43 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
     // Per kitty-graphics encoder: a=T (transmit + place) is the canonical
     // verb the encoder picks for inline transmission with placement.
     expect(all).toMatch(/\x1b_G[^\x1b]*a=[Tt][^\x1b]*\x1b\\/)
+
+    handle.unmount()
+  })
+
+  test("Kitty graphics cursor position uses the image slot inside scroll panes", async () => {
+    using term = createTermless({ cols: 80, rows: 12 })
+
+    const writes: string[] = []
+    const internal = getInternalStreams(term).stdout as unknown as {
+      write: (s: string | Uint8Array) => boolean
+    }
+    const orig = internal.write.bind(internal)
+    internal.write = (s: string | Uint8Array) => {
+      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
+      return orig(s)
+    }
+
+    const handle = await run(
+      <Box flexDirection="row">
+        <Box width={32} flexShrink={0} paddingX={1} paddingY={1}>
+          <Text>Stories</Text>
+        </Box>
+        <Box flexDirection="column" paddingX={1} paddingY={1}>
+          <Box flexDirection="column" maxHeight={8} overflow="scroll">
+            <Text>Header</Text>
+            <Image src={TINY_PNG} width={10} height={4} protocol="kitty" />
+          </Box>
+        </Box>
+      </Box>,
+      term,
+    )
+    await settle(150)
+
+    const all = writes.join("")
+    expect(all, "image should emit at row 3, col 34 after the preceding scroll content").toContain(
+      "\x1b[3;34H",
+    )
 
     handle.unmount()
   })

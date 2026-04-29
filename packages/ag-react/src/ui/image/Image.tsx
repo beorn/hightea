@@ -29,7 +29,9 @@
 import { readFileSync } from "node:fs"
 import { type JSX, useContext, useEffect, useLayoutEffect, useMemo, useRef } from "react"
 import { StdoutContext } from "../../context"
-import { useBoxRect } from "../../hooks/useLayout"
+import { Box } from "../../components/Box"
+import { Text } from "../../components/Text"
+import { useBoxRect, useScreenRect } from "../../hooks/useLayout"
 import { encodeKittyImage, isKittyGraphicsSupported, deleteKittyImage } from "./kitty-graphics"
 import { decodePngToRgba, encodeSixel, isSixelSupported } from "./sixel-encoder"
 
@@ -99,13 +101,37 @@ export function Image({
   fallback = "[image]",
   protocol: preferredProtocol = "auto",
 }: ImageProps): JSX.Element {
+  const parentRect = useBoxRect()
+  const effectiveWidth = requestedWidth ?? parentRect.width
+  const effectiveHeight = requestedHeight ?? Math.max(1, Math.floor(effectiveWidth / 2))
+
+  return (
+    <Box width={effectiveWidth} height={effectiveHeight}>
+      <ImagePlacement
+        src={src}
+        width={effectiveWidth}
+        height={effectiveHeight}
+        fallback={fallback}
+        protocol={preferredProtocol}
+      />
+    </Box>
+  )
+}
+
+function ImagePlacement({
+  src,
+  width: effectiveWidth,
+  height: effectiveHeight,
+  fallback,
+  protocol: preferredProtocol,
+}: Required<ImageProps>): JSX.Element {
   // LAYOUT_READ_AT_RENDER: image rendering writes Kitty/Sixel escape
   // sequences with explicit pixel/cell dimensions. The encoded image must
   // match the reserved cell area exactly, so `width`/`height` need to be
   // resolved before encoding — flex auto-sizing isn't enough because the
   // pixel-to-cell ratio depends on the actual cell count. Consumers may
   // pass `width`/`height` to skip the auto-fill read.
-  const boxRect = useBoxRect()
+  const boxRect = useScreenRect()
   const stdoutCtx = useContext(StdoutContext)
   const imageIdRef = useRef<number | null>(null)
 
@@ -119,10 +145,6 @@ export function Image({
       return null
     }
   }, [src])
-
-  // Determine effective dimensions
-  const effectiveWidth = requestedWidth ?? boxRect.width
-  const effectiveHeight = requestedHeight ?? Math.max(1, Math.floor(effectiveWidth / 2))
 
   // Detect protocol support
   const activeProtocol = useMemo(() => detectProtocol(preferredProtocol), [preferredProtocol])
@@ -205,11 +227,7 @@ export function Image({
 
   // If no protocol or no image data, render fallback text
   if (!activeProtocol || !pngData) {
-    return (
-      <silvery-box width={effectiveWidth} height={effectiveHeight}>
-        <silvery-text>{fallback}</silvery-text>
-      </silvery-box>
-    )
+    return <Text>{fallback}</Text>
   }
 
   // Reserve visual space with an empty box.
@@ -220,9 +238,5 @@ export function Image({
     "\n",
   )
 
-  return (
-    <silvery-box width={effectiveWidth} height={effectiveHeight}>
-      <silvery-text>{spaceContent}</silvery-text>
-    </silvery-box>
-  )
+  return <Text>{spaceContent}</Text>
 }
