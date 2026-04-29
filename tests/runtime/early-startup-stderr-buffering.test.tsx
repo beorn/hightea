@@ -138,6 +138,16 @@ describe("createApp: early-startup stderr is buffered, not lost to alt-screen cl
       return true
     }) as typeof process.stderr.write
 
+    // Output owner patches process.stdout.write at activate time —
+    // silvery's alt-screen sequences + render-target cell paints flow
+    // through `output.write` → origStdoutWrite (= the captured original
+    // process.stdout.write) → the real stdout. We don't care what those
+    // writes look like for THIS test (we're asserting stderr buffering),
+    // but km-infra's vitest setup has a strict-no-stdout guard that
+    // fails the test on any real-stdout write. Mock stdout to swallow.
+    const origStdoutWrite = process.stdout.write
+    process.stdout.write = ((_chunk: unknown) => true) as typeof process.stdout.write
+
     try {
       const { writable: mockStdout } = createMockStdout()
       const mockStdin = createMockStdin()
@@ -176,6 +186,7 @@ describe("createApp: early-startup stderr is buffered, not lost to alt-screen cl
       ).toContain(REPLAY_HEADER)
     } finally {
       process.stderr.write = origStderrWrite
+      process.stdout.write = origStdoutWrite
     }
   })
 })
