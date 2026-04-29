@@ -174,7 +174,24 @@ export interface Handle<B extends symbol> extends AsyncDisposable {
  * }
  * ```
  */
-export function defineHandle<K extends string>(kind: K) {
+/**
+ * Public return shape of `defineHandle`. Annotated explicitly so tsdown's
+ * dts generator can emit a type for the function — without this the
+ * inferred return references the per-call-site `unique symbol` `Brand`
+ * which is not nameable in the .d.mts (TS2527). The brand is preserved
+ * at runtime via the `branded` WeakSet; on the type side we surface
+ * `Handle<symbol>` (loses compile-time per-kind distinction but
+ * preserves the runtime guarantee + the structural Handle shape).
+ */
+export interface DefinedHandle<K extends string> {
+  readonly kind: K
+  create<V extends object>(
+    _value: V,
+    dispose: (() => void) | (() => Promise<void>),
+  ): Handle<symbol>
+}
+
+export function defineHandle<K extends string>(kind: K): DefinedHandle<K> {
   // Per-call-site `unique symbol`. The runtime symbol exists only to give
   // the compile-time brand a unique-symbol-typed shape; we never store it
   // on the handle object, so reflection cannot extract it.
