@@ -127,8 +127,10 @@ describe("Ctrl+Z then fg — input listener survives suspend/resume", () => {
       cursorHidden: true,
     })
 
-    // Simulate Ctrl+Z prep: restore the terminal to normal.
-    restoreTerminalState(stdout, stdin)
+    // Simulate Ctrl+Z prep: restore the terminal to normal. Passing `state`
+    // so the data listeners are saved for re-attach (the suspend path; on
+    // final exit we'd omit state).
+    restoreTerminalState(stdout, stdin, state)
 
     // Simulate fg / SIGCONT: re-enter TUI mode.
     resumeTerminalState(state, stdout, stdin)
@@ -156,7 +158,7 @@ describe("Ctrl+Z then fg — input listener survives suspend/resume", () => {
     const state = captureTerminalState({ rawMode: true, alternateScreen: true })
 
     // Suspend prep — owner is paused, drain loop discards anything queued.
-    restoreTerminalState(stdout, stdin)
+    restoreTerminalState(stdout, stdin, state)
 
     // Bytes that arrive while paused must NOT reach the handler. The owner is
     // paused; downstream code is the kernel's tty buffer and the OS shell.

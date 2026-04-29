@@ -49,6 +49,14 @@ export interface TerminalLifecycleOptions {
 
 /**
  * Snapshot of terminal protocol state for save/restore across suspend/resume.
+ *
+ * `savedDataListeners` holds the stdin "data" listeners that were detached at
+ * suspend time (so the drain loop can discard pre-suspend bytes without them
+ * being parsed as key events). They are re-attached by `resumeTerminalState`,
+ * which preserves the InputOwner ownership invariant: the same single
+ * `onChunk` listener that existed before suspend is the one receiving bytes
+ * after resume. Mutated by `restoreTerminalState` and consumed by
+ * `resumeTerminalState`.
  */
 export interface TerminalState {
   rawMode: boolean
@@ -59,6 +67,7 @@ export interface TerminalState {
   kittyFlags: number
   bracketedPaste: boolean
   focusReporting: boolean
+  savedDataListeners: Array<(...args: unknown[]) => void>
 }
 
 // ============================================================================
@@ -90,6 +99,7 @@ export function captureTerminalState(opts: {
     kittyFlags: opts.kittyFlags ?? 11, // DISAMBIGUATE(1) | REPORT_EVENTS(2) | REPORT_ALL_KEYS(8)
     bracketedPaste: opts.bracketedPaste ?? false,
     focusReporting: opts.focusReporting ?? false,
+    savedDataListeners: [],
   }
 }
 
@@ -105,11 +115,29 @@ export function captureTerminalState(opts: {
  *
  * Order matters: disable protocols first, then show cursor, then exit
  * alternate screen, then disable raw mode.
+ *
+ * When `state` is provided, the stdin "data" listeners are detached into
+ * `state.savedDataListeners` so they can be re-attached by
+ * `resumeTerminalState` after SIGCONT — preserving the
+ * "stdin has ONE owner per session" invariant. When omitted (e.g. on final
+ * exit, not suspend), listeners are removed without being saved.
  */
-export function restoreTerminalState(stdout: NodeJS.WriteStream, stdin: NodeJS.ReadStream): void {
-  // Step 1: Stop consuming stdin — prevent processing of in-flight events
+export function restoreTerminalState(
+  stdout: NodeJS.WriteStream,
+  stdin: NodeJS.ReadStream,
+  state?: TerminalState,
+): void {
+  // Step 1: Stop consuming stdin — prevent processing of in-flight events.
+  // Save listeners into `state` (if provided) so resumeTerminalState can
+  // re-attach them; otherwise just remove (final-exit path).
   try {
-    stdin.removeAllListeners("data")
+    if (state) {
+      const listeners = stdin.listeners("data") as Array<(...args: unknown[]) => void>
+      state.savedDataListeners = listeners.slice()
+      for (const listener of listeners) stdin.off("data", listener)
+    } else {
+      stdin.removeAllListeners("data")
+    }
     stdin.pause()
   } catch {
     // Ignore — stdin may be closed
@@ -186,6 +214,17 @@ export function resumeTerminalState(
   stdout: NodeJS.WriteStream,
   stdin: NodeJS.ReadStream,
 ): void {
+  // Re-attach the data listeners that restoreTerminalState detached. Without
+  // this, raw bytes from the terminal pile up unread and the app appears
+  // frozen after `fg`. The InputOwner's onChunk is the canonical listener
+  // here — same instance, same closure state.
+  if (state.savedDataListeners.length > 0) {
+    for (const listener of state.savedDataListeners) {
+      stdin.on("data", listener)
+    }
+    state.savedDataListeners = []
+  }
+
   // Re-enable raw mode first (needed to receive key input)
   if (state.rawMode && stdin.isTTY) {
     try {
@@ -270,8 +309,9 @@ export function performSuspend(
   stdin: NodeJS.ReadStream,
   onResume?: () => void,
 ): void {
-  // Restore terminal to normal
-  restoreTerminalState(stdout, stdin)
+  // Restore terminal to normal — pass `state` so the stdin listeners are
+  // saved into it for re-attach by resumeTerminalState.
+  restoreTerminalState(stdout, stdin, state)
 
   // Register one-time SIGCONT handler BEFORE sending SIGTSTP
   process.once("SIGCONT", () => {
