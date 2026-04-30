@@ -1162,6 +1162,13 @@ function ListViewInner<T>(
     ],
   )
 
+  // True while the user is mid-drag on the scrollbar thumb (mousedown
+  // not yet matched by mouseup or mouseleave). Drives `onMouseMove`'s
+  // decision to keep the thumb glued to the cursor — without this,
+  // moves would fire constantly while the cursor passes over the
+  // track without intent.
+  const scrollbarDraggingRef = useRef(false)
+
   // Set the viewport position from a fractional 0..1 value. Used by
   // scrollbar click-to-position (click the track at frac=0.6 → snap
   // viewport to 60% of the way through the content) and the
@@ -2544,21 +2551,45 @@ function ListViewInner<T>(
           const firstRow = Math.floor(thumbTopFloat)
           const lastRow = Math.min(trackHeight - 1, Math.ceil(thumbBottomFloat) - 1)
           const EIGHTHS = "▁▂▃▄▅▆▇█"
-          // Click-on-track: convert click row → frac of track. Center the
-          // thumb on the click position so a click at row Y in the track
-          // jumps the viewport so the thumb's middle lands at Y. Without
-          // the centering, a click on the lower half of a fully-scrolled
-          // track would always land just shy of the bottom (frac=lastRow/
-          // trackHeight, never quite 1).
-          const handleTrackClick = (e: SilveryMouseEvent): void => {
+          // Track interaction: click-to-position + drag-while-held.
+          //
+          // - `onMouseDown`: snap to click position (centered on click row
+          //   so the thumb's middle lands under the cursor) AND arm the
+          //   drag-tracking flag.
+          // - `onMouseMove` (only fires while cursor is over the track,
+          //   which is what we want — leaving the column ends the drag
+          //   gracefully): if armed, update scroll continuously so the
+          //   thumb tracks the cursor.
+          // - `onMouseUp` / `onMouseLeave`: end the drag.
+          //
+          // Centering: a click at row Y aims to put the thumb's middle
+          // at Y. Without the half-thumb subtraction, a click at the
+          // very bottom of the track lands frac = (trackHeight-1) /
+          // (trackHeight-thumbHeight) — never quite 1.
+          const fracFromY = (clientY: number, trackTopY: number): number => {
+            const relativeY = clientY - trackTopY
+            const centeredY = relativeY - thumbHeight / 2
+            const denom = Math.max(1, trackHeight - thumbHeight)
+            return centeredY / denom
+          }
+          const handleTrackMouseDown = (e: SilveryMouseEvent): void => {
             const node = e.currentTarget
             const rect = node.screenRect ?? node.boxRect
             if (!rect || rect.height <= 0) return
-            const relativeY = e.clientY - rect.y
-            const centeredY = relativeY - thumbHeight / 2
-            const denom = Math.max(1, trackHeight - thumbHeight)
-            scrollToFrac(centeredY / denom)
+            scrollbarDraggingRef.current = true
+            scrollToFrac(fracFromY(e.clientY, rect.y))
             e.stopPropagation()
+          }
+          const handleTrackMouseMove = (e: SilveryMouseEvent): void => {
+            if (!scrollbarDraggingRef.current) return
+            const node = e.currentTarget
+            const rect = node.screenRect ?? node.boxRect
+            if (!rect || rect.height <= 0) return
+            scrollToFrac(fracFromY(e.clientY, rect.y))
+            e.stopPropagation()
+          }
+          const handleTrackMouseUp = (_e: SilveryMouseEvent): void => {
+            scrollbarDraggingRef.current = false
           }
           // Epsilon compare for fractional edges — a floating-point near-equal
           // shouldn't render a partial glyph.
@@ -2602,12 +2633,12 @@ function ListViewInner<T>(
               )
             }
           }
-          // The full-height interactive track wraps the thumb. Clicks
-          // anywhere on the track snap the viewport via `scrollToFrac`.
-          // The thumb itself is rendered as an absolutely-positioned
-          // child of the track so a click on the thumb body still
-          // resolves to a track-relative y (and is roughly idempotent —
-          // clicks on the thumb keep it under the cursor).
+          // The full-height interactive track wraps the thumb. The
+          // mousedown/move/up triple drives both click-to-position
+          // (mousedown alone) and drag-while-held (continuous moves).
+          // The thumb itself renders as an absolutely-positioned child
+          // of the track so clicks on the thumb body resolve to a
+          // track-relative y identically to clicks on empty track.
           return (
             <Box
               position="absolute"
@@ -2616,7 +2647,10 @@ function ListViewInner<T>(
               width={1}
               height={trackHeight}
               flexDirection="column"
-              onClick={handleTrackClick}
+              onMouseDown={handleTrackMouseDown}
+              onMouseMove={handleTrackMouseMove}
+              onMouseUp={handleTrackMouseUp}
+              onMouseLeave={handleTrackMouseUp}
             >
               <Box position="absolute" top={firstRow} right={0} width={1} flexDirection="column">
                 {rows}
