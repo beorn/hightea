@@ -731,7 +731,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // function goes through an owner — no scattered raw ANSI toggles.
   // See km-silvery.term-sub-owners Phase 4.
   const injectedTerm = (injectValues as { term?: Term }).term
-  const modes = injectedTerm?.modes ?? createModes({ write: (s) => stdout.write(s), stdin })
 
   // Output guard: created after protocol setup (see below).
   // Only guard when using real process.stdout — mock stdouts don't benefit from
@@ -743,8 +742,24 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // session; toggled via activate()/deactivate() for pause/resume cycles.
   // If an injected Term exposes `.output`, we reuse it (one writer per
   // resource). Otherwise we construct a local one and own its lifetime.
+  //
+  // Declared BEFORE `modes` so the local Modes owner's writer can close over
+  // it lazily. Without that, modes captures `stdout.write` at construction
+  // time; once `output.activate()` later monkey-patches `process.stdout.write`
+  // into the suppress sink, every mode-toggle ANSI (alt-screen enter, mouse,
+  // kitty keyboard, focus reporting) silently lands in the sink and never
+  // reaches the terminal. Same shape as the Pro-review 2026-04-22 P0-1 fix
+  // for `term.modes` (which already routes through `ownedWrite`); this
+  // mirrors that for createApp's local-modes fallback.
   let output: Output | null = null
   let ownsOutput = false
+
+  const modes =
+    injectedTerm?.modes ??
+    createModes({
+      write: (s) => (output && output.active() ? output.write(s) : stdout.write(s)),
+      stdin,
+    })
 
   // Initialize layout engine
   await ensureLayoutEngine()
