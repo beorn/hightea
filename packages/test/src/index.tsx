@@ -255,6 +255,13 @@ export interface TermlessClipboard {
   clear(): void
 }
 
+export interface TermlessOutput {
+  getText(): string
+  getChunks(): readonly string[]
+  containsOutput(text: string): boolean
+  clear(): void
+}
+
 /**
  * Term augmented with mouse + clipboard test helpers.
  *
@@ -267,6 +274,7 @@ export interface TermlessClipboard {
 export interface TermlessTerm extends Term {
   readonly mouse: TermlessMouse
   readonly clipboard: TermlessClipboard
+  readonly out: TermlessOutput
   readonly screen: NonNullable<Term["screen"]>
   readonly scrollback: NonNullable<Term["scrollback"]>
   cell(

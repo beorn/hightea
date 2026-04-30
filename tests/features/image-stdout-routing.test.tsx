@@ -19,13 +19,10 @@
 
 import React from "react"
 import { describe, expect, test } from "vitest"
-import { createTermless, waitFor } from "@silvery/test"
+import { createTermless } from "@silvery/test"
 import { Box, Image, Text, encodeKittyImage, placeKittyImage } from "../../src/index.js"
 import { run } from "../../packages/ag-term/src/runtime/run"
-import { getInternalStreams } from "../../packages/ag-term/src/runtime/term-internal"
 import "@termless/test/matchers"
-
-const settle = (ms = 200) => new Promise((r) => setTimeout(r, ms))
 
 // Minimal valid PNG (1x1 transparent pixel) so encodeKittyImage has real bytes
 // to base64-encode. The exact bytes don't matter for routing — only that a
@@ -76,32 +73,15 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty graphics APC envelope reaches the terminal output", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
-    // Capture every byte written through the term's internal stdout. The
-    // run() Term path passes this stream as createApp's `stdout`, which
-    // becomes the destination of StdoutContext.write under our fix
-    // (when Output isn't active — termless is headless-ish wrt the guard).
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    expect(internal, "termless term must expose internal stdout").toBeTruthy()
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
-
     const handle = await run(
       <Box flexDirection="column" padding={1}>
         <Image src={TINY_PNG} width={10} height={5} protocol="kitty" />
       </Box>,
       term,
     )
-    // Image writes the escape from useEffect — wait for React to commit
-    // and effects to flush, plus a paint cycle.
-    await settle(150)
 
-    const all = writes.join("")
+    await expect(term.out).toContainOutput(APC_OPEN, { timeout: 500 })
+    const all = term.out.getText()
     expect(all, "Kitty APC opener should be emitted to the terminal").toContain(APC_OPEN)
     expect(all, "Kitty APC terminator should follow").toContain(APC_CLOSE)
     // Per kitty-graphics encoder: a=T (transmit + place) is the canonical
@@ -114,16 +94,6 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty graphics escapes are flushed after the frame paint", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
-
     const handle = await run(
       <Box flexDirection="column">
         <Text>before-image</Text>
@@ -131,8 +101,9 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
       </Box>,
       term,
     )
-    await settle(150)
+    await expect(term.out).toContainOutput(APC_OPEN, { timeout: 500 })
 
+    const writes = term.out.getChunks()
     const firstFrameIndex = writes.findIndex((w) => w.includes("before-image"))
     const firstKittyIndex = writes.findIndex((w) => w.includes(APC_OPEN))
     expect(firstFrameIndex, "rendered text frame should be written").toBeGreaterThanOrEqual(0)
@@ -146,16 +117,6 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
 
   test("Kitty graphics cursor position uses the image slot inside scroll panes", async () => {
     using term = createTermless({ cols: 80, rows: 12 })
-
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
 
     const handle = await run(
       <Box flexDirection="row">
@@ -171,9 +132,9 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
       </Box>,
       term,
     )
-    await settle(150)
+    await expect(term.out).toContainOutput("\x1b[3;34H", { timeout: 500 })
 
-    const all = writes.join("")
+    const all = term.out.getText()
     expect(all, "image should emit at row 3, col 34 after the preceding scroll content").toContain(
       "\x1b[3;34H",
     )
@@ -184,25 +145,15 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty graphics writes preserve the app cursor while placing images", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
-
     const handle = await run(
       <Box flexDirection="column" padding={1}>
         <Image src={TINY_PNG} width={10} height={4} protocol="kitty" />
       </Box>,
       term,
     )
-    await settle(150)
+    await expect(term.out).toContainOutput("a=p", { timeout: 500 })
 
-    const all = writes.join("")
+    const all = term.out.getText()
     expect(all, "placement write should be captured").toContain("a=p")
     expect(all, "placement should hide cursor before moving to image slot").toContain("\x1b[?25l")
     expect(all, "placement should save cursor before moving to image slot").toContain("\x1b7")
@@ -215,16 +166,6 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty graphics clips partially scrolled-off top images instead of deleting them", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
-
     const handle = await run(
       <Box flexDirection="column" height={3} overflow="scroll" scrollOffset={1}>
         <Image src={TINY_PNG} width={10} height={4} protocol="kitty" />
@@ -232,9 +173,9 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
       </Box>,
       term,
     )
-    await settle(150)
+    await expect(term.out).toContainOutput("r=3", { timeout: 500 })
 
-    const all = writes.join("")
+    const all = term.out.getText()
     expect(all, "partially visible image should still be placed at top row").toContain("\x1b[1;1H")
     expect(all, "visible rows should be clipped to the viewport remainder").toContain("r=3")
     expect(all, "partial clipping should not delete the still-visible placement").not.toContain("a=d,d=i")
@@ -244,16 +185,6 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
 
   test("Kitty graphics clips images at the terminal bottom edge", async () => {
     using term = createTermless({ cols: 40, rows: 5 })
-
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
 
     const handle = await run(
       <Box flexDirection="column">
@@ -266,8 +197,8 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
       term,
     )
 
-    await waitFor(() => writes.join("").includes("r=1"))
-    const all = writes.join("")
+    await expect(term.out).toContainOutput("r=1", { timeout: 500 })
+    const all = term.out.getText()
     expect(all, "image should still be placed at the last visible row").toContain("\x1b[5;1H")
     expect(all, "visible image rows should be clipped at terminal bottom").toContain("r=1")
 
@@ -277,29 +208,19 @@ describe("Image: StdoutContext.write routes escapes to the terminal", () => {
   test("Kitty graphics delete sequence is emitted on unmount", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
 
-    const writes: string[] = []
-    const internal = getInternalStreams(term).stdout as unknown as {
-      write: (s: string | Uint8Array) => boolean
-    }
-    const orig = internal.write.bind(internal)
-    internal.write = (s: string | Uint8Array) => {
-      writes.push(typeof s === "string" ? s : Buffer.from(s).toString("utf8"))
-      return orig(s)
-    }
-
     const handle = await run(
       <Box flexDirection="column">
         <Image src={TINY_PNG} width={10} height={4} protocol="kitty" />
       </Box>,
       term,
     )
-    await waitFor(() => writes.join("").includes("a=p"))
+    await expect(term.out).toContainOutput("a=p", { timeout: 500 })
 
-    writes.length = 0
+    term.out.clear()
     handle.unmount()
 
-    await waitFor(() => writes.join("").includes("a=d,d=i"))
-    const all = writes.join("")
+    await expect(term.out).toContainOutput("a=d,d=i", { timeout: 500 })
+    const all = term.out.getText()
     expect(all, "unmount should delete the stored Kitty image").toContain("a=d,d=i")
   })
 })
