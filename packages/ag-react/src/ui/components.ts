@@ -19,6 +19,9 @@ export type {
   MeasuredBoxRenderFn,
 } from "./components/MeasuredBox"
 
+export { Scrollbar } from "./components/Scrollbar"
+export type { ScrollbarProps } from "./components/Scrollbar"
+
 export { ListView } from "./components/ListView"
 export type {
   ListViewProps,

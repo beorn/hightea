@@ -78,9 +78,15 @@ export function Accordion({
     { isActive: active },
   )
 
+  // Disclosure indicator — collapsed shows ">" (closed), expanded
+  // shows "v" (open). Renders inline before the title so a11y users
+  // get the same affordance as the visible state.
+  const chevron = isOpen ? "v" : ">"
+
   return (
     <Box flexDirection="column" {...rest}>
-      <Box>
+      <Box flexDirection="row" gap={1}>
+        <Text bold={active}>{chevron}</Text>
         <Text bold={active}>{title}</Text>
       </Box>
       {isOpen ? (

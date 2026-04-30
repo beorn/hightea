@@ -69,6 +69,8 @@
 export { Box } from "./components/Box"
 export { MeasuredBox } from "./ui/components"
 export type { MeasuredBoxProps, MeasuredBoxRect, MeasuredBoxRenderFn } from "./ui/components"
+export { Scrollbar } from "./ui/components"
+export type { ScrollbarProps } from "./ui/components"
 export { Console } from "./ui/components"
 export { ListView } from "./ui/components"
 export type {
