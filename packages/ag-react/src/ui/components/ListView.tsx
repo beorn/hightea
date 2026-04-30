@@ -2271,10 +2271,27 @@ function ListViewInner<T>(
     // with a tiny `maxRow` and the viewport freezes near the top with
     // `pendingFollowSnap` already cleared.
     const viewportReady = !isHeightIndependent || (viewportSize?.h ?? 0) > 0
+    // User-wheel-vs-auto-follow race guard: if the user is actively
+    // wheel-driving (scrollRow !== null) and has scrolled BELOW the
+    // current end (scrollRow < prevMaxRow - threshold), respect their
+    // intent — don't snap them back to the bottom on the next streaming
+    // commit. Without this, a user who wheels up by 1 row while items
+    // are streaming gets dragged back to the tail every commit and
+    // oscillates between maxRow-1 and maxRow until streaming stops.
+    //
+    // The gate is tight on purpose: only suppress when `scrollRow` is
+    // strictly NOT-at-end relative to the PRIOR maxRow (so we don't
+    // accidentally suppress the snap on a normal items-grew commit
+    // where the user is still at the tail and scrollRow just lags
+    // maxRow by a few rows due to the in-flight grow).
+    const prevMaxRow = prevMaxScrollRowRef.current
+    const userScrolledAway =
+      scrollRow !== null && prevMaxRow !== null && scrollRow < prevMaxRow - 0.5
     const shouldSnap =
       resolvedFollow === "end" &&
       viewportReady &&
       maxRow > 0 &&
+      !userScrolledAway &&
       (pendingSnap || (grew && wasAtEndPrev))
     if (shouldSnap) {
       scrollRowFloatRef.current = maxRow
