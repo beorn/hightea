@@ -32,7 +32,13 @@ import { StdoutContext } from "../../context"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useBoxRect, useScreenRect } from "../../hooks/useLayout"
-import { encodeKittyImage, isKittyGraphicsSupported, deleteKittyImage } from "./kitty-graphics"
+import {
+  encodeKittyImage,
+  isKittyGraphicsSupported,
+  deleteKittyImage,
+  deleteKittyPlacement,
+  placeKittyImage,
+} from "./kitty-graphics"
 import { decodePngToRgba, encodeSixel, isSixelSupported } from "./sixel-encoder"
 
 // ============================================================================
@@ -134,6 +140,16 @@ function ImagePlacement({
   const boxRect = useScreenRect()
   const stdoutCtx = useContext(StdoutContext)
   const imageIdRef = useRef<number | null>(null)
+  // Tracks the PNG data the image was last *transmitted* with. While this
+  // matches the current `pngData`, position changes can re-place the
+  // already-stored image via `a=p` instead of re-encoding the full
+  // base64 blob — eliminating the visible flicker on scroll re-emit.
+  const transmittedSrcRef = useRef<Buffer | null>(null)
+  // Tracks the dimensions the image was last placed at. If only x/y
+  // change, we can re-place without re-transmitting; if width/height
+  // change, the stored image's display sizing also needs updating
+  // (placeKittyImage carries new c=/r=, so re-place is still enough).
+  const placedSizeRef = useRef<{ width: number; height: number } | null>(null)
 
   // Resolve image data
   const pngData = useMemo(() => {
@@ -161,13 +177,16 @@ function ImagePlacement({
   // reserved Box. Without this, silvery's render leaves the cursor at
   // the bottom-right of the buffer and the image spills off-screen.
   //
-  // On dep-change re-emission (boxRect or dimensions changed across a
-  // re-render), DELETE the previous Kitty image before placing a new
-  // one. Without this, every layout-cascade re-render leaves a stacked
-  // copy of the image at the prior cell coords (Kitty z=1 keeps them
-  // all above the text layer), giving the user-visible "doubled" /
-  // "tripled" image effect during startup. The cleanup-on-unmount
-  // effect below only fires at component teardown, not per re-emit.
+  // Two re-emit paths for Kitty:
+  //
+  //   - Cold path (first paint, src changed): TRANSMIT the PNG bytes
+  //     once with a=t (transmit only) + an immediate a=p placement at
+  //     the current cursor.
+  //   - Warm path (only position / dimensions changed): the image is
+  //     already stored on the terminal; emit a=d,p=… to clear the
+  //     prior placement, position the cursor, then a=p to re-place.
+  //     No re-encoding of the base64 blob — eliminates the flicker
+  //     scroll-driven re-emits otherwise produce.
   //
   // useLayoutEffect (not useEffect): fires synchronously during the
   // React commit phase, BEFORE silvery's paintFrame writes the cell
@@ -192,15 +211,38 @@ function ImagePlacement({
 
     if (activeProtocol === "kitty") {
       const id = imageIdRef.current
-      // Delete prior placement (no-op if this is the first emission —
-      // Kitty silently ignores deletes for unknown ids).
-      if (id != null) write(deleteKittyImage(id))
-      const seq = encodeKittyImage(pngData, {
-        width: effectiveWidth,
-        height: effectiveHeight,
-        id: id ?? undefined,
-      })
-      write(moveCursor + seq)
+      if (id == null) return
+      const srcChanged = transmittedSrcRef.current !== pngData
+      const hadPriorPlacement = placedSizeRef.current !== null
+
+      if (srcChanged) {
+        // Cold path: transmit the PNG once. If we had a prior placement
+        // for an OLD src under the same id, drop the entire stored
+        // image first so the terminal doesn't keep stale bytes around.
+        if (hadPriorPlacement) write(deleteKittyImage(id))
+        const seq = encodeKittyImage(pngData, {
+          width: effectiveWidth,
+          height: effectiveHeight,
+          id,
+          transmitOnly: true,
+        })
+        write(seq)
+        transmittedSrcRef.current = pngData
+      } else if (hadPriorPlacement) {
+        // Warm path: PNG bytes are already stored. Clear the old
+        // placement so we don't stack copies, then re-place at the
+        // new cursor position with the (possibly new) c=/r= dims.
+        write(deleteKittyPlacement(id))
+      }
+
+      // Emit cursor-position + place. One write so the terminal sees
+      // the position-then-place pair atomically with no intermediate
+      // paint.
+      write(
+        moveCursor +
+          placeKittyImage({ id, width: effectiveWidth, height: effectiveHeight }),
+      )
+      placedSizeRef.current = { width: effectiveWidth, height: effectiveHeight }
     } else if (activeProtocol === "sixel") {
       // Sixel cannot transmit PNG directly (unlike Kitty's f=100), so we
       // decode PNG → RGBA via upng-js, then hand off to encodeSixel().

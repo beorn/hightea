@@ -30,6 +30,37 @@ export interface KittyImageOptions {
   height?: number
   /** Image ID for later reference/deletion (positive integer) */
   id?: number
+  /**
+   * Transmit only — store the image but do NOT place it.
+   *
+   * Default `false`: action is `a=T` (transmit and display at cursor).
+   * Set to `true` for `a=t` (transmit only) — store the image bytes for
+   * later placement via {@link placeKittyImage}, without consuming a cell.
+   * The two-step flow lets a moving consumer (e.g. an `<Image>` that
+   * re-positions on scroll) transmit the PNG bytes once and re-place
+   * with a tiny APC packet on every subsequent move — eliminating the
+   * "delete-and-retransmit" flicker that re-encoding the full base64
+   * blob on every position change otherwise produces.
+   */
+  transmitOnly?: boolean
+}
+
+/** Options for {@link placeKittyImage}. */
+export interface KittyPlaceOptions {
+  /** Image ID previously transmitted via `a=t` (or `a=T`). */
+  id: number
+  /** Display width in terminal columns. */
+  width?: number
+  /** Display height in terminal rows. */
+  height?: number
+  /**
+   * Placement ID for this displayed instance. Defaults to 1.
+   *
+   * Multiple placements of the same `id` can coexist if you give them
+   * different `placementId`s — each is independently delete-able via
+   * {@link deleteKittyPlacement}.
+   */
+  placementId?: number
 }
 
 /**
@@ -88,7 +119,10 @@ export function encodeKittyImage(pngData: Buffer, opts?: KittyImageOptions): str
 /**
  * Generate an escape sequence to delete a Kitty image by ID.
  *
- * Uses `a=d` (delete) with `d=i` (delete by image ID).
+ * Uses `a=d` (delete) with `d=i` (delete by image ID). Removes both the
+ * stored image bytes AND every placement of it. Use
+ * {@link deleteKittyPlacement} to remove a single placement while keeping
+ * the image stored for later re-placement.
  *
  * @param id - The image ID to delete
  * @returns The delete escape sequence
@@ -103,6 +137,53 @@ export function deleteKittyImage(id: number): string {
   // for placement. Same rationale: silvery's input parser treats the
   // response bytes as typed characters; the delete is fire-and-forget.
   return `${APC_START}a=d,d=i,i=${id},q=2${ST}`
+}
+
+/**
+ * Delete a single placement of a stored image, keeping the image bytes.
+ *
+ * Uses `a=d` with `d=i` (image id) and `p=` (placement id). The image
+ * remains stored on the terminal — re-place via {@link placeKittyImage}
+ * without re-transmitting the PNG.
+ *
+ * @param id - Image ID
+ * @param placementId - Placement ID (defaults to 1)
+ */
+export function deleteKittyPlacement(id: number, placementId: number = 1): string {
+  return `${APC_START}a=d,d=i,i=${id},p=${placementId},q=2${ST}`
+}
+
+/**
+ * Place an already-transmitted image at the current cursor position.
+ *
+ * Uses `a=p` (place existing image). The image must have been previously
+ * transmitted with `transmitOnly: true` (or `a=T` — which transmits AND
+ * places, but you can still re-place separately afterwards). This is the
+ * fast path for a moving image: transmit the PNG once, then emit a tiny
+ * APC packet for each position update — no re-encoding of base64 bytes.
+ *
+ * Pair with {@link deleteKittyPlacement} to clear the prior placement
+ * before placing at a new cursor position. Skipping the delete leaves a
+ * stacked copy at the old position.
+ *
+ * @example
+ * ```ts
+ * // Transmit once
+ * write(encodeKittyImage(png, { id: 42, transmitOnly: true }))
+ * // Place at cursor (which the caller positions via CSI ;H)
+ * write(placeKittyImage({ id: 42, width: 40, height: 20 }))
+ * // Move: clear old placement, position cursor, place again
+ * write(deleteKittyPlacement(42))
+ * write(`\x1b[10;5H`) // move cursor
+ * write(placeKittyImage({ id: 42, width: 40, height: 20 }))
+ * ```
+ */
+export function placeKittyImage(opts: KittyPlaceOptions): string {
+  const placementId = opts.placementId ?? 1
+  const parts = [`a=p`, `i=${opts.id}`, `p=${placementId}`, `z=1`, `C=1`, `q=2`]
+  if (opts.width != null) parts.push(`c=${opts.width}`)
+  if (opts.height != null) parts.push(`r=${opts.height}`)
+  return `${APC_START}${parts.join(",")};${ST}`
 }
 
 /**
@@ -178,7 +259,12 @@ function buildParams(opts: KittyImageOptions | undefined, more: 0 | 1): string {
   // characters and they end up in whatever TextInput holds focus
   // ("garbage" like `_Gi=2;OK\_Gi=1;OK\` in the command box). We don't
   // use the response anyway — placement is fire-and-forget.
-  const parts = [`a=T`, `f=100`, `m=${more}`, `z=1`, `C=1`, `q=2`]
+  // `a=T` transmits AND places at the cursor. `a=t` transmits without
+  // placing — used by callers that want to manage placement separately
+  // via `placeKittyImage` (typically because the image moves and they
+  // want to avoid re-transmitting the base64 bytes on every move).
+  const action = opts?.transmitOnly ? `a=t` : `a=T`
+  const parts = [action, `f=100`, `m=${more}`, `z=1`, `C=1`, `q=2`]
 
   if (opts?.width != null) parts.push(`c=${opts.width}`)
   if (opts?.height != null) parts.push(`r=${opts.height}`)
