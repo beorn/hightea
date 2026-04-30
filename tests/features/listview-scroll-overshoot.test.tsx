@@ -68,6 +68,40 @@ function viewportIsEmpty(app: { text: string }): boolean {
 }
 
 describe("ListView height-independent — scroll cap MUST NOT overshoot content", () => {
+  test("huge wrapped first item, short rest — wheel-up from follow end keeps content visible", async () => {
+    const COLS = 60
+    const ROWS = 20
+    const hugeLine = `data:image/png;base64,${"a".repeat(6000)}`
+    const items = [hugeLine, ...Array.from({ length: 30 }, (_, i) => `short item ${i + 1}`)]
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+
+    const app = render(
+      <Box width={COLS} height={ROWS} flexDirection="column">
+        <Box flexGrow={1} flexShrink={1} minHeight={0}>
+          <ListView
+            items={items}
+            follow="end"
+            gap={1}
+            maxRendered={200}
+            renderItem={(item) => <Text wrap="wrap">{item}</Text>}
+          />
+        </Box>
+      </Box>,
+    )
+
+    // Initial follow=end lands at the tail.
+    expect(screenContainsText(app, "short item 30")).toBe(true)
+
+    // Wheel up from the tail into the huge wrapped entry. The viewport should
+    // continue to show either the tail entries or the wrapped first entry, not
+    // an empty render window.
+    for (let i = 0; i < 180; i++) {
+      await app.wheel(5, ROWS / 2, -1)
+    }
+
+    expect(app.text.includes("data:image") || app.text.includes("short item")).toBe(true)
+  })
+
   test("tall first item, short rest — wheel-scroll bottom MUST NOT enter empty viewport (silvercode resume shape)", async () => {
     const COLS = 60
     const ROWS = 20
