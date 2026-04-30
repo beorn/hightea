@@ -345,10 +345,16 @@ export function createRenderer(opts: RendererOptions): Renderer {
               trapInfo = `\nFRESH WRITE TRAP: NO WRITES to (${x},${y})\n`
             }
             // Also include INCREMENTAL trap captured during the failing render
-            const incrementalTrap = (globalThis as { __silvery_strict_incremental_trap?: { x: number; y: number; log: string[] } }).__silvery_strict_incremental_trap
+            const incrementalTrap = (
+              globalThis as {
+                __silvery_strict_incremental_trap?: { x: number; y: number; log: string[] }
+              }
+            ).__silvery_strict_incremental_trap
             if (incrementalTrap && incrementalTrap.x === x && incrementalTrap.y === y) {
               if (incrementalTrap.log.length > 0) {
-                trapInfo = `\nINCREMENTAL WRITE TRAP (${incrementalTrap.log.length} writes to (${x},${y})):\n${incrementalTrap.log.join("\n")}\n` + trapInfo
+                trapInfo =
+                  `\nINCREMENTAL WRITE TRAP (${incrementalTrap.log.length} writes to (${x},${y})):\n${incrementalTrap.log.join("\n")}\n` +
+                  trapInfo
               } else {
                 trapInfo = `\nINCREMENTAL WRITE TRAP: NO WRITES to (${x},${y})\n` + trapInfo
               }

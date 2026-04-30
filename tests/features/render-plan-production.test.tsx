@@ -23,10 +23,7 @@
  */
 import { describe, test, expect } from "vitest"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
-import {
-  commitSectionedPlan,
-  isRenderPlanEnabled,
-} from "@silvery/ag-term/pipeline/render-plan"
+import { commitSectionedPlan, isRenderPlanEnabled } from "@silvery/ag-term/pipeline/render-plan"
 import {
   BufferSink,
   TeeSink,
@@ -96,7 +93,8 @@ describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
 
   test("nested withPlanCapture restores outer scope on exit", () => {
     const buffer = new TerminalBuffer(10, 5)
-    let outerSinkAfterInner: import("@silvery/ag-term/pipeline/render-sink").RenderSink | null = null
+    let outerSinkAfterInner: import("@silvery/ag-term/pipeline/render-sink").RenderSink | null =
+      null
 
     withPlanCapture(10, 5, () => {
       const innerCapture = withPlanCapture(10, 5, () => createFrameSink(buffer))

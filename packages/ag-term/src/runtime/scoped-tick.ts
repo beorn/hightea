@@ -32,12 +32,7 @@
  * @packageDocumentation
  */
 
-import {
-  defineHandle,
-  finaliseHandle,
-  type Handle,
-  type Scope,
-} from "@silvery/scope"
+import { defineHandle, finaliseHandle, type Handle, type Scope } from "@silvery/scope"
 
 // =============================================================================
 // Brand — module-private. The unique-symbol brand is never exported, and

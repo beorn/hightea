@@ -61,13 +61,7 @@ describe("sibling overlap: incremental repaints overlapped later siblings", () =
               <Text>top-bar</Text>
             </Box>
             <Box height={1} flexShrink={0} />
-            <Box
-              width={80}
-              height={19}
-              overflow="scroll"
-              scrollTo={cursor}
-              flexDirection="column"
-            >
+            <Box width={80} height={19} overflow="scroll" scrollTo={cursor} flexDirection="column">
               {items.map((i) => (
                 <Box key={i} height={1} flexShrink={0}>
                   <Text>{`item ${i}`}</Text>

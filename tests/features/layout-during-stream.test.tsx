@@ -154,15 +154,7 @@ function CommandLike({ queue, command }: { queue: string; command: string }) {
  * Mirror of silvercode's App.tsx shape: row container with [LEFT column
  * (SessionCard above CommandBox) | side panel].
  */
-function App({
-  messages,
-  queue,
-  command,
-}: {
-  messages: string[]
-  queue: string
-  command: string
-}) {
+function App({ messages, queue, command }: { messages: string[]; queue: string; command: string }) {
   return (
     <Screen flexDirection="row">
       <Box flexDirection="column" flexGrow={1} minHeight={0} overflow="hidden">
@@ -171,7 +163,12 @@ function App({
           <CommandLike queue={queue} command={command} />
         </Box>
       </Box>
-      <Box flexShrink={0} flexBasis={40} flexDirection="column" backgroundColor="$bg-surface-subtle">
+      <Box
+        flexShrink={0}
+        flexBasis={40}
+        flexDirection="column"
+        backgroundColor="$bg-surface-subtle"
+      >
         <Text>side</Text>
       </Box>
     </Screen>
@@ -226,9 +223,7 @@ describe("layout-during-stream — gutter survives simultaneous resize", () => {
 
     // Continued sequence: more streaming + more typing.
     for (let i = 2; i <= 5; i++) {
-      app.rerender(
-        <App messages={makeMessages(7 + i)} queue={"h".repeat(i)} command="" />,
-      )
+      app.rerender(<App messages={makeMessages(7 + i)} queue={"h".repeat(i)} command="" />)
       await settle()
       expect(app.locator("#gutter-box").boundingBox()!.width).toBe(1)
     }

@@ -61,7 +61,13 @@ function HistoryDialogShape(): React.ReactElement {
   return (
     <ModalDialog title="History" hotkey="Esc">
       <Box flexDirection="column" gap={1}>
-        <TextInput value={query} onChange={setQuery} placeholder="Search session history" prompt="🔍 " isActive />
+        <TextInput
+          value={query}
+          onChange={setQuery}
+          placeholder="Search session history"
+          prompt="🔍 "
+          isActive
+        />
         <SelectList
           items={items}
           highlightedIndex={cursor}
@@ -109,12 +115,7 @@ function App({ open }: { open: boolean }): React.ReactElement {
         {/* RIGHT column: SidePanel-style with its own bg color. This is the
             column where the silvercode bug shows duplicated "SilverCode v0.1.0"
             text after dismissing the modal. */}
-        <Box
-          flexShrink={0}
-          flexBasis={28}
-          flexDirection="column"
-          backgroundColor="#1e1e2e"
-        >
+        <Box flexShrink={0} flexBasis={28} flexDirection="column" backgroundColor="#1e1e2e">
           <Text color="#cdd6f4">Sessions</Text>
           <Text color="#cdd6f4">{"  ▸ session 1"}</Text>
           <Text color="#cdd6f4">{"    session 2"}</Text>

@@ -126,7 +126,9 @@ function UnifiedHunk({
     <Box flexDirection="column">
       {hunk.header ? (
         <Box>
-          <Text color="$muted">@@ -{hunk.oldStart},+{hunk.newStart} @@ {hunk.header}</Text>
+          <Text color="$muted">
+            @@ -{hunk.oldStart},+{hunk.newStart} @@ {hunk.header}
+          </Text>
         </Box>
       ) : null}
       {hunk.lines.map((line, i) => {
@@ -209,7 +211,9 @@ function SideBySideHunk({
     <Box flexDirection="column">
       {hunk.header ? (
         <Box>
-          <Text color="$muted">@@ -{hunk.oldStart},+{hunk.newStart} @@ {hunk.header}</Text>
+          <Text color="$muted">
+            @@ -{hunk.oldStart},+{hunk.newStart} @@ {hunk.header}
+          </Text>
         </Box>
       ) : null}
       {rows.map((row, i) => (
@@ -267,7 +271,11 @@ export function Diff({
     <Box flexDirection="column" {...rest}>
       {hunks.map((hunk, i) => {
         const props = { hunk, showLineNumbers, lineNumberWidth: w }
-        return mode === "side-by-side" ? <SideBySideHunk key={i} {...props} /> : <UnifiedHunk key={i} {...props} />
+        return mode === "side-by-side" ? (
+          <SideBySideHunk key={i} {...props} />
+        ) : (
+          <UnifiedHunk key={i} {...props} />
+        )
       })}
     </Box>
   )

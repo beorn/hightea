@@ -103,13 +103,7 @@ describe("inline mode under SILVERY_STRICT_TERMINAL=xterm", () => {
       ROWS = 15
     const op = createOutputPhase({})
 
-    const buf1 = bufferWithLines(COLS, ROWS, [
-      "Line A",
-      "Line B",
-      "Line C",
-      "Line D",
-      "Line E",
-    ])
+    const buf1 = bufferWithLines(COLS, ROWS, ["Line A", "Line B", "Line C", "Line D", "Line E"])
     expect(() => op(null, buf1, "inline", 0, ROWS)).not.toThrow()
 
     const buf2 = bufferWithLines(COLS, ROWS, ["Line A", "Line B"])

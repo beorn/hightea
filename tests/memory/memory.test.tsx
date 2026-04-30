@@ -250,11 +250,7 @@ describe("handle counter: fuzz — random create/dispose orderings", () => {
     const before = getActiveHandleCount()
     const rng = mulberry32(0xcafebabe)
 
-    const scopes = [
-      createScope("fuzz-a"),
-      createScope("fuzz-b"),
-      createScope("fuzz-c"),
-    ]
+    const scopes = [createScope("fuzz-a"), createScope("fuzz-b"), createScope("fuzz-c")]
 
     let totalCreated = 0
 

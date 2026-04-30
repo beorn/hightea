@@ -67,9 +67,17 @@ export function TextShimmer({
   }, [phase, active, reset])
 
   if (!active) {
-    return <Text color={highColor} {...rest}>{children}</Text>
+    return (
+      <Text color={highColor} {...rest}>
+        {children}
+      </Text>
+    )
   }
 
   const color = value > 0.5 ? highColor : lowColor
-  return <Text color={color} {...rest}>{children}</Text>
+  return (
+    <Text color={color} {...rest}>
+      {children}
+    </Text>
+  )
 }

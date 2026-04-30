@@ -1780,8 +1780,7 @@ function ListViewInner<T>(
   //                        = (sum of heights[end..n)) + (n-end-1)*gap
   const totalGapAccount = Math.max(0, activeItems.length - 1) * gap
   const indexLeadingSpacer = usingIndexWindow
-    ? heightModel.prefixSum(indexWindowStart) +
-      Math.max(0, indexWindowStart - 1) * gap
+    ? heightModel.prefixSum(indexWindowStart) + Math.max(0, indexWindowStart - 1) * gap
     : 0
   const indexTrailingSpacer = usingIndexWindow
     ? heightModel.totalRows() -
@@ -2016,10 +2015,7 @@ function ListViewInner<T>(
           } else if (cursorIdx <= 0) {
             scrollRowFloatRef.current = 0
           } else {
-            scrollRowFloatRef.current = Math.max(
-              0,
-              Math.min(maxRow, rowsAboveViewportRef.current),
-            )
+            scrollRowFloatRef.current = Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
           }
         }
         const prev = scrollRowFloatRef.current

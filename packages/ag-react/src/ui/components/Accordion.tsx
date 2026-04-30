@@ -89,11 +89,7 @@ export function Accordion({
         <Text bold={active}>{chevron}</Text>
         <Text bold={active}>{title}</Text>
       </Box>
-      {isOpen ? (
-        <Box flexDirection="column">
-          {children}
-        </Box>
-      ) : null}
+      {isOpen ? <Box flexDirection="column">{children}</Box> : null}
     </Box>
   )
 }

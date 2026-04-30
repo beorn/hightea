@@ -66,7 +66,8 @@ describe("RenderSink", () => {
     sink.emitSetCell(0, 4, { char: "C" })
 
     const mismatch = compareBuffers(direct, viaSink)
-    if (mismatch) throw new Error(`BufferSink diverges from direct mutation:\n${formatMismatch(mismatch)}`)
+    if (mismatch)
+      throw new Error(`BufferSink diverges from direct mutation:\n${formatMismatch(mismatch)}`)
   })
 
   test("PlanSink: routes ops into the correct section by API method", () => {

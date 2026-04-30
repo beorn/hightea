@@ -212,7 +212,6 @@ Wraps a subtree (or the whole app) and sets the React context that `useTheme()` 
 
 ```tsx
 import { ThemeProvider, defaultDarkTheme } from "silvery"
-
 ;<ThemeProvider theme={defaultDarkTheme}>
   <App />
 </ThemeProvider>

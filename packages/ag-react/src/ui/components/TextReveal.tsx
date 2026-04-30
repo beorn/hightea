@@ -54,7 +54,16 @@ export function TextReveal({
     setAnimKey((k) => k + 1)
   }, [text])
 
-  return <TextRevealRunner key={animKey} text={text} duration={duration} easing={easing} onComplete={onComplete} {...rest} />
+  return (
+    <TextRevealRunner
+      key={animKey}
+      text={text}
+      duration={duration}
+      easing={easing}
+      onComplete={onComplete}
+      {...rest}
+    />
+  )
 }
 
 function TextRevealRunner({

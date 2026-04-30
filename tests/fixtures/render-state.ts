@@ -53,9 +53,7 @@ import type { NodeRenderState } from "@silvery/ag-term/pipeline"
  *     bufferIsCloned: true,
  *   })
  */
-export function createTestRenderState(
-  overrides?: Partial<NodeRenderState>,
-): NodeRenderState {
+export function createTestRenderState(overrides?: Partial<NodeRenderState>): NodeRenderState {
   return {
     scrollOffset: 0,
     clipBounds: undefined,

@@ -87,7 +87,11 @@ describe("Diff (side-by-side)", () => {
 describe("Diff (header)", () => {
   test("renders @@ header label when hunk.header is set", () => {
     const app = render(
-      <Diff hunks={[{ ...sampleHunk, header: "fn greet" }]} mode="unified" showLineNumbers={false} />,
+      <Diff
+        hunks={[{ ...sampleHunk, header: "fn greet" }]}
+        mode="unified"
+        showLineNumbers={false}
+      />,
     )
     expect(app.text).toContain("@@")
     expect(app.text).toContain("fn greet")

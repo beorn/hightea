@@ -69,7 +69,9 @@ export async function loadConfig(opts: LoadOpts): Promise<Config> {
   // Load both sources
 
   const globalSource = globalPath ? await loadOrInitSource(globalPath, createIfMissing) : null
-  const projectSource = projectPath ? await loadOrInitSource(projectPath, /* createIfMissing */ false) : null
+  const projectSource = projectPath
+    ? await loadOrInitSource(projectPath, /* createIfMissing */ false)
+    : null
 
   let merged = computeMerged(globalSource, projectSource, opts.defaults)
 
@@ -151,7 +153,9 @@ export async function loadConfig(opts: LoadOpts): Promise<Config> {
       if (!projectMutable.source) {
         // Lazy-init project source — needed when first --local write happens.
         if (!opts.appName) {
-          throw new Error("config: cannot write --local without `appName` (no project path resolvable)")
+          throw new Error(
+            "config: cannot write --local without `appName` (no project path resolvable)",
+          )
         }
         const newPath = join(cwd, `.${opts.appName}`, "config.yaml")
         const created: Source = { path: newPath, doc: new Document({}), raw: {} }
@@ -381,7 +385,8 @@ function unsetDeep(obj: Record<string, unknown>, key: string): void {
   for (let i = 0; i < parts.length - 1; i++) {
     const p = parts[i] as string
     const next = cur[p]
-    if (next === undefined || next === null || typeof next !== "object" || Array.isArray(next)) return
+    if (next === undefined || next === null || typeof next !== "object" || Array.isArray(next))
+      return
     cur = next as Record<string, unknown>
   }
   delete cur[parts[parts.length - 1] as string]
@@ -465,9 +470,7 @@ function resolveHome(p: string): string {
 function validateOrThrow(schema: ZodSchema, raw: unknown, path: string): void {
   const r = schema.safeParse(raw)
   if (!r.success) {
-    const issues = r.error.issues
-      .map((i) => `  ${i.path.join(".")}: ${i.message}`)
-      .join("\n")
+    const issues = r.error.issues.map((i) => `  ${i.path.join(".")}: ${i.message}`).join("\n")
     throw new Error(`config: ${path} failed validation:\n${issues}`)
   }
 }
@@ -480,13 +483,19 @@ function diffNotify(
 ): void {
   if (listeners.size === 0) return
   walk(before, prefix, (k, v) => {
-    const v2 = getDeep(after as Record<string, unknown>, k.startsWith(prefix) ? k.slice(prefix.length) : k)
+    const v2 = getDeep(
+      after as Record<string, unknown>,
+      k.startsWith(prefix) ? k.slice(prefix.length) : k,
+    )
     if (!Object.is(v, v2)) {
       for (const fn of listeners) fn(k, v, v2)
     }
   })
   walk(after, prefix, (k, v) => {
-    const v2 = getDeep(before as Record<string, unknown>, k.startsWith(prefix) ? k.slice(prefix.length) : k)
+    const v2 = getDeep(
+      before as Record<string, unknown>,
+      k.startsWith(prefix) ? k.slice(prefix.length) : k,
+    )
     if (v2 === undefined && v !== undefined) {
       for (const fn of listeners) fn(k, undefined, v)
     }

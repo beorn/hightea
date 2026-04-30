@@ -65,7 +65,10 @@ export interface UseResponsiveValueOptions {
  * Test harnesses with mock terms typically report 0; this yields the
  * full-width default which matches existing visual fixtures.
  */
-export function useResponsiveValue<T>(values: ResponsiveValues<T>, options: UseResponsiveValueOptions = {}): T {
+export function useResponsiveValue<T>(
+  values: ResponsiveValues<T>,
+  options: UseResponsiveValueOptions = {},
+): T {
   const cols = useTerm((t) => t.size.cols())
   const bp = { ...DEFAULT_BREAKPOINTS, ...options.breakpoints }
 

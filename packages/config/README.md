@@ -32,17 +32,17 @@ const config = await loadConfig({
 
 // Generic deep-key access (git-config style)
 config.get("ai.acp.default")
-config.set("ai.acp.default", "claude-work")              // → global file
-config.set("project.layout", "wide", "local")            // → project file (lazy-creates)
+config.set("ai.acp.default", "claude-work") // → global file
+config.set("project.layout", "wide", "local") // → project file (lazy-creates)
 config.unset("ai.acp.legacy-claude")
 config.list({ pattern: "ai.acp.*" })
-await config.save()                                       // global by default
-await config.save({ scope: "local" })                     // project file
+await config.save() // global by default
+await config.save({ scope: "local" }) // project file
 
 // Reactive signals (alien-signals-backed; only fire on real value changes)
 const acpDefault = config.signal<string>("ai.acp.default")
-acpDefault()                                              // current value
-const root = config.rootSignal()                          // whole tree
+acpDefault() // current value
+const root = config.rootSignal() // whole tree
 
 // Single-file mode for tests / one-off loads
 const fixture = await loadConfig({ path: "/tmp/test.yaml" })
@@ -52,10 +52,10 @@ const fixture = await loadConfig({ path: "/tmp/test.yaml" })
 
 When loaded with `appName`, `loadConfig` resolves two files:
 
-| Source                           | Linux / macOS                                    | Windows                                |
-| -------------------------------- | ------------------------------------------------ | -------------------------------------- |
-| **Global** (user-wide)           | `${XDG_CONFIG_HOME:-~/.config}/<app>/config.yaml` | `%APPDATA%\<app>\config.yaml`          |
-| **Project** (cosmiconfig walk-up) | nearest `.<app>/config.yaml` from cwd            | nearest `.<app>/config.yaml` from cwd  |
+| Source                            | Linux / macOS                                     | Windows                               |
+| --------------------------------- | ------------------------------------------------- | ------------------------------------- |
+| **Global** (user-wide)            | `${XDG_CONFIG_HOME:-~/.config}/<app>/config.yaml` | `%APPDATA%\<app>\config.yaml`         |
+| **Project** (cosmiconfig walk-up) | nearest `.<app>/config.yaml` from cwd             | nearest `.<app>/config.yaml` from cwd |
 
 Reads merge both; **project overrides global**. Writes default to global; pass `scope: "local"` to target the project file (lazy-created on first write if absent).
 
@@ -64,12 +64,12 @@ Reads merge both; **project overrides global**. Writes default to global; pass `
 ## Scoped writes
 
 ```ts
-config.set("ui.theme", "dark")              // global
-config.set("ai.acp.default", "codex")       // global
-config.set("layout", "wide", "local")       // project (.km/config.yaml)
+config.set("ui.theme", "dark") // global
+config.set("ai.acp.default", "codex") // global
+config.set("layout", "wide", "local") // project (.km/config.yaml)
 
-await config.save()                          // saves global only
-await config.save({ scope: "local" })        // saves project only
+await config.save() // saves global only
+await config.save({ scope: "local" }) // saves project only
 ```
 
 `config.globalPath`, `config.projectPath`, and `config.path` (project ?? global) expose the resolved file paths — useful for `--edit` or "where is this coming from?" diagnostics.
@@ -87,9 +87,9 @@ const stop = effect(() => {
 })
 
 config.set("ui.theme", "dark")
-await config.save()                          // → effect fires
+await config.save() // → effect fires
 config.set("ui.theme", "dark")
-await config.save()                          // → effect does NOT fire (same value)
+await config.save() // → effect does NOT fire (same value)
 
 stop()
 ```
@@ -99,9 +99,9 @@ Registries expose the same shape:
 ```ts
 const acp = config.registry("ai.acp", AcpKind)
 
-acp.signalEntries()                          // ReadSignal<RegistryEntry[]>
-acp.signalDefault()                          // ReadSignal<Connection | undefined>
-acp.signalGet("claude-work")                 // ReadSignal<Connection | undefined>
+acp.signalEntries() // ReadSignal<RegistryEntry[]>
+acp.signalDefault() // ReadSignal<Connection | undefined>
+acp.signalGet("claude-work") // ReadSignal<Connection | undefined>
 ```
 
 ## File watching
@@ -115,7 +115,7 @@ const config = await loadConfig({ appName: "km", watch: true, watchDebounceMs: 1
 // Self-writes via config.save() are filtered out (200 ms grace window) to
 // avoid feedback loops.
 
-config.unwatch()                             // stop watching
+config.unwatch() // stop watching
 ```
 
 `fs.watch` may fail on some filesystems (NFS, Docker bind mounts); the watcher silently degrades to no-op in that case.
@@ -174,9 +174,9 @@ const acp = config.registry("ai.acp", AcpKind)
 
 acp.entries()
 acp.get("claude-work")
-acp.resolve("claude-work")                   // by name
-acp.resolve("codex?model=gpt-5-mini")        // by connection string (auto-detected)
-acp.format("claude-work")                    // → connection string (lossy if metadata)
+acp.resolve("claude-work") // by name
+acp.resolve("codex?model=gpt-5-mini") // by connection string (auto-detected)
+acp.format("claude-work") // → connection string (lossy if metadata)
 acp.default()
 acp.setDefault("codex")
 acp.add("quick", "codex?model=gpt-5-mini")
@@ -190,7 +190,7 @@ Each registry entry is `oneOf: [string, object]`:
 ```yaml
 ai:
   acp:
-    default: claude-work               # reserved key — entries can't be named "default"
+    default: claude-work # reserved key — entries can't be named "default"
 
     # String form — terse
     claude-work: "claude-code?account=bjorn@stabell.org&model=opus-4.7&bare"

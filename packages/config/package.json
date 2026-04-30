@@ -4,11 +4,11 @@
   "description": "Generic config-tree + named-registry primitives with string ↔ object projection",
   "keywords": [
     "config",
-    "registry",
-    "preset",
-    "yaml",
     "connection-string",
-    "silvery"
+    "preset",
+    "registry",
+    "silvery",
+    "yaml"
   ],
   "license": "MIT",
   "author": "Bjørn Stabell <bjorn@stabell.org>",

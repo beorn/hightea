@@ -164,9 +164,7 @@ describe("HeightModel", () => {
     expect(sumAll).toBe(m.totalRows()) // gap=0 so they match
     // sumAll should equal N + (number of items measured to height 2)
     // — each measurement adds 1 over the original height of 1.
-    const measuredCount = new Set(
-      Array.from({ length: 1000 }, (_, i) => (i * 7919) % N),
-    ).size
+    const measuredCount = new Set(Array.from({ length: 1000 }, (_, i) => (i * 7919) % N)).size
     expect(sumAll).toBe(N + measuredCount)
   })
 

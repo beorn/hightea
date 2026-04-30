@@ -109,7 +109,9 @@ function splitParts(input: string): { scheme?: string; path?: string; query?: st
   }
 }
 
-function* parseQueryPairs(query: string | undefined): IterableIterator<[string, string | undefined]> {
+function* parseQueryPairs(
+  query: string | undefined,
+): IterableIterator<[string, string | undefined]> {
   if (!query) return
   for (const pair of query.split("&")) {
     if (pair === "") continue
@@ -155,7 +157,12 @@ function inferType(raw: string): CoerceType {
   return "string"
 }
 
-function setDeep(obj: Record<string, unknown>, key: string, value: unknown, allowArrayMerge: boolean): void {
+function setDeep(
+  obj: Record<string, unknown>,
+  key: string,
+  value: unknown,
+  allowArrayMerge: boolean,
+): void {
   // Strip "[]" for path traversal but mark as array-merge.
   let bareKey = key
   if (bareKey.endsWith("[]")) {

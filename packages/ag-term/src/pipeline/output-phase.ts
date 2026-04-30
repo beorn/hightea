@@ -62,9 +62,7 @@ const CAPTURE_RAW = !!_env.SILVERY_CAPTURE_RAW
  * Inline mode is intentionally excluded in this phase — see design doc R4.
  */
 function isHybridOutputEnabled(): boolean {
-  return (
-    (typeof process !== "undefined" ? process.env.SILVERY_HYBRID_OUTPUT : undefined) === "1"
-  )
+  return (typeof process !== "undefined" ? process.env.SILVERY_HYBRID_OUTPUT : undefined) === "1"
 }
 let _debugFrameCount = 0
 let _captureRawFrameCount = 0

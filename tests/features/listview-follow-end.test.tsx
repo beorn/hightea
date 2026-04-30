@@ -50,7 +50,7 @@ function FollowEndChat(props: {
   )
 }
 
-describe("ListView follow=\"end\"", () => {
+describe('ListView follow="end"', () => {
   test("initial mount lands at bottom (no cursorKey required)", async () => {
     const render = createRenderer({ cols: 30, rows: 8 })
     const app = render(<FollowEndChat items={makeItems(10)} />)
@@ -195,7 +195,7 @@ describe("ListView follow=\"end\"", () => {
 })
 
 describe("stickyBottom alias (deprecated)", () => {
-  test("stickyBottom={true} is equivalent to follow=\"end\"", async () => {
+  test('stickyBottom={true} is equivalent to follow="end"', async () => {
     const render = createRenderer({ cols: 30, rows: 8 })
     function Sticky() {
       return (

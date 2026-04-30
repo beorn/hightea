@@ -185,10 +185,7 @@ export interface Handle<B extends symbol> extends AsyncDisposable {
  */
 export interface DefinedHandle<K extends string> {
   readonly kind: K
-  create<V extends object>(
-    _value: V,
-    dispose: (() => void) | (() => Promise<void>),
-  ): Handle<symbol>
+  create<V extends object>(_value: V, dispose: (() => void) | (() => Promise<void>)): Handle<symbol>
 }
 
 export function defineHandle<K extends string>(kind: K): DefinedHandle<K> {

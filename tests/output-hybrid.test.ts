@@ -9,15 +9,8 @@
  */
 
 import { describe, test, expect } from "vitest"
-import {
-  TerminalBuffer,
-  createMutableCell,
-  type Cell,
-} from "@silvery/ag-term/buffer"
-import {
-  analyzeRowDensity,
-  pickEmissionMode,
-} from "@silvery/ag-term/pipeline/output-density"
+import { TerminalBuffer, createMutableCell, type Cell } from "@silvery/ag-term/buffer"
+import { analyzeRowDensity, pickEmissionMode } from "@silvery/ag-term/pipeline/output-density"
 import {
   createOutputEmitState,
   emitWholeRow,
@@ -109,13 +102,7 @@ describe("analyzeRowDensity", () => {
   })
 
   test("two non-adjacent runs on one row", () => {
-    const pool = sorted([
-      change(2, 0),
-      change(3, 0),
-      change(10, 0),
-      change(11, 0),
-      change(12, 0),
-    ])
+    const pool = sorted([change(2, 0), change(3, 0), change(10, 0), change(11, 0), change(12, 0)])
     const result = analyzeRowDensity(pool, pool.length, 80)
     const row = result.rows[0]!
     expect(row.dirty).toBe(5)
@@ -297,10 +284,7 @@ describe("emitScatter", () => {
     const buf = new TerminalBuffer(20, 3)
     buf.setCell(2, 0, makeCell({ char: "X" }))
     buf.setCell(15, 0, makeCell({ char: "Y" }))
-    const pool: CellChange[] = [
-      change(2, 0, { char: "X" }),
-      change(15, 0, { char: "Y" }),
-    ]
+    const pool: CellChange[] = [change(2, 0, { char: "X" }), change(15, 0, { char: "Y" })]
     const result = analyzeRowDensity(pool, pool.length, 20)
     const state = createOutputEmitState({ isInline: false })
     emitScatter(result.rows[0]!, pool, buf, defaultCtx, state)

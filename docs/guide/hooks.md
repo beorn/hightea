@@ -85,7 +85,6 @@ For the common pattern of "render based on my own measured size," use the [`<Mea
 
 ```tsx
 import { MeasuredBox } from "silvery"
-
 ;<MeasuredBox width="100%" flexDirection="column" alignItems="center">
   {({ width }) => <Banner availableWidth={width} />}
 </MeasuredBox>

@@ -98,13 +98,7 @@ function App({ tree }: { tree: Tree }): React.ReactElement {
     return (
       <Box width={COLS} height={ROWS} flexDirection="column">
         <Box flexGrow={1} flexShrink={1} flexDirection="row" minHeight={0} minWidth={0}>
-          <Box
-            flexGrow={1}
-            flexShrink={1}
-            minWidth={0}
-            minHeight={0}
-            flexDirection="column"
-          >
+          <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0} flexDirection="column">
             <Pane label="A" />
           </Box>
         </Box>
@@ -271,16 +265,12 @@ describe("regression: horizontal divider in mixed split tree (km-silvercode.pane
       const right = line.slice(41)
       return right.includes("─")
     })
-    expect(
-      dashRow,
-      "no horizontal-divider row found in right half:\n" + app.text,
-    ).toBeTruthy()
+    expect(dashRow, "no horizontal-divider row found in right half:\n" + app.text).toBeTruthy()
     // The `─` segment in the right half should be uninterrupted by `│`.
     const right = dashRow!.slice(41)
-    expect(
-      right.includes("│"),
-      "horizontal divider row was clobbered by `│`:\n" + dashRow,
-    ).toBe(false)
+    expect(right.includes("│"), "horizontal divider row was clobbered by `│`:\n" + dashRow).toBe(
+      false,
+    )
   })
 
   test("fresh render and incremental render agree on divider glyphs (paint-clear invariant)", () => {

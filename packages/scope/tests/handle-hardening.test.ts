@@ -80,7 +80,9 @@ describe("runtime authenticity", () => {
     const real = makeBranded()
 
     // Cloning copies the surface but not the WeakSet membership.
-    const clone = { ...(real as unknown as Record<string, unknown>) } as unknown as RegistrableHandle
+    const clone = {
+      ...(real as unknown as Record<string, unknown>),
+    } as unknown as RegistrableHandle
 
     expect(() => scope.adoptHandle(clone)).toThrow(/not a silvery handle/)
   })

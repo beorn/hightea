@@ -46,7 +46,6 @@ Other flex props (`flexShrink: 1`, `alignContent: stretch`, auto min-size) come 
 ```tsx
 import { Prose } from "silvery"
 import { MarkdownView } from "./MarkdownView"
-
 ;<Prose>
   <MarkdownView source={longMarkdown} />
 </Prose>

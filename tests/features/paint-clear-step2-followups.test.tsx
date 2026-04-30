@@ -34,10 +34,7 @@ import {
 } from "@silvery/ag-term/pipeline"
 import { renderPhase } from "@silvery/ag-term/pipeline/render-phase"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
-import {
-  setLayoutEngine,
-  isLayoutEngineInitialized,
-} from "@silvery/ag-term/layout-engine"
+import { setLayoutEngine, isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { compareBuffers, formatMismatch } from "@silvery/test"
 
@@ -84,20 +81,9 @@ function Board({ cursor }: { cursor: number }) {
   const columns = 5
   const cardsPerColumn = 10
   return (
-    <Box
-      width={80}
-      height={20}
-      flexDirection="row"
-      backgroundColor="black"
-    >
+    <Box width={80} height={20} flexDirection="row" backgroundColor="black">
       {Array.from({ length: columns }, (_, ci) => (
-        <Box
-          key={ci}
-          flexDirection="column"
-          width={16}
-          height={20}
-          padding={1}
-        >
+        <Box key={ci} flexDirection="column" width={16} height={20} padding={1}>
           {/* userSelect="none" header — deselects, must restore for cards below */}
           <Box userSelect="none" height={1}>
             <Text>{`Col ${ci}`}</Text>
@@ -106,11 +92,7 @@ function Board({ cursor }: { cursor: number }) {
             const idx = ci * cardsPerColumn + ri
             const isCursor = idx === cursor
             return (
-              <Box
-                key={ri}
-                height={1}
-                backgroundColor={isCursor ? "red" : undefined}
-              >
+              <Box key={ri} height={1} backgroundColor={isCursor ? "red" : undefined}>
                 <Text>{`c${idx}`}</Text>
               </Box>
             )

@@ -51,10 +51,7 @@ import {
   wrapPrevBufferForRecording,
 } from "@silvery/ag-term/pipeline/render-plan"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
-import {
-  setLayoutEngine,
-  isLayoutEngineInitialized,
-} from "@silvery/ag-term/layout-engine"
+import { setLayoutEngine, isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 import { compareBuffers, formatMismatch } from "@silvery/test"
 
@@ -222,7 +219,10 @@ describe("render-plan-commit parity (Phase 1)", () => {
     const replayed = frame1.clone()
     commitPlan(replayed, corruptedPlan)
     const mismatch = compareBuffers(replayed, recordedOut)
-    expect(mismatch, "dropping ops must produce a buffer divergence — parity check is otherwise vacuous").not.toBeNull()
+    expect(
+      mismatch,
+      "dropping ops must produce a buffer divergence — parity check is otherwise vacuous",
+    ).not.toBeNull()
   })
 
   test("scrollbar-shrink-with-sibling-bg: both paths produce the SAME correct output", () => {
@@ -447,9 +447,7 @@ describe("render-plan-commit parity (Phase 1)", () => {
       width: 1,
       height: 1,
       transferOps: [] as const,
-      cleanupOps: [
-        { kind: "clearRect" as const, x: 0, y: 0, width: 1, height: 1, bg: null },
-      ],
+      cleanupOps: [{ kind: "clearRect" as const, x: 0, y: 0, width: 1, height: 1, bg: null }],
       paintOps: [{ kind: "setCell" as const, x: 0, y: 0, cell: { char: "X" } }],
       overlayOps: [] as const,
       postStateOps: [] as const,
@@ -508,9 +506,7 @@ describe("render-plan-commit parity (Phase 1)", () => {
 
     const mismatch = compareBuffers(target, out)
     if (mismatch) {
-      throw new Error(
-        `commit replay diverges from recorded buffer:\n${formatMismatch(mismatch)}`,
-      )
+      throw new Error(`commit replay diverges from recorded buffer:\n${formatMismatch(mismatch)}`)
     }
   })
 })

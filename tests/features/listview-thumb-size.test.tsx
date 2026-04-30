@@ -65,7 +65,9 @@ describe("ListView scrollbar thumb size — accurate when items taller than esti
     // Thumb must be clearly smaller than half the track. Pre-fix it was
     // the entire track height (20 rows); a properly-sized thumb for ~200
     // rows of content in a 20-row viewport is ~2-3 rows.
-    expect(cells.length, `thumb covered ${cells.length}/${ROWS} rows — too large`).toBeLessThan(ROWS / 2)
+    expect(cells.length, `thumb covered ${cells.length}/${ROWS} rows — too large`).toBeLessThan(
+      ROWS / 2,
+    )
   })
 
   test("estimate-correct lists keep the stable thumb size (no jitter)", async () => {

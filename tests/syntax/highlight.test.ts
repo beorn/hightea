@@ -120,7 +120,7 @@ describe("highlight — Python", () => {
 
 describe("highlight — Rust", () => {
   test("highlights Rust code non-empty", async () => {
-    const code = "fn main() { println!(\"hello\"); }"
+    const code = 'fn main() { println!("hello"); }'
     const lines = await highlight(code, "rs", "github-dark")
     expect(lines.length).toBeGreaterThan(0)
     const text = lines.flatMap((l) => l.tokens.map((t) => t.text)).join("")

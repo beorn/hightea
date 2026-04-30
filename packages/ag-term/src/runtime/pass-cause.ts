@@ -222,10 +222,7 @@ export function createPassCauseAggregator(): PassCauseAggregator {
     // namespaces — emit happens on the child namespace so that
     // `DEBUG=silvery:passes:layout-invalidate` filters by cause.
     if (event.kind !== "log") return event
-    if (
-      event.namespace !== "silvery:passes" &&
-      !event.namespace.startsWith("silvery:passes:")
-    ) {
+    if (event.namespace !== "silvery:passes" && !event.namespace.startsWith("silvery:passes:")) {
       return event
     }
     if (event.message !== "pass") return event
@@ -298,14 +295,10 @@ export function createPassCauseAggregator(): PassCauseAggregator {
       const pct = ((entry.count / h.totalRecords) * 100).toFixed(1)
       lines.push(`  ${entry.cause}: ${entry.count} (${pct}%)`)
       if (entry.topEdges.length > 0) {
-        lines.push(
-          "    edges: " + entry.topEdges.map((e) => `${e.edge}×${e.count}`).join(", "),
-        )
+        lines.push("    edges: " + entry.topEdges.map((e) => `${e.edge}×${e.count}`).join(", "))
       }
       if (entry.topNodes.length > 0) {
-        lines.push(
-          "    nodes: " + entry.topNodes.map((n) => `${n.nodeId}×${n.count}`).join(", "),
-        )
+        lines.push("    nodes: " + entry.topNodes.map((n) => `${n.nodeId}×${n.count}`).join(", "))
       }
     }
     return lines.join("\n")
@@ -404,9 +397,7 @@ const passLogConfig = [
   passAggregator.stage,
 ] as const
 
-const passLog: ConditionalLogger = createLogger("silvery:passes", [
-  ...passLogConfig,
-])
+const passLog: ConditionalLogger = createLogger("silvery:passes", [...passLogConfig])
 
 const childLoggers = new Map<PassCause, ConditionalLogger>()
 function loggerForCause(cause: PassCause): ConditionalLogger {
@@ -612,11 +603,7 @@ export const MAX_CLASSIC_LOOP_ITERATIONS = 5
  * `loopName` argument to `assertBoundedConvergence` so an over-budget
  * regression names the offending loop.
  */
-export type ConvergenceLoopName =
-  | "single-pass"
-  | "classic"
-  | "effect-flush"
-  | "production-flush"
+export type ConvergenceLoopName = "single-pass" | "classic" | "effect-flush" | "production-flush"
 
 /** Map a loop name to its bound. */
 function boundFor(loopName: ConvergenceLoopName): number {
@@ -633,10 +620,7 @@ function boundFor(loopName: ConvergenceLoopName): number {
  *   responsible edge instead of just "exhausted N iterations".
  * STRICT=1: emits a stderr warning with the same breakdown.
  */
-export function assertBoundedConvergence(
-  passCount: number,
-  loopName: ConvergenceLoopName,
-): void {
+export function assertBoundedConvergence(passCount: number, loopName: ConvergenceLoopName): void {
   const bound = boundFor(loopName)
   if (passCount <= bound) return
   const strict = process?.env?.SILVERY_STRICT

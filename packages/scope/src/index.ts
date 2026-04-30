@@ -96,7 +96,12 @@ export class Scope extends AsyncDisposableStack {
    * `adoptHandle`.
    */
   override use<T extends AsyncDisposable | Disposable | null | undefined>(value: T): T {
-    if (value !== null && value !== undefined && typeof value === "object" && _isBrandedHandle(value)) {
+    if (
+      value !== null &&
+      value !== undefined &&
+      typeof value === "object" &&
+      _isBrandedHandle(value)
+    ) {
       _adoptHandle(this, value as unknown as RegistrableHandle)
       return value
     }

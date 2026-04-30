@@ -14,11 +14,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import {
-  assertScopeBalance,
-  createScope,
-  getAdoptedHandles,
-} from "@silvery/scope"
+import { assertScopeBalance, createScope, getAdoptedHandles } from "@silvery/scope"
 
 import { createScopedTick } from "../../packages/ag-term/src/runtime/scoped-tick"
 

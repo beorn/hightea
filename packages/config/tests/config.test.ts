@@ -80,7 +80,10 @@ describe("get / set / unset / has / list", () => {
   })
 
   it("list filters by glob pattern", async () => {
-    await writeFile(join(tmpDir, "c.yaml"), "ai:\n  acp:\n    foo: 1\n    bar: 2\n  mcp:\n    km: 3\n")
+    await writeFile(
+      join(tmpDir, "c.yaml"),
+      "ai:\n  acp:\n    foo: 1\n    bar: 2\n  mcp:\n    km: 3\n",
+    )
     const config = await loadConfig({ path: join(tmpDir, "c.yaml") })
     const list = config.list({ pattern: "ai.acp.*" })
     expect(list.map((e) => e.key).sort()).toEqual(["ai.acp.bar", "ai.acp.foo"])

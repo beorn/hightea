@@ -126,7 +126,9 @@ describe("Registry signals", () => {
     const sig = acp.signalEntries()
     let lastNames: string[] = []
     const dispose = effect(() => {
-      lastNames = sig().map((e) => e.name).sort()
+      lastNames = sig()
+        .map((e) => e.name)
+        .sort()
     })
     expect(lastNames).toEqual(["claude-work", "codex"])
     acp.add("gemini", "gemini?model=2.5-pro")

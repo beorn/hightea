@@ -298,10 +298,7 @@ function ImagePlacement({
       // delete-then-place gap that otherwise produces a visible
       // flicker frame between the prior placement vanishing and the
       // new one rendering at the updated coords.
-      write(
-        moveCursor +
-          placeKittyImage({ id, width: effectiveWidth, height: effectiveHeight }),
-      )
+      write(moveCursor + placeKittyImage({ id, width: effectiveWidth, height: effectiveHeight }))
       placedSizeRef.current = { width: effectiveWidth, height: effectiveHeight }
       lastEmittedRef.current = {
         x: boxRect.x,

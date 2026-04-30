@@ -53,7 +53,10 @@ afterEach(async () => {
 describe("Registry — entries / get / resolve", () => {
   it("lists entries (excludes reserved 'default')", () => {
     const reg = config.registry("ai.acp", AcpKind)
-    const names = reg.entries().map((e) => e.name).sort()
+    const names = reg
+      .entries()
+      .map((e) => e.name)
+      .sort()
     expect(names).toEqual(["claude-personal", "claude-work", "codex"])
   })
 
@@ -128,7 +131,12 @@ describe("Registry — mutation", () => {
     const reg = config.registry("ai.acp", AcpKind)
     reg.rm("codex")
     expect(reg.has("codex")).toBe(false)
-    expect(reg.entries().map((e) => e.name).sort()).toEqual(["claude-personal", "claude-work"])
+    expect(
+      reg
+        .entries()
+        .map((e) => e.name)
+        .sort(),
+    ).toEqual(["claude-personal", "claude-work"])
   })
 
   it("rm rejects reserved keys", () => {

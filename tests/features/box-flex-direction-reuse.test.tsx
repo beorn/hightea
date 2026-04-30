@@ -103,9 +103,7 @@ describe("Box flexDirection prop change on rerender", () => {
     app.rerender(<SplitRenderer direction="column" />)
     expect(stripAnsi(app.lines[0]!)).toMatch(/session-A/)
     expect(stripAnsi(app.lines[0]!)).not.toMatch(/session-B/)
-    const bRow = app.lines.findIndex(
-      (l, i) => i > 0 && stripAnsi(l).startsWith("session-B"),
-    )
+    const bRow = app.lines.findIndex((l, i) => i > 0 && stripAnsi(l).startsWith("session-B"))
     expect(bRow).toBeGreaterThan(0)
   })
 
@@ -131,13 +129,7 @@ describe("Box flexDirection prop change on rerender", () => {
         )
       }
       return (
-        <Box
-          flexDirection={node.direction}
-          flexGrow={1}
-          flexShrink={1}
-          minWidth={0}
-          minHeight={0}
-        >
+        <Box flexDirection={node.direction} flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
           <Box flexGrow={1} flexShrink={1} minWidth={0} minHeight={0}>
             <NodeRenderer node={node.children[0]} />
           </Box>
@@ -183,9 +175,7 @@ describe("Box flexDirection prop change on rerender", () => {
     app.rerender(<App tree={treeCol} />)
     expect(stripAnsi(app.lines[0]!)).toMatch(/^A/)
     expect(stripAnsi(app.lines[0]!)).not.toMatch(/B/)
-    const bRow = app.lines.findIndex(
-      (l, i) => i > 0 && stripAnsi(l).startsWith("B"),
-    )
+    const bRow = app.lines.findIndex((l, i) => i > 0 && stripAnsi(l).startsWith("B"))
     expect(bRow).toBeGreaterThan(0)
   })
 

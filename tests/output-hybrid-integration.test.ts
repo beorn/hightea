@@ -29,10 +29,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { TerminalBuffer } from "../packages/ag-term/src/buffer.ts"
-import {
-  outputPhase,
-  replayAnsiWithStyles,
-} from "../packages/ag-term/src/pipeline/output-phase.ts"
+import { outputPhase, replayAnsiWithStyles } from "../packages/ag-term/src/pipeline/output-phase.ts"
 
 const ORIGINAL_HYBRID = process.env.SILVERY_HYBRID_OUTPUT
 
@@ -100,8 +97,7 @@ function verifyEquivalence(prev: TerminalBuffer, next: TerminalBuffer, descripti
 
   if (mismatches.length > 0) {
     expect.fail(
-      `${description}: ${mismatches.length} cell mismatches\n` +
-        mismatches.slice(0, 8).join("\n"),
+      `${description}: ${mismatches.length} cell mismatches\n` + mismatches.slice(0, 8).join("\n"),
     )
   }
 }

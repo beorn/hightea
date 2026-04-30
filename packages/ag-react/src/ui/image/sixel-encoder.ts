@@ -68,13 +68,8 @@ export function decodePngToRgba(pngData: Buffer | Uint8Array): SixelImageData | 
     // upng-js accepts ArrayBuffer or Uint8Array. Slice to the exact byte
     // range so we don't accidentally feed a larger backing buffer.
     const view =
-      pngData instanceof Uint8Array
-        ? pngData
-        : new Uint8Array(pngData as ArrayBufferLike)
-    const ab = view.buffer.slice(
-      view.byteOffset,
-      view.byteOffset + view.byteLength,
-    ) as ArrayBuffer
+      pngData instanceof Uint8Array ? pngData : new Uint8Array(pngData as ArrayBufferLike)
+    const ab = view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength) as ArrayBuffer
 
     const decoded = UPNG.decode(ab)
     const frames = UPNG.toRGBA8(decoded)

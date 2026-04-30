@@ -94,9 +94,7 @@ function makePng(width: number, height: number, pixels: Uint8Array): Buffer {
 describe("Sixel: PNG → RGBA decode", () => {
   test("decodePngToRgba round-trips RGBA pixels via a synthetic PNG", () => {
     // 2×2 pixel image: red, green / blue, transparent.
-    const pixels = new Uint8Array([
-      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0,
-    ])
+    const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0])
     const png = makePng(2, 2, pixels)
 
     const rgba = decodePngToRgba(png)
@@ -122,9 +120,7 @@ describe("Sixel: PNG → RGBA decode", () => {
 
   test("PNG → RGBA → Sixel produces a well-formed DCS sequence", () => {
     // Same 2×2 fixture, then run it through the full pipeline.
-    const pixels = new Uint8Array([
-      255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0,
-    ])
+    const pixels = new Uint8Array([255, 0, 0, 255, 0, 255, 0, 255, 0, 0, 255, 255, 0, 0, 0, 0])
     const png = makePng(2, 2, pixels)
 
     const rgba = decodePngToRgba(png)

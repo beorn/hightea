@@ -34,10 +34,7 @@ import {
   wrapPrevBufferForRecording,
 } from "@silvery/ag-term/pipeline/render-plan"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
-import {
-  setLayoutEngine,
-  isLayoutEngineInitialized,
-} from "@silvery/ag-term/layout-engine"
+import { setLayoutEngine, isLayoutEngineInitialized } from "@silvery/ag-term/layout-engine"
 import { createFlexilyZeroEngine } from "@silvery/ag-term/adapters/flexily-zero-adapter"
 
 function ensureLayoutEngine(): void {
@@ -73,11 +70,7 @@ function PerfScene({ tick }: { tick: number }) {
   return (
     <Box flexDirection="column" width={80} height={24}>
       {Array.from({ length: 24 }, (_, i) => (
-        <Box
-          key={i}
-          flexDirection="row"
-          backgroundColor={i % 3 === 0 ? "blue" : undefined}
-        >
+        <Box key={i} flexDirection="row" backgroundColor={i % 3 === 0 ? "blue" : undefined}>
           <Text>{`row${i}-${tick}`}</Text>
           <Text>{` col2-${tick}`}</Text>
         </Box>

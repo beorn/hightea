@@ -39,7 +39,10 @@ export interface RadioGroupOption<T extends string = string> {
   label: string
 }
 
-export interface RadioGroupProps<T extends string = string> extends Omit<BoxProps, "children" | "onChange"> {
+export interface RadioGroupProps<T extends string = string> extends Omit<
+  BoxProps,
+  "children" | "onChange"
+> {
   /** All options, in display order. */
   options: ReadonlyArray<RadioGroupOption<T>>
   /** Currently selected value. Pair with onChange. */

@@ -55,9 +55,9 @@ describe("parseString — basics", () => {
   })
 
   it("coerces declared number fields", () => {
-    expect(parseString("gemini?temp=0.7", { ...AcpKind, schema: AcpKind.schema as never })).toMatchObject(
-      { agent: "gemini", temp: 0.7 },
-    )
+    expect(
+      parseString("gemini?temp=0.7", { ...AcpKind, schema: AcpKind.schema as never }),
+    ).toMatchObject({ agent: "gemini", temp: 0.7 })
   })
 
   it("preserves @ in account email without escaping", () => {

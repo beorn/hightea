@@ -309,9 +309,7 @@ export async function highlight(
 
     // Check if language was actually loaded (unknown lang falls back to plain)
     const loaded = hl.getLoadedLanguages()
-    const langId = loaded.find(
-      (l) => l === canonLang || l === lang.toLowerCase(),
-    )
+    const langId = loaded.find((l) => l === canonLang || l === lang.toLowerCase())
 
     if (!langId) {
       // Language not available — plain fallback

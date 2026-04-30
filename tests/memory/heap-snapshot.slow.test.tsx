@@ -134,7 +134,13 @@ describe("memory: structural canary (large-scale cycles)", () => {
             create(),
             withAg(),
             withTerm(term),
-            withReact(<Counter onCleanup={() => { count++ }} />),
+            withReact(
+              <Counter
+                onCleanup={() => {
+                  count++
+                }}
+              />,
+            ),
           )
           app.render()
           app[Symbol.dispose]()
@@ -184,12 +190,7 @@ describe("memory: fuzz — random withReact create/dispose orderings", () => {
 
         for (let i = 0; i < N; i++) {
           const term = createTerm({ cols: 80, rows: 24 })
-          const app = pipe(
-            create(),
-            withAg(),
-            withTerm(term),
-            withReact(<TrackedProbe />),
-          )
+          const app = pipe(create(), withAg(), withTerm(term), withReact(<TrackedProbe />))
           app.render()
           app[Symbol.dispose]()
         }
@@ -233,12 +234,7 @@ describe("memory: fuzz — random withReact create/dispose orderings", () => {
 
         for (let i = 0; i < N; i++) {
           const term = createTerm({ cols: 80, rows: 24 })
-          const app = pipe(
-            create(),
-            withAg(),
-            withTerm(term),
-            withReact(<Probe />),
-          )
+          const app = pipe(create(), withAg(), withTerm(term), withReact(<Probe />))
           app.render()
           app[Symbol.dispose]()
           expectedCleanups++

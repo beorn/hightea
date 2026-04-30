@@ -1051,9 +1051,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     // Auto-lowers global log level to "debug" when above, so traceLog.debug?.()
     // banner records actually emit; restored on cleanup.
     const traceFileWriter = createFileWriter("/tmp/silvery-trace.log")
-    const unsubscribeTraceWriter = addWriter(
-      { ns: "silvery:trace" },
-      (formatted) => traceFileWriter.write(formatted),
+    const unsubscribeTraceWriter = addWriter({ ns: "silvery:trace" }, (formatted) =>
+      traceFileWriter.write(formatted),
     )
     const _prevLogLevel: LogLevel = getLogLevel()
     if (_prevLogLevel !== "trace" && _prevLogLevel !== "debug") {
@@ -1965,7 +1964,6 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   currentBuffer = doRender()
 
   if (!headless) {
-
     // Kitty keyboard protocol — all paths go through the Modes owner so state
     // is tracked for race-free teardown.
     if (kittyOption != null && kittyOption !== false) {

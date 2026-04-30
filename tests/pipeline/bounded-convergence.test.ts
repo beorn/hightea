@@ -152,13 +152,11 @@ describe("bounded-convergence: assertion behaviour", () => {
     // JSDoc. A passCount of MAX_CONVERGENCE_PASSES + 1 must NOT throw for
     // classic because that's still within its bound.
     withStrict("2", () => {
-      expect(() =>
-        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "classic"),
-      ).not.toThrow()
+      expect(() => assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "classic")).not.toThrow()
       // ...but the same passCount throws for single-pass.
-      expect(() =>
-        assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "single-pass"),
-      ).toThrow(/single-pass/)
+      expect(() => assertBoundedConvergence(MAX_CONVERGENCE_PASSES + 1, "single-pass")).toThrow(
+        /single-pass/,
+      )
     })
   })
 

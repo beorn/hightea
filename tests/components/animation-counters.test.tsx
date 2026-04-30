@@ -22,7 +22,11 @@ describe("AnimatedNumber", () => {
 
   test("custom format function applies", () => {
     const app = render(
-      <AnimatedNumber key="an-2" value={1234} format={(n) => `$${Math.round(n).toLocaleString()}`} />,
+      <AnimatedNumber
+        key="an-2"
+        value={1234}
+        format={(n) => `$${Math.round(n).toLocaleString()}`}
+      />,
     )
     expect(app.text).toContain("$1,234")
   })
@@ -35,7 +39,11 @@ describe("TextShimmer", () => {
   })
 
   test("renders text with active=false (no shimmer)", () => {
-    const app = render(<TextShimmer key="ts-2" active={false}>Done</TextShimmer>)
+    const app = render(
+      <TextShimmer key="ts-2" active={false}>
+        Done
+      </TextShimmer>,
+    )
     expect(app.text).toContain("Done")
   })
 })

@@ -72,10 +72,12 @@ export function mountConfigCommand(
   const registries = opts.registries ?? {}
 
   async function getConfig(): Promise<Config> {
-    return typeof configOrFactory === "function" ?  configOrFactory() : configOrFactory
+    return typeof configOrFactory === "function" ? configOrFactory() : configOrFactory
   }
 
-  const cmd = program.command("config [args...]").description("get/set config values and manage named entries")
+  const cmd = program
+    .command("config [args...]")
+    .description("get/set config values and manage named entries")
 
   cmd.option("--unset <key>", "Remove the leaf at <key>")
   cmd.option("--list", "List all leaves (default with no args)")
@@ -97,8 +99,9 @@ export function mountConfigCommand(
       await config.save()
       return
     }
-    if (options.list || (args.length === 0)) {
-      const pattern = typeof options["getRegexp"] === "string" ? (options["getRegexp"] as string) : undefined
+    if (options.list || args.length === 0) {
+      const pattern =
+        typeof options["getRegexp"] === "string" ? (options["getRegexp"] as string) : undefined
       const list = pattern
         ? config.list().filter((e) => new RegExp(pattern).test(e.key))
         : config.list()
@@ -220,7 +223,9 @@ async function dispatchKindVerb(d: DispatchOpts): Promise<void> {
       return
     }
     default:
-      throw new Error(`config ${d.kindName}: unknown verb "${d.verb}". Known: list, show, add, rm, default.`)
+      throw new Error(
+        `config ${d.kindName}: unknown verb "${d.verb}". Known: list, show, add, rm, default.`,
+      )
   }
 }
 

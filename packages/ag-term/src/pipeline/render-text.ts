@@ -998,8 +998,7 @@ function renderGraphemes(
     // fallback is removed. All in-walk callers (renderText) thread inheritedBg
     // explicitly; external callers (scroll indicators in render-box.ts) pass
     // `style.bg` directly so they never reach the inheritedBg branch.
-    const existingBg =
-      style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : null
+    const existingBg = style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : null
 
     // Wide character at the boundary: the continuation cell would overflow
     // into an adjacent container. Replace with a space to match terminal

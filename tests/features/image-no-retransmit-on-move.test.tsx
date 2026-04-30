@@ -61,7 +61,7 @@ function MovingImage({ moves }: { moves: number }): React.ReactElement {
   return (
     <Box flexDirection="column">
       {/* Spacer above the image: each step shifts the image down by one row.
-        * That changes useScreenRect() and triggers Image's re-emit. */}
+       * That changes useScreenRect() and triggers Image's re-emit. */}
       {Array.from({ length: step }, (_, i) => (
         <Box key={i} height={1} width={20} />
       ))}
@@ -94,7 +94,10 @@ describe("Image: scrolling/moving does not re-transmit the PNG", () => {
     expect(counts.transmit, "PNG should be transmitted exactly once").toBe(1)
     // Initial place + 3 re-places = 4 placements minimum. Allow more
     // (commit/effect cycles can re-fire) but never zero.
-    expect(counts.place, "image should be re-placed without re-transmission").toBeGreaterThanOrEqual(2)
+    expect(
+      counts.place,
+      "image should be re-placed without re-transmission",
+    ).toBeGreaterThanOrEqual(2)
 
     handle.unmount()
   })

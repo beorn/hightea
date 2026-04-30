@@ -20,10 +20,10 @@ The render-prop children receive the measured rect as `{ width, height }` and ar
 
 ## Props
 
-| Prop          | Type                                                | Description                                                              |
-| ------------- | --------------------------------------------------- | ------------------------------------------------------------------------ |
-| `children`    | `(rect: { width, height }) => ReactNode \| ReactNode` | Render-prop function, or plain ReactNode (deferred until measured)       |
-| _all `<Box>` props_ | _see [Box](./box.md)_                          | Pass-through to the outer measured Box                                   |
+| Prop                | Type                                                  | Description                                                        |
+| ------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| `children`          | `(rect: { width, height }) => ReactNode \| ReactNode` | Render-prop function, or plain ReactNode (deferred until measured) |
+| _all `<Box>` props_ | _see [Box](./box.md)_                                 | Pass-through to the outer measured Box                             |
 
 ## Sizing
 
