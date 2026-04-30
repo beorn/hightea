@@ -150,6 +150,18 @@ function ImagePlacement({
   // change, the stored image's display sizing also needs updating
   // (placeKittyImage carries new c=/r=, so re-place is still enough).
   const placedSizeRef = useRef<{ width: number; height: number } | null>(null)
+  // Tracks the last emitted (x, y, w, h). Re-place is skipped when
+  // every coordinate matches what's already on screen — the layout
+  // engine fires `useScreenRect` updates on every commit even when
+  // the box's position didn't actually change. Without this gate,
+  // every chat re-render (e.g. status streaming) emits a Kitty
+  // `a=p` packet at the same position as before — visible as
+  // micro-stutter / "the image jumps around" because each
+  // re-place momentarily races with whatever else is being drawn
+  // at that location.
+  const lastEmittedRef = useRef<{ x: number; y: number; width: number; height: number } | null>(
+    null,
+  )
 
   // Resolve image data
   const pngData = useMemo(() => {
@@ -229,6 +241,23 @@ function ImagePlacement({
         transmittedSrcRef.current = pngData
       }
 
+      // Skip the re-place when the position + dimensions exactly
+      // match what's already on screen. The layout engine can fire
+      // `useScreenRect` updates on commits that didn't actually
+      // change the box's position (resize coalescing, descendant
+      // re-renders); without this gate, every chat tick re-emits
+      // the same Kitty `a=p` packet — visually a stutter as the
+      // terminal repaints the same image at the same location while
+      // the surrounding cell buffer is being overdrawn.
+      const last = lastEmittedRef.current
+      const positionUnchanged =
+        last !== null &&
+        last.x === boxRect.x &&
+        last.y === boxRect.y &&
+        last.width === effectiveWidth &&
+        last.height === effectiveHeight
+      if (positionUnchanged && !srcChanged) return
+
       // Position cursor + (re-)place. Kitty's protocol replaces an
       // existing placement when (image_id, placement_id) match, so
       // a move on every scroll tick is just one APC packet — no
@@ -240,6 +269,12 @@ function ImagePlacement({
           placeKittyImage({ id, width: effectiveWidth, height: effectiveHeight }),
       )
       placedSizeRef.current = { width: effectiveWidth, height: effectiveHeight }
+      lastEmittedRef.current = {
+        x: boxRect.x,
+        y: boxRect.y,
+        width: effectiveWidth,
+        height: effectiveHeight,
+      }
     } else if (activeProtocol === "sixel") {
       // Sixel cannot transmit PNG directly (unlike Kitty's f=100), so we
       // decode PNG → RGBA via upng-js, then hand off to encodeSixel().

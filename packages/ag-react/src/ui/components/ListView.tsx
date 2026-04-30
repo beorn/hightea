@@ -1112,8 +1112,14 @@ function ListViewInner<T>(
       // km-silvery.scroll-top-edge-oscillation.
       const anchor = scrollRowFloatRef.current ?? 0
       const sustainedDir = sustainedDirRef.current
-      const atTopWithUpwardSustained = anchor <= 0 && sustainedDir === -1
-      const atBottomWithDownwardSustained = anchor >= maxRow && sustainedDir === 1
+      // Half-cell tolerance — the anchor can carry a fractional value
+      // (e.g. 0.3 from a partial kinetic decay step) even when the
+      // user is at the top edge for all visual purposes. A strict
+      // `<= 0` check missed those cases and let the trackpad bounce
+      // jitter through. `< 1` covers the entire first row at top
+      // (and `> maxRow - 1` mirrors at bottom).
+      const atTopWithUpwardSustained = anchor < 1 && sustainedDir === -1
+      const atBottomWithDownwardSustained = anchor > maxRow - 1 && sustainedDir === 1
       const atSustainedEdge = atTopWithUpwardSustained || atBottomWithDownwardSustained
       if (atSustainedEdge && dir !== sustainedDir) {
         wheelLog.debug?.(
