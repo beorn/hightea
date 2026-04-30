@@ -16,8 +16,8 @@
  * Uncontrolled variant: omit `expanded` and pass `defaultExpanded` —
  * the component manages its own state.
  *
- * Keyboard: Enter or Space toggles when focused. The chevron at the
- * left of the header indicates state (▶ collapsed, ▼ expanded).
+ * Keyboard: Enter or Space toggles when focused. The header itself is
+ * the affordance; callers can add their own marker if their surface needs one.
  */
 import React, { useState } from "react"
 import { useFocusable } from "../../hooks/useFocusable"
@@ -31,7 +31,7 @@ import { Text } from "../../components/Text"
 // =============================================================================
 
 export interface AccordionProps extends Omit<BoxProps, "children"> {
-  /** Header label rendered to the right of the chevron. */
+  /** Header label. */
   title: string
   /** Body content — only mounted when expanded. */
   children: React.ReactNode
@@ -78,18 +78,13 @@ export function Accordion({
     { isActive: active },
   )
 
-  // ASCII chevrons — Unicode triangles get reinterpreted as wide-emoji
-  // glyphs in many terminals (FE0F variation selector), pushing layout.
-  const chevron = isOpen ? "v" : ">"
-
   return (
     <Box flexDirection="column" {...rest}>
       <Box>
-        <Text color={active ? "$primary" : "$muted"}>{chevron} </Text>
         <Text bold={active}>{title}</Text>
       </Box>
       {isOpen ? (
-        <Box flexDirection="column" paddingLeft={2}>
+        <Box flexDirection="column">
           {children}
         </Box>
       ) : null}
