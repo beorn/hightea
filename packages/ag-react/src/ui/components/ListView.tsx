@@ -482,7 +482,23 @@ const WHEEL_VELOCITY_WINDOW_MS = 150
  * noise and dropped. macOS trackpads occasionally emit one reversed event
  * during steady gestures — visible as a 1-row hop back. Two consecutive
  * opposite events always commit (a real reversal). */
-const SUSTAINED_SCROLL_THRESHOLD = 3
+/**
+ * After this many same-direction wheel events, a single opposite-
+ * direction event is treated as trackpad inertia jitter and dropped.
+ * Two consecutive opposite events still commit as a real reversal.
+ *
+ * Was 3; lowered to 1 (2026-04-29) — the higher threshold let the
+ * first stray reverse event slip through during a sustained scroll,
+ * which manifested as visible 1-row oscillation when the user was
+ * approaching an edge or driving fast enough that trackpad inertia
+ * fired bounce-back events. With threshold=1, ANY established
+ * direction (1+ same-dir events) protects against single-event
+ * reversals — genuine reversals just need 2 events to commit, which
+ * is consistent with how a deliberate user reverse looks (a flick
+ * followed by another flick in the new direction). Bead:
+ * km-silvery.scroll-top-edge-oscillation.
+ */
+const SUSTAINED_SCROLL_THRESHOLD = 1
 
 /** Max absolute velocity (rows/sec). Caps momentum coast distance. */
 const KINETIC_MAX_VELOCITY = 80
