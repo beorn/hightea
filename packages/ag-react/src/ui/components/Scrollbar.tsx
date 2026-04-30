@@ -26,10 +26,11 @@
  * fits) so the consumer doesn't have to gate manually.
  */
 
-import { type JSX, useCallback, useRef } from "react"
+import { type JSX, useCallback, useEffect, useRef } from "react"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useHover } from "../../hooks/useHover"
+import { useTerm } from "../../hooks/useTerm"
 import type { SilveryMouseEvent } from "@silvery/ag/mouse-event-types"
 
 export interface ScrollbarProps {
@@ -66,9 +67,23 @@ export function Scrollbar({
   onScrollOffsetChange,
   visible = true,
 }: ScrollbarProps): JSX.Element | null {
-  // Drag state — true between mousedown and mouseup/leave so move
-  // events keep the thumb glued to the cursor only while held.
+  // Drag state — true between mousedown and the global mouseup so
+  // the cursor can drift outside the 1-column track without losing
+  // the grip (silvery's per-node mousemove only fires while over
+  // the listening node; we route through `term.input.onMouse` for
+  // a global capture so vertical drags survive horizontal drift).
   const draggingRef = useRef(false)
+  // Track screen rect captured at mousedown — the global mouse
+  // handler converts the live cursor row to a frac using these
+  // bounds without having to query the AgNode tree from inside an
+  // input-owner callback.
+  const trackRectRef = useRef<{ y: number; height: number } | null>(null)
+  // Hold the active unsubscribe so the drag's global listener can
+  // be torn down without waiting for component unmount (e.g., when
+  // src/scrollableRows changes mid-drag).
+  const unsubscribeRef = useRef<(() => void) | null>(null)
+
+  const term = useTerm()
 
   // Hover state for the track. The thumb brightens when armed
   // (cursor over the track) so the user gets the macOS-style "this
@@ -97,18 +112,52 @@ export function Scrollbar({
     [scrollableRows, thumbHeight, trackRemainder],
   )
 
+  const stopDrag = useCallback(() => {
+    draggingRef.current = false
+    trackRectRef.current = null
+    if (unsubscribeRef.current) {
+      unsubscribeRef.current()
+      unsubscribeRef.current = null
+    }
+  }, [])
+
   const handleMouseDown = useCallback(
     (e: SilveryMouseEvent) => {
       const node = e.currentTarget
       const rect = node.screenRect ?? node.boxRect
       if (!rect || rect.height <= 0) return
       draggingRef.current = true
+      trackRectRef.current = { y: rect.y, height: rect.height }
       onScrollOffsetChange(offsetFromClickY(e.clientY, rect.y))
       e.stopPropagation()
+
+      // Subscribe to global mouse events for drag tracking. Per-node
+      // onMouseMove only fires while cursor is over THIS Box; with
+      // a 1-col track that breaks any horizontal drift. The runtime's
+      // input owner sees every parsed mouse event regardless of the
+      // hit target, so we route through it for the duration of the
+      // drag.
+      const input = term.input
+      if (!input) return
+      unsubscribeRef.current?.()
+      unsubscribeRef.current = input.onMouse((mouseEvent) => {
+        if (!draggingRef.current) return
+        if (mouseEvent.action === "move") {
+          const trackRect = trackRectRef.current
+          if (!trackRect) return
+          onScrollOffsetChange(offsetFromClickY(mouseEvent.y, trackRect.y))
+        } else if (mouseEvent.action === "up") {
+          stopDrag()
+        }
+      })
     },
-    [offsetFromClickY, onScrollOffsetChange],
+    [offsetFromClickY, onScrollOffsetChange, stopDrag, term],
   )
 
+  // Keep the per-node move/up handlers as a fallback when term.input
+  // is unavailable (headless/test contexts that don't wire an input
+  // owner). They still drive the drag while the cursor stays over
+  // the track.
   const handleMouseMove = useCallback(
     (e: SilveryMouseEvent) => {
       if (!draggingRef.current) return
@@ -121,8 +170,22 @@ export function Scrollbar({
     [offsetFromClickY, onScrollOffsetChange],
   )
 
-  const handleMouseUp = useCallback((_e: SilveryMouseEvent) => {
-    draggingRef.current = false
+  const handleMouseUp = useCallback(
+    (_e: SilveryMouseEvent) => {
+      stopDrag()
+    },
+    [stopDrag],
+  )
+
+  // Belt-and-suspenders: tear down the global subscription on
+  // unmount so a component swap mid-drag doesn't leak the listener.
+  useEffect(() => {
+    return () => {
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current()
+        unsubscribeRef.current = null
+      }
+    }
   }, [])
 
   // Don't render when content fits, when track is too small, or when
@@ -199,22 +262,7 @@ export function Scrollbar({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseEnter={onMouseEnter}
-      onMouseLeave={(e) => {
-        // End drag if cursor leaves the track — without a global
-        // mouse-capture mechanism (silvery's DragFeature requires
-        // withDomEvents which createApp consumers don't have),
-        // mousemove only fires while over this 1-column track. If
-        // we let the drag stay armed past leave, a subsequent
-        // mouseUp elsewhere would never reach us and the drag
-        // would hang. Trade-off: the user has to keep their cursor
-        // in the rightmost column while dragging — restart-the-drag
-        // is the recovery if they drift out. A future enhancement
-        // (km-silvery.scrollbar-global-drag-capture) would route
-        // through a runtime-level mouse listener so the user can
-        // drift outside the track without losing the grip.
-        handleMouseUp(e)
-        onMouseLeave(e)
-      }}
+      onMouseLeave={onMouseLeave}
     >
       <Box position="absolute" top={firstRow} right={0} width={1} flexDirection="column">
         {rows}
