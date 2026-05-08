@@ -27,6 +27,7 @@ import {
   findContainBoundary,
   findSelectionBoundaries,
 } from "@silvery/ag-term/mouse-events"
+import { readCellRow } from "@silvery/test"
 import type { AgNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
@@ -330,16 +331,11 @@ describe("extractText", () => {
     const buf = new TerminalBuffer(10, 1)
 
     // Write "ABCDE" — A, C, E selectable; B, D not selectable
-    buf.setSelectableMode(true)
-    buf.setCell(0, 0, { char: "A" })
-    buf.setSelectableMode(false)
-    buf.setCell(1, 0, { char: "B" })
-    buf.setSelectableMode(true)
-    buf.setCell(2, 0, { char: "C" })
-    buf.setSelectableMode(false)
-    buf.setCell(3, 0, { char: "D" })
-    buf.setSelectableMode(true)
-    buf.setCell(4, 0, { char: "E" })
+    buf.setCell(0, 0, { char: "A", selectable: true })
+    buf.setCell(1, 0, { char: "B", selectable: false })
+    buf.setCell(2, 0, { char: "C", selectable: true })
+    buf.setCell(3, 0, { char: "D", selectable: false })
+    buf.setCell(4, 0, { char: "E", selectable: true })
 
     // Without flag check — all chars returned
     const all = extractText(
@@ -386,23 +382,37 @@ describe("extractText", () => {
 // ============================================================================
 
 describe("SELECTABLE_FLAG in buffer", () => {
-  test("setSelectableMode stamps flag on setCell", () => {
+  test("cell write payloads carry explicit selectability", () => {
     const buf = new TerminalBuffer(5, 1)
-    buf.setSelectableMode(true)
-    buf.setCell(0, 0, { char: "A" })
-    buf.setSelectableMode(false)
-    buf.setCell(1, 0, { char: "B" })
+
+    buf.setCell(0, 0, { char: "A", selectable: true })
+    buf.setCell(1, 0, { char: "B", selectable: false })
+    buf.fill(2, 0, 2, 1, { char: "C", selectable: true })
+    buf.fill(3, 0, 1, 1, { char: "D", selectable: false })
+
+    const row = readCellRow(buf, 0)
+    expect(row.map((cell) => [cell.char, cell.selectable])).toEqual([
+      ["A", true],
+      ["B", false],
+      ["C", true],
+      ["D", false],
+      [" ", false],
+    ])
+  })
+
+  test("explicit selectable payload stamps flag on setCell", () => {
+    const buf = new TerminalBuffer(5, 1)
+    buf.setCell(0, 0, { char: "A", selectable: true })
+    buf.setCell(1, 0, { char: "B", selectable: false })
 
     expect(buf.isCellSelectable(0, 0)).toBe(true)
     expect(buf.isCellSelectable(1, 0)).toBe(false)
   })
 
-  test("setSelectableMode stamps flag on fill", () => {
+  test("explicit selectable payload stamps flag on fill", () => {
     const buf = new TerminalBuffer(10, 2)
-    buf.setSelectableMode(true)
-    buf.fill(0, 0, 10, 1, { char: "X" })
-    buf.setSelectableMode(false)
-    buf.fill(0, 1, 10, 1, { char: "Y" })
+    buf.fill(0, 0, 10, 1, { char: "X", selectable: true })
+    buf.fill(0, 1, 10, 1, { char: "Y", selectable: false })
 
     expect(buf.isCellSelectable(5, 0)).toBe(true)
     expect(buf.isCellSelectable(5, 1)).toBe(false)
@@ -410,8 +420,7 @@ describe("SELECTABLE_FLAG in buffer", () => {
 
   test("clone preserves SELECTABLE_FLAG", () => {
     const buf = new TerminalBuffer(5, 1)
-    buf.setSelectableMode(true)
-    buf.setCell(0, 0, { char: "A" })
+    buf.setCell(0, 0, { char: "A", selectable: true })
 
     const clone = buf.clone()
     expect(clone.isCellSelectable(0, 0)).toBe(true)
@@ -422,8 +431,7 @@ describe("SELECTABLE_FLAG in buffer", () => {
     buf1.setCell(0, 0, { char: "A" })
 
     const buf2 = new TerminalBuffer(5, 1)
-    buf2.setSelectableMode(true)
-    buf2.setCell(0, 0, { char: "A" })
+    buf2.setCell(0, 0, { char: "A", selectable: true })
 
     // Cells should be "equal" for diff purposes despite different SELECTABLE_FLAG
     expect(buf2.cellEquals(0, 0, buf1)).toBe(true)
@@ -1035,12 +1043,9 @@ describe("composeSelectionCells", () => {
 
   test("respects SELECTABLE_FLAG when enabled", () => {
     const buf = new TerminalBuffer(5, 1)
-    buf.setSelectableMode(true)
-    buf.setCell(0, 0, { char: "A" })
-    buf.setSelectableMode(false)
-    buf.setCell(1, 0, { char: "B" })
-    buf.setSelectableMode(true)
-    buf.setCell(2, 0, { char: "C" })
+    buf.setCell(0, 0, { char: "A", selectable: true })
+    buf.setCell(1, 0, { char: "B", selectable: false })
+    buf.setCell(2, 0, { char: "C", selectable: true })
 
     const changes = composeSelectionCells(
       buf,

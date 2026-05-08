@@ -85,6 +85,39 @@ This document-aware scope is the default for ordinary selectable content. Use
 `userSelect="contain"` only when you want a CSS-style hard boundary that the
 selection cannot escape.
 
+## Semantic Cell Contract
+
+Selection is semantic content selection, not raw terminal-cell selection. The
+rendered buffer carries one bit of selection metadata per cell so mouse and
+copy-mode selection can skip chrome while still composing with the normal
+terminal output path.
+
+The contract is:
+
+- Text-origin cells are selectable when their resolved `userSelect` state allows
+  selection.
+- Spaces inside rendered text are selectable when they are part of text content.
+- Layout blanks are not selectable.
+- Clears, padding, borders, scrollbars, overlays, backgrounds, and decorative
+  chrome are not selectable.
+- `userSelect="none"` makes all descendant text-origin cells non-selectable
+  until a descendant resolves back to `text` or `contain`.
+- Render-plan replay preserves the same selectable metadata as direct rendering.
+
+Copy uses this semantic metadata. Selecting across a row with padding or blank
+layout cells copies the text content, not the padded screen rectangle.
+
+### Debugging Selection Cells
+
+When selection highlights or copies the wrong cells, check these in order:
+
+1. The node's resolved `userSelect` state.
+2. Whether the write is a text-origin write or a structural write.
+3. Whether render-plan replay preserved the same selectable metadata as direct
+   rendering.
+4. Whether a visual overlay changed colors without changing underlying
+   selectable metadata.
+
 ### Common Patterns
 
 | Surface            | `userSelect` | Why                                        |
@@ -214,7 +247,7 @@ Copy-mode shares the selection range with mouse selection. If you start a mouse 
 
 Selection operates with **component-tree scopes over buffer coordinates**. Components never re-render for selection changes; the runtime uses the AgNode tree to choose a scope, then the headless selection machine stores buffer coordinates.
 
-1. **Render phase**: Each cell gets a `SELECTABLE_FLAG` (bit 31) based on resolved `userSelect`
+1. **Render phase**: Text-origin cell writes carry a `SELECTABLE_FLAG` (bit 31) based on resolved `userSelect`; structural writes do not
 2. **Mouse input**: Resolves the anchor/focus AgNode chains and chooses the nearest common selectable ancestor, unless Shift requests raw buffer selection
 3. **Selection machine**: Updates a `SelectionRange` (anchor + head coordinates) clamped to the active scope
 4. **Style composition**: Selected cells get highlight styling before diff/output

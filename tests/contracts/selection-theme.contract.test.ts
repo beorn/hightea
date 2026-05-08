@@ -48,7 +48,7 @@ import type { TerminalSelectionState } from "@silvery/headless/selection"
 function makePaintBuffer(text: string, width = 20) {
   const buf = new TerminalBuffer(width, 1)
   for (let x = 0; x < text.length && x < width; x++) {
-    buf.setCell(x, 0, { char: text[x]!, fg: null, bg: null })
+    buf.setCell(x, 0, { char: text[x]!, fg: null, bg: null, selectable: true })
   }
   return createBuffer(buf, null as never, undefined)
 }

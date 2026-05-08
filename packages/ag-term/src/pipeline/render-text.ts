@@ -550,6 +550,7 @@ function applyBgSegmentsToLine(
   ctx?: PipelineContext,
   maxCol?: number,
   minCol?: number,
+  selectable = false,
 ): void {
   if (bgSegments.length === 0) return
   const sink: RenderSink = createFrameSink(buffer)
@@ -606,11 +607,11 @@ function applyBgSegmentsToLine(
           // is an intra-frame buffer read that Phase 2 Step 6 will eliminate.
           buffer.readCellInto(col, y, bgCell)
           bgCell.bg = seg.bg
-          sink.emitSetCell(col, y, bgCell)
+          sink.emitSetCell(col, y, bgCell, selectable)
           if (gWidth === 2 && col + 1 < sink.width && col + 1 < rightClip) {
             buffer.readCellInto(col + 1, y, bgCell)
             bgCell.bg = seg.bg
-            sink.emitSetCell(col + 1, y, bgCell)
+            sink.emitSetCell(col + 1, y, bgCell, selectable)
           }
         }
       }
@@ -906,14 +907,26 @@ export function renderTextLine(
   maxCol?: number,
   inheritedBg?: Color,
   ctx?: PipelineContext,
+  selectable = false,
 ): void {
   // Check if text contains ANSI escape sequences
   if (hasAnsi(text)) {
-    renderAnsiTextLine(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx)
+    renderAnsiTextLine(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx, selectable)
     return
   }
 
-  renderGraphemes(buffer, splitGraphemes(text), x, y, baseStyle, maxCol, inheritedBg, ctx)
+  renderGraphemes(
+    buffer,
+    splitGraphemes(text),
+    x,
+    y,
+    baseStyle,
+    maxCol,
+    inheritedBg,
+    ctx,
+    undefined,
+    selectable,
+  )
 }
 
 /**
@@ -930,9 +943,21 @@ function renderTextLineReturn(
   inheritedBg?: Color,
   ctx?: PipelineContext,
   minCol?: number,
+  selectable = false,
 ): number {
   if (hasAnsi(text)) {
-    return renderAnsiTextLineReturn(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx, minCol)
+    return renderAnsiTextLineReturn(
+      buffer,
+      x,
+      y,
+      text,
+      baseStyle,
+      maxCol,
+      inheritedBg,
+      ctx,
+      minCol,
+      selectable,
+    )
   }
   return renderGraphemes(
     buffer,
@@ -944,6 +969,7 @@ function renderTextLineReturn(
     inheritedBg,
     ctx,
     minCol,
+    selectable,
   )
 }
 
@@ -974,6 +1000,7 @@ function renderGraphemes(
   inheritedBg?: Color,
   ctx?: PipelineContext,
   minCol?: number,
+  selectable = false,
 ): number {
   const sink: RenderSink = createFrameSink(buffer)
   let col = startCol
@@ -1028,16 +1055,21 @@ function renderGraphemes(
     // rendering — the owning container's dirty flag tracking doesn't cover
     // cells outside its layout area.
     if (width === 2 && col + 1 >= rightEdge) {
-      sink.emitSetCell(col, y, {
-        char: " ",
-        fg: style.fg,
-        bg: existingBg,
-        underlineColor: style.underlineColor ?? null,
-        attrs: style.attrs,
-        wide: false,
-        continuation: false,
-        hyperlink: style.hyperlink,
-      })
+      sink.emitSetCell(
+        col,
+        y,
+        {
+          char: " ",
+          fg: style.fg,
+          bg: existingBg,
+          underlineColor: style.underlineColor ?? null,
+          attrs: style.attrs,
+          wide: false,
+          continuation: false,
+          hyperlink: style.hyperlink,
+        },
+        false,
+      )
       col += 1
       continue
     }
@@ -1045,30 +1077,40 @@ function renderGraphemes(
     // For text-presentation emoji, add VS16 so terminals render at 2 columns
     const outputChar = width === 2 ? ensureEmojiPresentation(grapheme) : grapheme
 
-    sink.emitSetCell(col, y, {
-      char: outputChar,
-      fg: style.fg,
-      bg: existingBg,
-      underlineColor: style.underlineColor ?? null,
-      attrs: style.attrs,
-      wide: width === 2,
-      continuation: false,
-      hyperlink: style.hyperlink,
-    })
+    sink.emitSetCell(
+      col,
+      y,
+      {
+        char: outputChar,
+        fg: style.fg,
+        bg: existingBg,
+        underlineColor: style.underlineColor ?? null,
+        attrs: style.attrs,
+        wide: width === 2,
+        continuation: false,
+        hyperlink: style.hyperlink,
+      },
+      selectable,
+    )
 
     if (width === 2 && col + 1 < sink.width) {
       const existingBg2 =
         style.bg !== null ? style.bg : inheritedBg !== undefined ? inheritedBg : null
-      sink.emitSetCell(col + 1, y, {
-        char: "",
-        fg: style.fg,
-        bg: existingBg2,
-        underlineColor: style.underlineColor ?? null,
-        attrs: style.attrs,
-        wide: false,
-        continuation: true,
-        hyperlink: style.hyperlink,
-      })
+      sink.emitSetCell(
+        col + 1,
+        y,
+        {
+          char: "",
+          fg: style.fg,
+          bg: existingBg2,
+          underlineColor: style.underlineColor ?? null,
+          attrs: style.attrs,
+          wide: false,
+          continuation: true,
+          hyperlink: style.hyperlink,
+        },
+        selectable,
+      )
       col += 2
     } else {
       col += width
@@ -1091,8 +1133,20 @@ export function renderAnsiTextLine(
   maxCol?: number,
   inheritedBg?: Color,
   ctx?: PipelineContext,
+  selectable = false,
 ): void {
-  renderAnsiTextLineReturn(buffer, x, y, text, baseStyle, maxCol, inheritedBg, ctx)
+  renderAnsiTextLineReturn(
+    buffer,
+    x,
+    y,
+    text,
+    baseStyle,
+    maxCol,
+    inheritedBg,
+    ctx,
+    undefined,
+    selectable,
+  )
 }
 
 /**
@@ -1108,6 +1162,7 @@ function renderAnsiTextLineReturn(
   inheritedBg?: Color,
   ctx?: PipelineContext,
   minCol?: number,
+  selectable = false,
 ): number {
   const sink: RenderSink = createFrameSink(buffer)
   const segments = parseAnsiText(text)
@@ -1168,6 +1223,7 @@ function renderAnsiTextLineReturn(
       inheritedBg,
       ctx,
       minCol,
+      selectable,
     )
   }
   return col
@@ -1578,23 +1634,18 @@ export function renderText(
         : undefined
     const lineTextForSelection = hasAnsi(line) ? stripAnsiForBg(line) : line
     const lineSelectable = nodeState.selectableMode && /\S/.test(lineTextForSelection)
-    let endCol: number
-    sink.setSelectableMode(lineSelectable)
-    try {
-      endCol = renderTextLineReturn(
-        buffer,
-        x,
-        lineY,
-        line,
-        style,
-        maxCol,
-        inheritedBg,
-        ctx,
-        minCol,
-      )
-    } finally {
-      sink.setSelectableMode(false)
-    }
+    const endCol = renderTextLineReturn(
+      buffer,
+      x,
+      lineY,
+      line,
+      style,
+      maxCol,
+      inheritedBg,
+      ctx,
+      minCol,
+      lineSelectable,
+    )
 
     // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),
@@ -1645,12 +1696,19 @@ export function renderText(
     // cyan-strip residue bug, km-silvery.render-light-blue-bg-strip-residue).
     if (bgSegments.length > 0 && lineIdx < lineOffsets.length) {
       const { start, end } = lineOffsets[lineIdx]!
-      sink.setSelectableMode(lineSelectable)
-      try {
-        applyBgSegmentsToLine(buffer, x, lineY, line, start, end, bgSegments, ctx, maxCol, minCol)
-      } finally {
-        sink.setSelectableMode(false)
-      }
+      applyBgSegmentsToLine(
+        buffer,
+        x,
+        lineY,
+        line,
+        start,
+        end,
+        bgSegments,
+        ctx,
+        maxCol,
+        minCol,
+        lineSelectable,
+      )
     }
   }
 

@@ -99,6 +99,16 @@ export interface Cell {
 }
 
 /**
+ * Partial cell update accepted by buffer write APIs.
+ *
+ * `selectable` is render metadata, not a visual cell property: it controls the
+ * SELECTABLE_FLAG bit used by app-level semantic text selection. It is carried
+ * on write payloads so selectability is explicit per mutation rather than an
+ * ambient buffer mode.
+ */
+export type CellPatch = Partial<Cell> & { selectable?: boolean }
+
+/**
  * Style information for a cell (excludes char and position flags).
  */
 export interface Style {
@@ -449,12 +459,6 @@ export class TerminalBuffer {
    * Set by the render phase, read by extractText.
    */
   private _rowMetadata: RowMetadata[]
-  /**
-   * When true, setCell and fill automatically stamp SELECTABLE_FLAG on written cells.
-   * Set/cleared by the render phase as it traverses nodes with different userSelect values.
-   * This avoids modifying every individual setCell call — zero overhead (single OR per cell).
-   */
-  private _selectableMode = false
   readonly width: number
   readonly height: number
 
@@ -668,26 +672,6 @@ export class TerminalBuffer {
     return this._rowMetadata
   }
 
-  // --------------------------------------------------------------------------
-  // Selectable Mode (for render-phase SELECTABLE_FLAG stamping)
-  // --------------------------------------------------------------------------
-
-  /**
-   * Enable/disable automatic SELECTABLE_FLAG stamping on cell writes.
-   * When true, all setCell/fill calls stamp SELECTABLE_FLAG on the packed metadata.
-   * Zero overhead: a single OR per cell when enabled.
-   */
-  setSelectableMode(selectable: boolean): void {
-    this._selectableMode = selectable
-  }
-
-  /**
-   * Get the current selectable mode.
-   */
-  getSelectableMode(): boolean {
-    return this._selectableMode
-  }
-
   /**
    * Read cell data into a caller-provided Cell object (zero-allocation).
    * For hot loops that need the full Cell, reuse a single object:
@@ -768,7 +752,7 @@ export class TerminalBuffer {
    * Optimized: resolves defaults and packs metadata inline to avoid
    * allocating an intermediate Cell object.
    */
-  setCell(x: number, y: number, cell: Partial<Cell>): void {
+  setCell(x: number, y: number, cell: CellPatch): void {
     if (!this.inBounds(x, y)) {
       return
     }
@@ -866,7 +850,7 @@ export class TerminalBuffer {
     if (continuation) packed |= CONTINUATION_FLAG
     if (isTrueColor(fg)) packed |= TRUE_COLOR_FG_FLAG
     if (isTrueColor(bg)) packed |= TRUE_COLOR_BG_FLAG
-    if (this._selectableMode) packed = (packed | SELECTABLE_FLAG) >>> 0
+    if (cell.selectable) packed = (packed | SELECTABLE_FLAG) >>> 0
     this.cells[idx] = packed
   }
 
@@ -876,7 +860,7 @@ export class TerminalBuffer {
    * Optimized: packs cell metadata once and assigns directly to arrays,
    * avoiding O(width*height) intermediate object allocations from setCell().
    */
-  fill(x: number, y: number, width: number, height: number, cell: Partial<Cell>): void {
+  fill(x: number, y: number, width: number, height: number, cell: CellPatch): void {
     const endX = Math.min(x + width, this.width)
     const endY = Math.min(y + height, this.height)
     const startX = Math.max(0, x)
@@ -914,7 +898,7 @@ export class TerminalBuffer {
       continuation,
     }
     let packed = packCell(fullCell)
-    if (this._selectableMode) packed = (packed | SELECTABLE_FLAG) >>> 0
+    if (cell.selectable) packed = (packed | SELECTABLE_FLAG) >>> 0
 
     // Determine true color values once
     const hasTrueColorFg = isTrueColor(fg)
@@ -1265,7 +1249,7 @@ export class TerminalBuffer {
 
         if (source.inBounds(sx, sy) && this.inBounds(dX, dstY)) {
           source.readCellInto(sx, sy, cell)
-          this.setCell(dX, dstY, cell)
+          this.setCell(dX, dstY, { ...cell, selectable: source.isCellSelectable(sx, sy) })
         }
       }
     }
@@ -1286,7 +1270,7 @@ export class TerminalBuffer {
     regionWidth: number,
     regionHeight: number,
     delta: number,
-    clearCell: Partial<Cell> = {},
+    clearCell: CellPatch = {},
   ): void {
     if (delta === 0 || regionHeight <= 0 || regionWidth <= 0) return
 
@@ -1311,6 +1295,7 @@ export class TerminalBuffer {
       this.fill(startX, startY, clampedWidth, clampedHeight, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
+        selectable: clearCell.selectable,
       })
       return
     }
@@ -1364,6 +1349,7 @@ export class TerminalBuffer {
       this.fill(startX, endY - absDelta, clampedWidth, absDelta, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
+        selectable: clearCell.selectable,
       })
     } else {
       // Shift content DOWN: copy rows [startY .. endY - absDelta) to [startY + absDelta .. endY)
@@ -1409,6 +1395,7 @@ export class TerminalBuffer {
       this.fill(startX, startY, clampedWidth, absDelta, {
         char: clearCell.char ?? " ",
         bg: clearCell.bg ?? null,
+        selectable: clearCell.selectable,
       })
     }
   }

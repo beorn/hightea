@@ -154,13 +154,12 @@ export interface NodeRenderState {
    * Threaded top-down so every node has O(1) access — no parent chain walks.
    * Always set: root initializes with null (terminal default). */
   inheritedFg: import("../buffer").Color
-  /** Selectable mode inherited from nearest ancestor with userSelect prop.
-   * Threaded top-down instead of read from buffer state — eliminates the
-   * `buffer.getSelectableMode()` intra-frame read in render-phase.ts (Phase 2
-   * Step 6 / km-silvery.paint-clear-l5-final Step 1a).
-   * Root initializes with `true` (matches the default `setSelectableMode(true)`
-   * at the top of `renderPhase`). userSelect="none" sets it to false for the
-   * subtree; userSelect="text"|"contain" sets it back to true. */
+  /** Selectability inherited from nearest ancestor with userSelect prop.
+   * Threaded top-down as semantic render state. Text-origin cell writes copy
+   * this into the write payload's selectable bit; structural writes ignore it
+   * and remain non-selectable. Root initializes with true. userSelect="none"
+   * sets it to false for the subtree; userSelect="text"|"contain" sets it back
+   * to true. */
   selectableMode: boolean
 }
 

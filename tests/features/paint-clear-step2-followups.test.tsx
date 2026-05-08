@@ -148,11 +148,11 @@ describe("paint-clear Step 2 follow-ups (regression suite)", () => {
   })
 
   // ============================================================================
-  // Task 4: selectableMode purge — every cell's SELECTABLE_FLAG matches threading
+  // Task 4: selectability payloads — every cell's SELECTABLE_FLAG matches threading
   // ============================================================================
   //
-  // The bug class: relying on TerminalBuffer._selectableMode (mutable global
-  // state) creates ordering bugs when sinks fan out (TeeSink to PlanSink) or
+  // The bug class: relying on ambient mutable buffer state creates ordering
+  // bugs when sinks fan out (TeeSink to PlanSink) or
   // when render order diverges from emission order. With selectableMode now
   // threaded via NodeRenderState, every cell write should reflect the SAME
   // state — even after multi-pass rendering (normal + sticky + absolute).

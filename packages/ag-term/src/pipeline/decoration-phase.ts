@@ -165,7 +165,14 @@ function walk(
     )
     for (const pos of positions) {
       // Snapshot the cell BEFORE the outline overwrites it.
-      snapshots.push({ x: pos.x, y: pos.y, cell: buffer.getCell(pos.x, pos.y) })
+      snapshots.push({
+        x: pos.x,
+        y: pos.y,
+        cell: {
+          ...buffer.getCell(pos.x, pos.y),
+          selectable: buffer.isCellSelectable(pos.x, pos.y),
+        },
+      })
     }
     renderOutline(
       buffer,

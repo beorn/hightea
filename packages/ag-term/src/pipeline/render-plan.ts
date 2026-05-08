@@ -22,8 +22,8 @@
  *      reintroduces the sibling-stomp at commit time.
  *   3. `scrollRegion` is a transfer of prev pixels and runs FIRST, not last.
  *      Fixed in COMMIT_PRIORITY below.
- *   4. `setSelectableMode` is hidden mutable buffer state — encode into
- *      each cell op or use scoped segments instead of a global pre-bucket.
+ *   4. Selectability must travel on each cell-writing op, not as hidden
+ *      mutable buffer state.
  *   5. `outlineSnapshots` was non-cell buffer state surviving across
  *      frames. Phase 2 Step 5 (paint-clear-l5-step5-outline-snapshots)
  *      hoisted them onto `RenderPostState` (see render-post-state.ts);
@@ -39,10 +39,10 @@
  * not bundled with vendor package). Review notes preserved in the bead.
  */
 
-import type { Cell, CellAttrs, Color, Style } from "../buffer"
+import type { CellAttrs, CellPatch, Color, Style } from "../buffer"
 import { TerminalBuffer } from "../buffer"
 
-export type SelectableCellPatch = Partial<Cell> & { selectable?: boolean }
+export type SelectableCellPatch = CellPatch
 
 export type RenderOp =
   | { kind: "setCell"; x: number; y: number; cell: SelectableCellPatch }
@@ -79,7 +79,6 @@ export type RenderOp =
       delta: number
       clearCell?: SelectableCellPatch
     }
-  | { kind: "setSelectableMode"; selectable: boolean }
   | {
       kind: "mergeAttrsInRect"
       x: number
@@ -115,9 +114,6 @@ export interface RenderPlan {
 //     "lowest layer paint everywhere" — later siblings can legitimately
 //     cover earlier siblings' overflow text. Within bucket, plan order
 //     decides; do not assume all bg goes first globally.
-//   - `setSelectableMode` is hidden mutable buffer state; Phase 2 must
-//     encode selectability into each cell op or use scoped segments
-//     instead of a global pre-bucket.
 //   - `mergeAttrsInRect` (Box attr overlay: bold/underline/strikethrough)
 //     is NOT yet recorded by RecordingBuffer — silent divergence risk.
 //
@@ -126,28 +122,25 @@ export interface RenderPlan {
 // The current map is kept for the transitional `commitPlanByPriority`
 // helper used by tests.
 const COMMIT_PRIORITY: Record<RenderOp["kind"], number> = {
-  // 0: configure buffer for subsequent writes (TODO Phase 2: encode into
-  // each cell op so this isn't hidden state).
-  setSelectableMode: 0,
-  // 1: shift existing prev-frame pixels before any new write to the
+  // 0: shift existing prev-frame pixels before any new write to the
   // shifted region (Tier 1 scroll containers).
-  scrollRegion: 1,
-  // 2: clears (currently bundled into `fill` — Phase 2 splits this into
+  scrollRegion: 0,
+  // 1: clears (currently bundled into `fill` — Phase 2 splits this into
   // a dedicated `clearRect` kind). Until then `commitPlanByPriority`
   // applies `fill` ops in plan order, which is NOT a structural fix.
-  fill: 2,
-  // 3: opaque background paint. WITHIN the bucket, plan order decides —
+  fill: 1,
+  // 2: opaque background paint. WITHIN the bucket, plan order decides —
   // do not globally pre-paint all bg before all content.
-  fillBg: 3,
-  // 4: content (text, borders, individual cell writes).
-  setCell: 4,
-  // 5: restyle existing cells (depends on cells already being written).
-  restyleRegion: 5,
-  // 6: attribute overlay (Box bold/underline/strikethrough). Merges into
+  fillBg: 2,
+  // 3: content (text, borders, individual cell writes).
+  setCell: 3,
+  // 4: restyle existing cells (depends on cells already being written).
+  restyleRegion: 4,
+  // 5: attribute overlay (Box bold/underline/strikethrough). Merges into
   // existing cells so it depends on cells being written first.
-  mergeAttrsInRect: 6,
-  // 7: book-keeping that travels with cells.
-  setRowMeta: 7,
+  mergeAttrsInRect: 5,
+  // 6: book-keeping that travels with cells.
+  setRowMeta: 6,
 }
 
 /**
@@ -178,12 +171,12 @@ export class RecordingBuffer extends TerminalBuffer {
     this.recording = false
   }
 
-  override setCell(x: number, y: number, cell: Partial<Cell>): void {
+  override setCell(x: number, y: number, cell: CellPatch): void {
     super.setCell(x, y, cell)
     if (this.recording) this.ops.push({ kind: "setCell", x, y, cell: cloneCellPatch(cell) })
   }
 
-  override fill(x: number, y: number, width: number, height: number, cell: Partial<Cell>): void {
+  override fill(x: number, y: number, width: number, height: number, cell: CellPatch): void {
     super.fill(x, y, width, height, cell)
     if (this.recording)
       this.ops.push({ kind: "fill", x, y, width, height, cell: cloneCellPatch(cell) })
@@ -206,7 +199,7 @@ export class RecordingBuffer extends TerminalBuffer {
     width: number,
     height: number,
     delta: number,
-    clearCell: Partial<Cell> = {},
+    clearCell: CellPatch = {},
   ): void {
     super.scrollRegion(x, y, width, height, delta, clearCell)
     if (this.recording)
@@ -219,11 +212,6 @@ export class RecordingBuffer extends TerminalBuffer {
         delta,
         clearCell: cloneCellPatch(clearCell),
       })
-  }
-
-  override setSelectableMode(selectable: boolean): void {
-    super.setSelectableMode(selectable)
-    if (this.recording) this.ops.push({ kind: "setSelectableMode", selectable })
   }
 
   override mergeAttrsInRect(
@@ -412,9 +400,6 @@ function applyOp(buffer: TerminalBuffer, op: RenderOp): void {
     case "scrollRegion":
       buffer.scrollRegion(op.x, op.y, op.width, op.height, op.delta, op.clearCell ?? {})
       return
-    case "setSelectableMode":
-      buffer.setSelectableMode(op.selectable)
-      return
     case "mergeAttrsInRect":
       buffer.mergeAttrsInRect(op.x, op.y, op.width, op.height, op.attrs, op.underlineColor)
       return
@@ -583,7 +568,7 @@ export type PostStateOp =
       // parity replay buffer is throwaway and the postState is owned
       // by the orchestrator).
       kind: "setOutlineSnapshots"
-      snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>
+      snapshots: ReadonlyArray<{ x: number; y: number; cell: CellPatch }>
     }
 
 /**
@@ -643,8 +628,6 @@ export interface SectionedRenderPlan {
  *   - `scrollRegion` → transfer.
  *   - `mergeAttrsInRect` → overlay.
  *   - `setRowMeta` → postState.
- *   - `setSelectableMode` is ignored by the classifier because production
- *     sectioned plans encode selectability on cell-writing ops.
  */
 export function classifyPlan(flat: RenderPlan): SectionedRenderPlan {
   const transferOps: TransferOp[] = []
@@ -695,11 +678,6 @@ export function classifyPlan(flat: RenderPlan): SectionedRenderPlan {
       case "setRowMeta":
         postStateOps.push(op)
         break
-      case "setSelectableMode":
-        // The sectioned plan encodes selectability per cell write. Legacy
-        // flat-plan capture still records this toggle for `commitPlan`, but
-        // the classifier cannot safely section hidden mutable state.
-        break
     }
   }
 
@@ -740,37 +718,38 @@ export function commitSectionedPlan(target: TerminalBuffer, plan: SectionedRende
 }
 
 function applyTransfer(buffer: TerminalBuffer, op: TransferOp): void {
-  withSelectableMode(buffer, op.selectable, () => {
-    buffer.scrollRegion(op.x, op.y, op.width, op.height, op.delta, op.clearCell ?? {})
-  })
+  buffer.scrollRegion(
+    op.x,
+    op.y,
+    op.width,
+    op.height,
+    op.delta,
+    selectablePatch(op.clearCell ?? {}, op.selectable),
+  )
 }
 
 function applyClear(buffer: TerminalBuffer, op: ClearOp): void {
   if (op.kind === "clearRect") {
-    withSelectableMode(buffer, op.selectable, () => {
-      buffer.fill(op.x, op.y, op.width, op.height, { char: " ", bg: op.bg })
+    buffer.fill(op.x, op.y, op.width, op.height, {
+      char: " ",
+      bg: op.bg,
+      selectable: op.selectable,
     })
   } else {
-    withSelectableMode(buffer, op.cell.selectable, () => {
-      buffer.fill(op.x, op.y, op.width, op.height, op.cell)
-    })
+    buffer.fill(op.x, op.y, op.width, op.height, op.cell)
   }
 }
 
 function applyPaint(buffer: TerminalBuffer, op: PaintOp): void {
   switch (op.kind) {
     case "setCell":
-      withSelectableMode(buffer, op.cell.selectable, () => {
-        buffer.setCell(op.x, op.y, op.cell)
-      })
+      buffer.setCell(op.x, op.y, op.cell)
       return
     case "fillBg":
       buffer.fillBg(op.x, op.y, op.width, op.height, op.bg)
       return
     case "paintFill":
-      withSelectableMode(buffer, op.cell.selectable, () => {
-        buffer.fill(op.x, op.y, op.width, op.height, op.cell)
-      })
+      buffer.fill(op.x, op.y, op.width, op.height, op.cell)
       return
     case "restyleRegion":
       buffer.restyleRegion(op.x, op.y, op.width, op.height, op.style)
@@ -805,22 +784,11 @@ function applyPostState(buffer: TerminalBuffer, op: PostStateOp): void {
   }
 }
 
-function withSelectableMode(
-  buffer: TerminalBuffer,
+function selectablePatch(
+  cell: SelectableCellPatch,
   selectable: boolean | undefined,
-  fn: () => void,
-): void {
-  if (selectable === undefined) {
-    fn()
-    return
-  }
-  const prev = buffer.getSelectableMode()
-  buffer.setSelectableMode(selectable)
-  try {
-    fn()
-  } finally {
-    buffer.setSelectableMode(prev)
-  }
+): SelectableCellPatch {
+  return selectable === undefined ? cell : { ...cell, selectable }
 }
 
 /**

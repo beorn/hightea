@@ -23,7 +23,7 @@
  * decoration / render-phase / sink seam.
  */
 
-import type { Cell } from "../buffer"
+import type { CellPatch } from "../buffer"
 
 /**
  * Snapshot of a single cell, used to restore it when the overlaying outline
@@ -34,7 +34,7 @@ import type { Cell } from "../buffer"
 export interface OutlineCellSnapshot {
   x: number
   y: number
-  cell: Cell
+  cell: CellPatch
 }
 
 /**

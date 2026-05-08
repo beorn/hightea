@@ -107,6 +107,12 @@ export { diagnosticTheme, diagnosticScheme } from "./diagnostic-theme"
 
 // Re-export buffer comparison utilities
 export { compareBuffers, formatMismatch, type BufferMismatch } from "./compare-buffers"
+export {
+  readCellSnapshot,
+  readCellRow,
+  formatSelectableCells,
+  type TestCellSnapshot,
+} from "./cell-inspector"
 
 // Re-export frame-recorder API (per-paint TextFrame snapshots over time).
 export {

@@ -46,7 +46,7 @@
  *     carries cross-frame state.
  */
 
-import type { Cell, CellAttrs, Color, Style } from "../buffer"
+import type { CellAttrs, CellPatch, Color, Style } from "../buffer"
 import { TerminalBuffer } from "../buffer"
 import type {
   ClearOp,
@@ -64,7 +64,7 @@ function cloneCellPatch(cell: SelectableCellPatch): SelectableCellPatch {
   return out
 }
 
-function cloneCell(cell: Cell): Cell {
+function cloneCell(cell: CellPatch): CellPatch {
   return { ...cell, attrs: { ...cell.attrs } }
 }
 
@@ -109,7 +109,7 @@ export interface RenderSink {
     width: number,
     height: number,
     delta: number,
-    clearCell?: Partial<Cell>,
+    clearCell?: CellPatch,
     selectable?: boolean,
   ): void
 
@@ -121,7 +121,14 @@ export interface RenderSink {
    * `clearNodeRegion`, `clearExcessArea`, `clearDescendantOverflowRegions`,
    * scroll viewport clears.
    */
-  emitClearRect(x: number, y: number, width: number, height: number, bg: Color, selectable?: boolean): void
+  emitClearRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    bg: Color,
+    selectable?: boolean,
+  ): void
 
   /**
    * Generalized clear with an explicit cell shape. Kept as an escape
@@ -133,7 +140,7 @@ export interface RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void
 
@@ -143,7 +150,7 @@ export interface RenderSink {
    * Paint a single cell. Lives in `paintOps`. Used by text rendering and
    * border drawing.
    */
-  emitSetCell(x: number, y: number, cell: Partial<Cell>, selectable?: boolean): void
+  emitSetCell(x: number, y: number, cell: CellPatch, selectable?: boolean): void
 
   /**
    * Paint an opaque bg fill. The cell payload typically has `bg` set and
@@ -156,7 +163,7 @@ export interface RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void
 
@@ -210,14 +217,7 @@ export interface RenderSink {
    * tests, and the parity replay path treats the op as informational
    * (the parity buffer is throwaway, so no carrier mutation is needed).
    */
-  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>): void
-
-  /**
-   * Set the selectable mode for subsequent cell-writing emissions. BufferSink
-   * forwards to TerminalBuffer; PlanSink snapshots the value onto each emitted
-   * op so sectioned replay can stamp SELECTABLE_FLAG without hidden post-state.
-   */
-  setSelectableMode(selectable: boolean): void
+  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: CellPatch }>): void
 }
 
 /**
@@ -233,23 +233,8 @@ export interface RenderSink {
 export class BufferSink implements RenderSink {
   constructor(private readonly buffer: TerminalBuffer) {}
 
-  private withSelectableMode(selectable: boolean | undefined, fn: () => void): void {
-    if (selectable === undefined) {
-      fn()
-      return
-    }
-    const next = selectable
-    const prev = this.buffer.getSelectableMode()
-    if (prev === next) {
-      fn()
-      return
-    }
-    this.buffer.setSelectableMode(next)
-    try {
-      fn()
-    } finally {
-      this.buffer.setSelectableMode(prev)
-    }
+  private selectableCell(cell: CellPatch, selectable: boolean | undefined): CellPatch {
+    return selectable === undefined ? cell : { ...cell, selectable }
   }
 
   get width(): number {
@@ -265,14 +250,21 @@ export class BufferSink implements RenderSink {
     width: number,
     height: number,
     delta: number,
-    clearCell: Partial<Cell> = {},
+    clearCell: CellPatch = {},
     selectable?: boolean,
   ): void {
-    this.withSelectableMode(selectable, () => this.buffer.scrollRegion(x, y, width, height, delta, clearCell))
+    this.buffer.scrollRegion(x, y, width, height, delta, this.selectableCell(clearCell, selectable))
   }
 
-  emitClearRect(x: number, y: number, width: number, height: number, bg: Color, selectable?: boolean): void {
-    this.withSelectableMode(selectable, () => this.buffer.fill(x, y, width, height, { char: " ", bg }))
+  emitClearRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    bg: Color,
+    selectable?: boolean,
+  ): void {
+    this.buffer.fill(x, y, width, height, { char: " ", bg, selectable })
   }
 
   emitClearCells(
@@ -280,14 +272,14 @@ export class BufferSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
-    this.withSelectableMode(selectable, () => this.buffer.fill(x, y, width, height, cell))
+    this.buffer.fill(x, y, width, height, this.selectableCell(cell, selectable))
   }
 
-  emitSetCell(x: number, y: number, cell: Partial<Cell>, selectable?: boolean): void {
-    this.withSelectableMode(selectable, () => this.buffer.setCell(x, y, cell))
+  emitSetCell(x: number, y: number, cell: CellPatch, selectable?: boolean): void {
+    this.buffer.setCell(x, y, this.selectableCell(cell, selectable))
   }
 
   emitPaintFill(
@@ -295,10 +287,10 @@ export class BufferSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
-    this.withSelectableMode(selectable, () => this.buffer.fill(x, y, width, height, cell))
+    this.buffer.fill(x, y, width, height, this.selectableCell(cell, selectable))
   }
 
   emitFillBg(x: number, y: number, width: number, height: number, bg: Color): void {
@@ -324,7 +316,7 @@ export class BufferSink implements RenderSink {
     this.buffer.setRowMeta(row, meta)
   }
 
-  setOutlineSnapshots(_snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>): void {
+  setOutlineSnapshots(_snapshots: ReadonlyArray<{ x: number; y: number; cell: CellPatch }>): void {
     // Phase 2 Step 5 of paint-clear-invariant L5 retired
     // `buffer.outlineSnapshots`. Snapshots now live on the `RenderPostState`
     // carrier owned by `createAg` and are written directly by
@@ -333,10 +325,6 @@ export class BufferSink implements RenderSink {
     // PlanSink path can still capture outline-snapshot intent for parity
     // tests, but the BufferSink side is now a no-op — the buffer no longer
     // carries this state.
-  }
-
-  setSelectableMode(selectable: boolean): void {
-    this.buffer.setSelectableMode(selectable)
   }
 }
 
@@ -375,14 +363,21 @@ export class TeeSink implements RenderSink {
     width: number,
     height: number,
     delta: number,
-    clearCell?: Partial<Cell>,
+    clearCell?: CellPatch,
     selectable?: boolean,
   ): void {
     this.primary.emitScrollRegion(x, y, width, height, delta, clearCell, selectable)
     this.secondary.emitScrollRegion(x, y, width, height, delta, clearCell, selectable)
   }
 
-  emitClearRect(x: number, y: number, width: number, height: number, bg: Color, selectable?: boolean): void {
+  emitClearRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    bg: Color,
+    selectable?: boolean,
+  ): void {
     this.primary.emitClearRect(x, y, width, height, bg, selectable)
     this.secondary.emitClearRect(x, y, width, height, bg, selectable)
   }
@@ -392,14 +387,14 @@ export class TeeSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
     this.primary.emitClearCells(x, y, width, height, cell, selectable)
     this.secondary.emitClearCells(x, y, width, height, cell, selectable)
   }
 
-  emitSetCell(x: number, y: number, cell: Partial<Cell>, selectable?: boolean): void {
+  emitSetCell(x: number, y: number, cell: CellPatch, selectable?: boolean): void {
     this.primary.emitSetCell(x, y, cell, selectable)
     this.secondary.emitSetCell(x, y, cell, selectable)
   }
@@ -409,7 +404,7 @@ export class TeeSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
     this.primary.emitPaintFill(x, y, width, height, cell, selectable)
@@ -443,14 +438,9 @@ export class TeeSink implements RenderSink {
     this.secondary.setRowMeta(row, meta)
   }
 
-  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>): void {
+  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: CellPatch }>): void {
     this.primary.setOutlineSnapshots(snapshots)
     this.secondary.setOutlineSnapshots(snapshots)
-  }
-
-  setSelectableMode(selectable: boolean): void {
-    this.primary.setSelectableMode(selectable)
-    this.secondary.setSelectableMode(selectable)
   }
 }
 
@@ -536,7 +526,6 @@ export class PlanSink implements RenderSink {
   readonly paintOps: PaintOp[] = []
   readonly overlayOps: OverlayOp[] = []
   readonly postStateOps: PostStateOp[] = []
-  private selectableMode = false
 
   constructor(
     readonly width: number,
@@ -549,7 +538,7 @@ export class PlanSink implements RenderSink {
     width: number,
     height: number,
     delta: number,
-    clearCell?: Partial<Cell>,
+    clearCell?: CellPatch,
     selectable?: boolean,
   ): void {
     this.transferOps.push({
@@ -559,13 +548,20 @@ export class PlanSink implements RenderSink {
       width,
       height,
       delta,
-      clearCell: clearCell ? cloneCellPatch(clearCell) : undefined,
-      selectable: selectable ?? this.selectableMode,
+      clearCell: clearCell ? this.selectableCell(clearCell, selectable) : undefined,
+      selectable,
     })
   }
 
-  emitClearRect(x: number, y: number, width: number, height: number, bg: Color, selectable?: boolean): void {
-    this.cleanupOps.push({ kind: "clearRect", x, y, width, height, bg, selectable: selectable ?? this.selectableMode })
+  emitClearRect(
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    bg: Color,
+    selectable?: boolean,
+  ): void {
+    this.cleanupOps.push({ kind: "clearRect", x, y, width, height, bg, selectable })
   }
 
   emitClearCells(
@@ -573,7 +569,7 @@ export class PlanSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
     this.cleanupOps.push({
@@ -586,7 +582,7 @@ export class PlanSink implements RenderSink {
     })
   }
 
-  emitSetCell(x: number, y: number, cell: Partial<Cell>, selectable?: boolean): void {
+  emitSetCell(x: number, y: number, cell: CellPatch, selectable?: boolean): void {
     this.paintOps.push({ kind: "setCell", x, y, cell: this.selectableCell(cell, selectable) })
   }
 
@@ -595,7 +591,7 @@ export class PlanSink implements RenderSink {
     y: number,
     width: number,
     height: number,
-    cell: Partial<Cell>,
+    cell: CellPatch,
     selectable?: boolean,
   ): void {
     this.paintOps.push({
@@ -639,19 +635,16 @@ export class PlanSink implements RenderSink {
     this.postStateOps.push({ kind: "setRowMeta", row, ...meta })
   }
 
-  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: Cell }>): void {
+  setOutlineSnapshots(snapshots: ReadonlyArray<{ x: number; y: number; cell: CellPatch }>): void {
     this.postStateOps.push({
       kind: "setOutlineSnapshots",
       snapshots: snapshots.map((snapshot) => ({ ...snapshot, cell: cloneCell(snapshot.cell) })),
     })
   }
 
-  setSelectableMode(selectable: boolean): void {
-    this.selectableMode = selectable
-  }
-
-  private selectableCell(cell: Partial<Cell>, selectable: boolean | undefined): SelectableCellPatch {
-    return { ...cloneCellPatch(cell), selectable: selectable ?? this.selectableMode }
+  private selectableCell(cell: CellPatch, selectable: boolean | undefined): SelectableCellPatch {
+    const cloned = cloneCellPatch(cell)
+    return selectable === undefined ? cloned : { ...cloned, selectable }
   }
 
   /**

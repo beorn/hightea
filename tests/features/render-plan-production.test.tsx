@@ -30,7 +30,7 @@ import {
   createFrameSink,
   withPlanCapture,
 } from "@silvery/ag-term/pipeline/render-sink"
-import { compareBuffers, formatMismatch } from "@silvery/test"
+import { compareBuffers, formatMismatch, readCellSnapshot } from "@silvery/test"
 
 describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
   test("isRenderPlanEnabled defaults ON (Phase 3); opt-out via SILVERY_RENDER_PLAN=0", () => {
@@ -137,7 +137,7 @@ describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
       sink.emitPaintFill(0, 0, cols, 4, { bg: 4 })
 
       // Paint: a couple of cells with text
-      sink.emitSetCell(2, 1, { char: "H", bg: 4, fg: 15 })
+      sink.emitSetCell(2, 1, { char: "H", bg: 4, fg: 15 }, true)
       sink.emitSetCell(3, 1, { char: "i", bg: 4, fg: 15 })
 
       // Paint: bg-only fast path on a different row
@@ -146,8 +146,8 @@ describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
       // Overlay: bold attr on the paint-row
       sink.emitMergeAttrs(2, 1, 2, 1, { bold: true } as never)
 
-      // Post-state — Smell #4 (Gemini 3 Pro): setSelectableMode is no
-      // longer a sink op, only setRowMeta is a postState op.
+      // Post-state: selectability is cell metadata, not a sink op; only
+      // setRowMeta is a postState op.
       sink.setRowMeta(0, { softWrapped: false })
 
       return buffer
@@ -168,6 +168,14 @@ describe("RenderPlan production wiring (Phase 2 Step 7)", () => {
         `TeeSink-captured plan replay diverges from direct BufferSink path:\n${formatMismatch(mismatch)}`,
       )
     }
+
+    // compareBuffers intentionally ignores SELECTABLE_FLAG because it is not
+    // terminal output. Assert it separately so direct and replay paths cannot
+    // silently diverge on semantic selection metadata.
+    expect(readCellSnapshot(direct, 2, 1).selectable).toBe(true)
+    expect(readCellSnapshot(replay, 2, 1).selectable).toBe(true)
+    expect(readCellSnapshot(direct, 3, 1).selectable).toBe(false)
+    expect(readCellSnapshot(replay, 3, 1).selectable).toBe(false)
 
     // Plan should have ops in each section — this proves the TeeSink fans
     // emissions out by intent (not by classifying buffer mutations).

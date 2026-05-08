@@ -56,12 +56,9 @@ describe("RenderSink", () => {
     direct.setRowMeta(3, { softWrapped: true })
     sink.setRowMeta(3, { softWrapped: true })
 
-    // setSelectableMode is a sink mode, not a post-state plan op. BufferSink
-    // forwards to TerminalBuffer; PlanSink stores it on each cell-writing op.
-    direct.setSelectableMode(true)
-    sink.setSelectableMode(true)
-    direct.setCell(0, 4, { char: "C" })
-    sink.emitSetCell(0, 4, { char: "C" })
+    // Selectability is explicit cell metadata, not sink post-state.
+    direct.setCell(0, 4, { char: "C", selectable: true })
+    sink.emitSetCell(0, 4, { char: "C" }, true)
 
     const mismatch = compareBuffers(direct, viaSink)
     if (mismatch)
@@ -79,9 +76,8 @@ describe("RenderSink", () => {
     sink.emitFillBg(0, 2, 10, 1, 3)
     sink.emitRestyleRegion(0, 3, 10, 1, { fg: 4, bg: null, attrs: {} })
     sink.emitMergeAttrs(0, 3, 10, 1, { bold: true })
-    sink.setSelectableMode(true)
     sink.setRowMeta(4, { softWrapped: true })
-    sink.emitSetCell(2, 4, { char: "S" })
+    sink.emitSetCell(2, 4, { char: "S" }, true)
 
     const plan = sink.toPlan()
 
@@ -128,11 +124,9 @@ describe("RenderSink", () => {
       // Non-overlapping regions: paint cells in row 0, clear region in
       // row 4, paint bg in row 5, set cells + overlay in row 1.
       // Row 0: text content.
-      sink.setSelectableMode(true)
       for (let i = 0; i < 5; i++) {
-        sink.emitSetCell(i, 0, { char: String.fromCharCode(65 + i), fg: 3, bg: 1 })
+        sink.emitSetCell(i, 0, { char: String.fromCharCode(65 + i), fg: 3, bg: 1 }, true)
       }
-      sink.setSelectableMode(false)
       // Row 1: text content + overlay (bold attr merges into existing
       // cells, applied after paint so cells exist).
       for (let i = 0; i < 5; i++) {
