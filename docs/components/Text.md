@@ -67,6 +67,34 @@ interface TextHandle {
 <Text color="$fg-muted">Secondary info</Text>
 ```
 
+## Wrap modes — what each one does
+
+`wrap` is the only knob today. Each mode bundles three CSS-equivalent axes (`white-space`, `overflow-wrap`, `text-overflow`) into one named composite. The CSS column is the canonical reference for what each mode actually does — useful when porting from web/Polaris and when reasoning about the upcoming canvas/DOM targets (silvery is a multi-target framework; the modes are designed to map cleanly).
+
+| `wrap=`            | Behavior                                                                                                                                              | CSS-equivalent axes                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `"wrap"` (default) | Multi-line word wrap. Breaks at word boundaries (space, hyphen). Falls back to soft-break separators (`/`, `\`, `.`, `_`, `:`, `,`) for long path-style tokens. Last-resort character wrap when no separator fits. | `white-space: normal` + `overflow-wrap: break-word`                                            |
+| `"truncate"`       | Single-line. Trims at end with `…` ellipsis when content exceeds available width.                                                                     | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
+| `"truncate-end"`   | Alias of `"truncate"` — explicit "trim at end".                                                                                                       | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
+| `"truncate-start"` | Single-line. Trims at start with `…` prefix.                                                                                                          | (no direct CSS analogue; named composite — equivalent to `direction: rtl` + `text-overflow: ellipsis`) |
+| `"truncate-middle"`| Single-line. Trims in the middle (e.g. `path/to/.../file.md`). Useful for long paths where both ends matter.                                          | (no direct CSS analogue; named composite)                                                       |
+| `"clip"`           | Single-line. Hard clips at right edge **without** ellipsis. Use only when the truncation marker would itself be misleading (e.g. tabular cells).      | `white-space: nowrap` + `overflow: hidden` + `text-overflow: clip`                              |
+| `false`            | No wrapping, no clipping. Text overflows its container. **Avoid** in bordered cells; use `"wrap"` or `"truncate"` instead.                            | `white-space: nowrap` + `overflow: visible`                                                     |
+
+### Picking a mode
+
+- **Body text** (paragraphs, descriptions, list items) → `"wrap"` (default).
+- **Titles and labels in fixed-width chrome** (status bars, table headers, card titles) → `"truncate"`.
+- **File paths** that need both ends visible → `"truncate-middle"`.
+- **Numeric or tabular cells** where `…` would be confused with content → `"clip"`.
+- **Never** `wrap={false}` inside a bordered Box — it produces the "text painted past border" failure shape that selected backgrounds amplify.
+
+### Soft-break separators in `"wrap"` mode
+
+Long path-style or identifier tokens like `.claude/skills/{claim,do}/SKILL.md` are unbreakable from a pure word-boundary perspective. `"wrap"` breaks them at the SECONDARY break points `/`, `\`, `.`, `_`, `:`, `,` (after the separator) — `path/` ends one line, `to` starts the next. Brackets and parens (`{` `}` `[` `]` `(` `)`) are **not** soft breaks — paired delimiters shouldn't be orphaned, matching CSS behavior.
+
+For atomic tokens with no separators (e.g. `aaaaaaaaaaaaaaaaaaaa`), `"wrap"` falls back to character wrap (the token spans multiple lines). If you'd prefer `…` truncation in that case, use `"truncate"` for the title and a separate detail view for the full content — there is no `wrap-or-truncate` composite today (tracked: `@km/silvery/card-body-truncate-ellipsis` and `@km/silvery/css-aligned-wrap-overflow-terminology`).
+
 ## See Also
 
 - [Box](./Box.md) -- layout container
