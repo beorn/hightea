@@ -15,10 +15,11 @@
 
 import type { ColorScheme, Theme } from "./types.ts"
 import { COLOR_SCHEME_FIELDS } from "./types.ts"
-import { deriveTheme, loadTheme } from "./derive.ts"
+import { loadTheme } from "./derive.ts"
 import { probeColors, type ProbeInputOwner } from "./detect.ts"
 import { fingerprintMatch } from "./fingerprint.ts"
 import { defaultDarkScheme, defaultLightScheme } from "./default-schemes.ts"
+import { blend, contrastFg } from "@silvery/color"
 
 /** How the final scheme was decided. */
 export type DetectSource =
@@ -179,6 +180,7 @@ export async function detectScheme(opts: DetectSchemeOptions = {}): Promise<Dete
   const dark = detected.dark
   const fallback = dark ? defaultDarkScheme : defaultLightScheme
   const merged: ColorScheme = { ...fallback, ...stripNulls(detected.palette) }
+  synthesizeMissingProbedRoles(merged, detected.palette)
   const theme = loadTheme(merged, { enforce, wcag })
 
   // Per-slot provenance: probed slots come from detected.palette, the rest from fallback
@@ -208,6 +210,17 @@ function stripNulls(partial: Partial<ColorScheme>): Partial<ColorScheme> {
     if (v != null) result[k] = v
   }
   return result as Partial<ColorScheme>
+}
+
+function synthesizeMissingProbedRoles(merged: ColorScheme, probed: Partial<ColorScheme>): void {
+  if (typeof probed.background === "string" && typeof probed.foreground === "string") {
+    if (typeof probed.selectionBackground !== "string") {
+      merged.selectionBackground = blend(probed.background, probed.foreground, 0.16)
+    }
+    if (typeof probed.selectionForeground !== "string") {
+      merged.selectionForeground = contrastFg(merged.selectionBackground)
+    }
+  }
 }
 
 function allSlotsFrom(src: SlotSource): Partial<Record<keyof ColorScheme, SlotSource>> {

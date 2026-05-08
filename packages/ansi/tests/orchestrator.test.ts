@@ -9,7 +9,42 @@ import {
   defaultDarkScheme,
   defaultLightScheme,
 } from "@silvery/ansi"
-import type { ColorScheme } from "@silvery/ansi"
+import { blend, contrastFg } from "@silvery/color"
+import type { ColorScheme, ProbeInputOwner } from "@silvery/ansi"
+
+const ESC = "\x1b"
+const BEL = "\x07"
+
+function fakeProbeInputOwner(colors: {
+  fg: string
+  bg: string
+  ansi?: readonly string[]
+}): ProbeInputOwner {
+  return {
+    async probe({ query, parse }) {
+      let acc = ""
+      if (query.includes(`${ESC}]10;?`)) {
+        acc = oscColorResponse(10, colors.fg)
+      } else if (query.includes(`${ESC}]11;?`)) {
+        acc = oscColorResponse(11, colors.bg)
+      } else if (query.includes(`${ESC}]4;`) && colors.ansi) {
+        acc = colors.ansi
+          .map((color, index) => `${ESC}]4;${index};${hexToOscRgb(color)}${BEL}`)
+          .join("")
+      }
+      const parsed = parse(acc)
+      return parsed?.result ?? null
+    },
+  }
+}
+
+function oscColorResponse(code: number, hex: string): string {
+  return `${ESC}]${code};${hexToOscRgb(hex)}${BEL}`
+}
+
+function hexToOscRgb(hex: string): string {
+  return `rgb:${hex.slice(1, 3)}/${hex.slice(3, 5)}/${hex.slice(5, 7)}`
+}
 
 describe("detectScheme — override path", () => {
   it("override skips probing and returns source=override", async () => {
@@ -51,6 +86,30 @@ describe("detectScheme — fallback path", () => {
     for (const [, src] of Object.entries(result.slotSources)) {
       expect(src).toBe("fallback")
     }
+  })
+})
+
+describe("detectScheme — probed path", () => {
+  it("synthesizes missing selection roles from probed foreground/background", async () => {
+    const result = await detectScheme({
+      input: fakeProbeInputOwner({
+        fg: "#eeeeee",
+        bg: "#232428",
+      }),
+      timeoutMs: 1,
+      darkFallback: true,
+    })
+
+    const expectedSelectionBg = blend("#232428", "#eeeeee", 0.16)
+    expect(result.source).toBe("probed")
+    expect(result.slotSources.selectionBackground).toBe("fallback")
+    expect(result.slotSources.selectionForeground).toBe("fallback")
+    expect(result.scheme.background).toBe("#232428")
+    expect(result.scheme.foreground).toBe("#eeeeee")
+    expect(result.scheme.selectionBackground).toBe(expectedSelectionBg)
+    expect(result.scheme.selectionBackground).not.toBe(defaultDarkScheme.selectionBackground)
+    expect(result.scheme.selectionForeground).toBe(contrastFg(expectedSelectionBg))
+    expect(result.theme["bg-selected"]).toBe(expectedSelectionBg)
   })
 })
 

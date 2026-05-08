@@ -1147,7 +1147,6 @@ export {
   splitGraphemes,
   graphemeCount,
   graphemeWidth,
-  readTerminalGrapheme,
   // Character detection
   isWideGrapheme,
   isZeroWidthGrapheme,
@@ -1169,7 +1168,6 @@ export {
 } from "@silvery/ag-term/unicode"
 
 export type { StyledSegment } from "@silvery/ag-term/unicode"
-export type { TerminalGrapheme } from "@silvery/ag-term/unicode"
 
 // Width measurer factory
 export { createMeasurer, runWithMeasurer, type Measurer } from "@silvery/ag-term/unicode"

@@ -419,6 +419,8 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         focusable
         testID={testID}
         flexDirection="column"
+        width="100%"
+        minWidth={0}
         height={outerHeight}
         cursorOffset={cursorOffset}
         {...borderProps}
@@ -440,6 +442,8 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       testID={testID}
       key={ta.scrollOffset}
       flexDirection="column"
+      width="100%"
+      minWidth={0}
       height={outerHeight}
       cursorOffset={cursorOffset}
       {...borderProps}
@@ -457,7 +461,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
         if (disabled) {
           return (
-            <Text key={absoluteRow} color="$fg-muted">
+            <Text key={absoluteRow} color="$fg-muted" wrap="clip">
               {wl.line || " "}
             </Text>
           )
@@ -473,7 +477,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
           const after = wl.line.slice(selEnd)
 
           return (
-            <Text key={absoluteRow} color={bodyColor}>
+            <Text key={absoluteRow} color={bodyColor} wrap="clip">
               {before}
               <Text inverse>
                 {selected || (selEnd === wl.line.length && isCursorRow ? " " : "")}
@@ -488,7 +492,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         // to keep exactly ONE visible caret across two stacked TextAreas.
         if (!isCursorRow || (!isActive && !showInactiveCursor)) {
           return (
-            <Text key={absoluteRow} color={bodyColor}>
+            <Text key={absoluteRow} color={bodyColor} wrap="clip">
               {wl.line || " "}
             </Text>
           )
@@ -508,7 +512,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         )
 
         return (
-          <Text key={absoluteRow} color={bodyColor}>
+          <Text key={absoluteRow} color={bodyColor} wrap="clip">
             {beforeCursor}
             {cursorEl}
             {afterCursor}

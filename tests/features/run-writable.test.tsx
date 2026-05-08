@@ -7,7 +7,7 @@
 
 import React, { useEffect, useState } from "react"
 import { EventEmitter } from "node:events"
-import { describe, test, expect, afterEach } from "vitest"
+import { describe, test, expect, afterEach, vi } from "vitest"
 import { createTermless } from "@silvery/test"
 import "@termless/test/matchers"
 import { Box, Text, useTerm } from "../../src/index.js"
@@ -38,6 +38,10 @@ function Counter() {
 function ViewportProbe() {
   const { cols, rows } = useTerm((term) => term.size.snapshot())
   return <Text>{`viewport=${cols}x${rows}`}</Text>
+}
+
+function ThrowOnRender(): never {
+  throw new Error("render validation failed")
 }
 
 function createFakeStream(cols = 120, rows = 40): NodeJS.WriteStream & NodeJS.ReadStream {
@@ -159,7 +163,31 @@ describe("run() with createTermless()", () => {
 
     handle.unmount()
   })
+
+  test("render errors panic and exit fullscreen so diagnostics reach the normal screen", async () => {
+    using term = createTermless({ cols: 40, rows: 10 })
+    const writes: string[] = []
+    const stderrSpy = vi.spyOn(process.stderr, "write").mockImplementation((chunk: string | Uint8Array) => {
+      writes.push(typeof chunk === "string" ? chunk : Buffer.from(chunk).toString("utf8"))
+      return true
+    })
+
+    try {
+      const handle = await run(<ThrowOnRender />, term)
+      const exited = Promise.race([handle.waitUntilExit().then(() => "exited"), delay(200).then(() => "timeout")])
+      await expect(exited).resolves.toBe("exited")
+
+      expect(term).not.toBeInMode("altScreen")
+      expect(writes.join("")).toContain("render validation failed")
+    } finally {
+      stderrSpy.mockRestore()
+    }
+  })
 })
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 // ============================================================================
 // Alt Screen + Pause/Resume (3-layer verification: screen, terminal mode, app state)

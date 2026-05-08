@@ -689,6 +689,31 @@ export class TerminalBuffer {
   }
 
   /**
+   * Copy SELECTABLE_FLAG metadata from another same-sized buffer without
+   * changing visual cell content or dirty rows.
+   *
+   * The render-plan commit path owns visual output ordering, while the
+   * direct backing render still owns hidden per-cell selection metadata until
+   * selectable state is encoded into plan paint ops. This bridges that gap
+   * without making selection metadata participate in output diffs.
+   */
+  copySelectableFlagsFrom(source: TerminalBuffer): void {
+    if (source.width !== this.width || source.height !== this.height) {
+      throw new Error(
+        `copySelectableFlagsFrom: buffer dimensions ${this.width}x${this.height} ` +
+          `do not match source ${source.width}x${source.height}`,
+      )
+    }
+    for (let i = 0; i < this.cells.length; i++) {
+      const selectable = (source.cells[i]! & SELECTABLE_FLAG) !== 0
+      this.cells[i] = selectable
+        ? ((this.cells[i]! | SELECTABLE_FLAG) >>> 0)
+        : ((this.cells[i]! & ~SELECTABLE_FLAG) >>> 0)
+    }
+    this._selectableMode = source._selectableMode
+  }
+
+  /**
    * Read cell data into a caller-provided Cell object (zero-allocation).
    * For hot loops that need the full Cell, reuse a single object:
    *

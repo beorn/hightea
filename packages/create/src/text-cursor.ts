@@ -21,7 +21,7 @@
  * // next = 12 (moved to row 1, col 3 → "foo"[3] = end)
  * ```
  */
-import { type Measurer, wrapText } from "@silvery/ag-term/unicode"
+import { displayWidth, type Measurer, wrapText } from "@silvery/ag-term/unicode"
 
 // =============================================================================
 // Types
@@ -51,20 +51,37 @@ export function cursorToRowCol(
   measurer?: Measurer,
 ): { row: number; col: number } {
   if (wrapWidth <= 0) return { row: 0, col: 0 }
-  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth, measurer), cursor)
+  const widthOf = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+  return cursorToRowColFromLines(
+    getWrappedLines(text, wrapWidth, measurer),
+    cursor,
+    wrapWidth,
+    widthOf,
+  )
 }
 
 /** Internal: compute row/col from pre-computed wrapped lines. */
 function cursorToRowColFromLines(
   lines: WrappedLine[],
   cursor: number,
+  wrapWidth?: number,
+  widthOf: (text: string) => number = displayWidth,
 ): { row: number; col: number } {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
     const lineEnd = line.startOffset + line.line.length
     const isLast = i === lines.length - 1
+    const nextLine = lines[i + 1]
+    const cursorAtNextLineStart = Boolean(
+      cursor === lineEnd &&
+        nextLine &&
+        (nextLine.startOffset === cursor ||
+          (wrapWidth !== undefined &&
+            nextLine.startOffset > cursor &&
+            widthOf(line.line) >= wrapWidth)),
+    )
 
-    if (cursor <= lineEnd || isLast) {
+    if ((cursor <= lineEnd && !cursorAtNextLineStart) || isLast) {
       const col = Math.max(0, Math.min(cursor - line.startOffset, line.line.length))
       return { row: i, col }
     }
@@ -92,9 +109,11 @@ export function getWrappedLines(
   let offset = 0
   // Use explicit measurer when available, fall back to module-level convenience function
   const wt = measurer ? measurer.wrapText.bind(measurer) : wrapText
+  const widthOf = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
 
   for (let li = 0; li < logicalLines.length; li++) {
     const line = logicalLines[li]!
+    const logicalLineEnd = offset + line.length
     // Use trim=true to match the renderer's wrapping behavior.
     // The renderer uses wrapText(text, width, true, true), so cursor math
     // must produce the same visual lines to keep positions synchronized.
@@ -116,9 +135,22 @@ export function getWrappedLines(
       result.push({ line: wLine, startOffset: offset })
       offset += wLine.length
     }
-    // Skip any remaining trailing spaces before the newline
-    while (offset < text.length && text[offset] === " ") {
+
+    // Text editing cannot drop trailing spaces the way prose rendering can:
+    // the caret must advance through spaces typed at a soft-wrap boundary.
+    // Materialize any spaces that wrapText consumed as editable cells.
+    while (offset < logicalLineEnd && text[offset] === " ") {
+      const last = result[result.length - 1]
+      if (!last || widthOf(last.line) >= wrapWidth) {
+        result.push({ line: text[offset]!, startOffset: offset })
+      } else {
+        last.line += text[offset]!
+      }
       offset++
+    }
+    const last = result[result.length - 1]
+    if (li === logicalLines.length - 1 && last && widthOf(last.line) >= wrapWidth) {
+      result.push({ line: "", startOffset: offset })
     }
     offset++ // for \n
   }
@@ -167,7 +199,8 @@ export function cursorMoveUp(
   if (wrapWidth <= 0) return cursor > 0 ? 0 : null
 
   const lines = getWrappedLines(text, wrapWidth, measurer)
-  const { row, col } = cursorToRowColFromLines(lines, cursor)
+  const widthOf = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+  const { row, col } = cursorToRowColFromLines(lines, cursor, wrapWidth, widthOf)
 
   if (row === 0) return null // at first visual line — boundary
 
@@ -200,7 +233,8 @@ export function cursorMoveDown(
   if (wrapWidth <= 0) return cursor < text.length ? text.length : null
 
   const lines = getWrappedLines(text, wrapWidth, measurer)
-  const { row, col } = cursorToRowColFromLines(lines, cursor)
+  const widthOf = measurer ? measurer.displayWidth.bind(measurer) : displayWidth
+  const { row, col } = cursorToRowColFromLines(lines, cursor, wrapWidth, widthOf)
 
   if (row >= lines.length - 1) return null // at last visual line — boundary
 

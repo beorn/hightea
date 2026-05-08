@@ -1291,6 +1291,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     log.error?.(
       `React render error caught by SilveryErrorBoundary: ${error.message}${dumpPath ? ` (dump: ${dumpPath})` : ""}`,
     )
+    queueMicrotask(() => {
+      panicApp(error, {
+        title: "silvery render",
+        exitCode: 1,
+        details: dumpPath ? [`render-error dump: ${dumpPath}`] : undefined,
+      })
+    })
   }
 
   type PanicReport = {

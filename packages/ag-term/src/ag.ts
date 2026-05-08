@@ -499,12 +499,12 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
         const captured = withPlanCapture(layout.width, layout.height, () =>
           renderPhase(root, prevBuffer, ctx, postState),
         )
-        void captured.result
         const replay =
           prevBuffer && prevBuffer.width === layout.width && prevBuffer.height === layout.height
             ? prevBuffer.clone()
             : new TerminalBuffer(layout.width, layout.height)
         commitSectionedPlan(replay, captured.plan)
+        replay.copySelectableFlagsFrom(captured.result)
         buffer = replay
       } else {
         buffer = renderPhase(root, prevBuffer, ctx, postState)

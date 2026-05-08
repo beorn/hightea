@@ -1587,6 +1587,17 @@ export function renderText(
       ctx,
       minCol,
     )
+    const previousLastContentCol = buffer.getRowMeta(lineY).lastContentCol
+    const plainLine = hasAnsi(line) ? stripAnsiForBg(line) : line
+    const contentLine = plainLine.trimEnd()
+    if (contentLine.length > 0) {
+      const contentEndCol = x + getTextWidth(contentLine, ctx)
+      const visibleContentEndCol = Math.min(contentEndCol, endCol)
+      const lastContentCol = Math.max(previousLastContentCol, visibleContentEndCol - 1)
+      if (lastContentCol >= 0) {
+        sink.setRowMeta(lineY, { lastContentCol })
+      }
+    }
 
     // Clear remaining cells after text to end of layout width (clipped).
     // When text content shrinks (e.g., breadcrumb changes from long to short path),
