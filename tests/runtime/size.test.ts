@@ -47,7 +47,7 @@ const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
  * same at any window size — only the latency changes.
  */
 const mkSize = (stdout: NodeJS.WriteStream, opts?: { cols?: number; rows?: number }) =>
-  createSize(stdout, { coalesceMs: 16, ...(opts ?? {}) })
+  createSize(stdout, { coalesceMs: 16, ...opts })
 
 /**
  * Subscribe to a size's coalesced resizes via `effect()`, skipping the seed

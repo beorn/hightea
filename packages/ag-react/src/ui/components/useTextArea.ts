@@ -219,7 +219,7 @@ export function useTextArea({
       stateRef.current.cursor = newCursor
       setCursor(newCursor)
       const { row } = cursorToRowCol(text, newCursor, wrapWidth)
-      const totalLines = getWrappedLines(text, wrapWidth).length
+      const totalLines = Math.max(getWrappedLines(text, wrapWidth).length, row + 1)
       const newScroll = clampScroll(row, scrollRef.current, height, totalLines, scrollMargin)
       if (newScroll !== scrollRef.current) {
         setScrollOffset(newScroll)
@@ -728,7 +728,11 @@ export function useTextArea({
         }
       : null
 
-  const visibleLines = wrappedLines.slice(scrollOffset, scrollOffset + height)
+  const totalLineCount = Math.max(wrappedLines.length, cursorRow + 1)
+  const visibleLines = Array.from({ length: Math.max(0, Math.min(height, totalLineCount - scrollOffset)) }, (_, i) => {
+    const row = scrollOffset + i
+    return wrappedLines[row] ?? { line: "", startOffset: value.length }
+  })
 
   const clear = useCallback(() => {
     updateValue("", 0)

@@ -329,8 +329,9 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // current wrapWidth, compute the actual visible row count. In fixed
   // mode this is just `rows`; in content mode we clamp the wrapped-line
   // count between minRows and maxRows.
+  const contentLineCount = Math.max(ta.wrappedLines.length, ta.cursorRow + 1)
   const visibleLineCount =
-    fieldSizing === "fixed" ? Math.max(1, rows) : Math.min(hi, Math.max(lo, ta.wrappedLines.length))
+    fieldSizing === "fixed" ? Math.max(1, rows) : Math.min(hi, Math.max(lo, contentLineCount))
 
   // The Box that holds the TextArea content sets `height` as the OUTER
   // box height (border-box). When `borderStyle` is set we add 2 rows for
@@ -419,6 +420,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         focusable
         testID={testID}
         flexDirection="column"
+        width="100%"
         height={outerHeight}
         cursorOffset={cursorOffset}
         {...borderProps}
@@ -440,6 +442,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
       testID={testID}
       key={ta.scrollOffset}
       flexDirection="column"
+      width="100%"
       height={outerHeight}
       cursorOffset={cursorOffset}
       {...borderProps}
@@ -457,7 +460,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
 
         if (disabled) {
           return (
-            <Text key={absoluteRow} color="$fg-muted">
+            <Text key={absoluteRow} color="$fg-muted" wrap={false}>
               {wl.line || " "}
             </Text>
           )
@@ -473,7 +476,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
           const after = wl.line.slice(selEnd)
 
           return (
-            <Text key={absoluteRow} color={bodyColor}>
+            <Text key={absoluteRow} color={bodyColor} wrap={false}>
               {before}
               <Text inverse>
                 {selected || (selEnd === wl.line.length && isCursorRow ? " " : "")}
@@ -488,7 +491,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         // to keep exactly ONE visible caret across two stacked TextAreas.
         if (!isCursorRow || (!isActive && !showInactiveCursor)) {
           return (
-            <Text key={absoluteRow} color={bodyColor}>
+            <Text key={absoluteRow} color={bodyColor} wrap={false}>
               {wl.line || " "}
             </Text>
           )
@@ -508,7 +511,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
         )
 
         return (
-          <Text key={absoluteRow} color={bodyColor}>
+          <Text key={absoluteRow} color={bodyColor} wrap={false}>
             {beforeCursor}
             {cursorEl}
             {afterCursor}

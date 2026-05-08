@@ -132,6 +132,32 @@ describe("useTextArea hook", () => {
     expect(app.text).toContain("visible:3")
   })
 
+  test("keeps a visible caret row at an exact soft-wrap boundary", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function TestApp() {
+      const ta = useTextArea({
+        defaultValue: "x".repeat(10),
+        height: 3,
+        wrapWidth: 10,
+      })
+      return (
+        <Box flexDirection="column">
+          <Text>row:{ta.cursorRow}</Text>
+          <Text>col:{ta.cursorCol}</Text>
+          <Text>visible:{ta.visibleLines.length}</Text>
+          <Text>last:{JSON.stringify(ta.visibleLines[1]?.line)}</Text>
+        </Box>
+      )
+    }
+
+    const app = r(<TestApp />)
+    expect(app.text).toContain("row:1")
+    expect(app.text).toContain("col:0")
+    expect(app.text).toContain("visible:2")
+    expect(app.text).toContain('last:""')
+  })
+
   test("selection is null when no selection active", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 

@@ -19,6 +19,7 @@ import { deriveTheme, loadTheme } from "./derive.ts"
 import { probeColors, type ProbeInputOwner } from "./detect.ts"
 import { fingerprintMatch } from "./fingerprint.ts"
 import { defaultDarkScheme, defaultLightScheme } from "./default-schemes.ts"
+import { blend } from "@silvery/color"
 
 /** How the final scheme was decided. */
 export type DetectSource =
@@ -29,7 +30,7 @@ export type DetectSource =
   | "fallback" // nothing worked, using defaultDark/Light
 
 /** Where each slot's value came from. */
-export type SlotSource = "probed" | "catalog" | "fallback"
+export type SlotSource = "probed" | "catalog" | "derived" | "fallback"
 
 export interface DetectSchemeResult {
   /** The resolved 22-slot color scheme. */
@@ -178,14 +179,21 @@ export async function detectScheme(opts: DetectSchemeOptions = {}): Promise<Dete
   // 4. Probed but no catalog match — merge probed slots over fallback
   const dark = detected.dark
   const fallback = dark ? defaultDarkScheme : defaultLightScheme
-  const merged: ColorScheme = { ...fallback, ...stripNulls(detected.palette) }
+  const probedSlots = stripNulls(detected.palette)
+  const derivedSlots = deriveMissingSlotsFromProbe(probedSlots)
+  const merged: ColorScheme = { ...fallback, ...derivedSlots, ...probedSlots }
   const theme = loadTheme(merged, { enforce, wcag })
 
   // Per-slot provenance: probed slots come from detected.palette, the rest from fallback
   const slotSources: Partial<Record<keyof ColorScheme, SlotSource>> = {}
   for (const field of COLOR_SCHEME_FIELDS) {
     const probed = (detected.palette as Record<string, unknown>)[field]
-    slotSources[field] = typeof probed === "string" ? "probed" : "fallback"
+    slotSources[field] =
+      typeof probed === "string"
+        ? "probed"
+        : field in derivedSlots
+          ? "derived"
+          : "fallback"
   }
 
   // Confidence heuristic: proportion of slots that were probed (of the 18 trackable: fg + bg + 16 ansi)
@@ -208,6 +216,24 @@ function stripNulls(partial: Partial<ColorScheme>): Partial<ColorScheme> {
     if (v != null) result[k] = v
   }
   return result as Partial<ColorScheme>
+}
+
+function deriveMissingSlotsFromProbe(probed: Partial<ColorScheme>): Partial<ColorScheme> {
+  const out: Partial<ColorScheme> = {}
+  if (
+    typeof probed.background === "string" &&
+    typeof probed.foreground === "string" &&
+    typeof probed.selectionBackground !== "string"
+  ) {
+    out.selectionBackground = blend(probed.background, probed.foreground, 0.16)
+  }
+  if (
+    typeof probed.foreground === "string" &&
+    typeof probed.selectionForeground !== "string"
+  ) {
+    out.selectionForeground = probed.foreground
+  }
+  return out
 }
 
 function allSlotsFrom(src: SlotSource): Partial<Record<keyof ColorScheme, SlotSource>> {

@@ -65,6 +65,25 @@ describe("TextArea wrap default", () => {
     expect(cursor!.x).toBe(5)
   })
 
+  test("cursor at an exact soft-wrap boundary lands on the continuation row", () => {
+    const r = createRenderer({ cols: 40, rows: 10 })
+
+    function App() {
+      return (
+        <Box width={10}>
+          <TextArea defaultValue={"x".repeat(10)} maxRows={3} />
+        </Box>
+      )
+    }
+
+    const app = r(<App />)
+    const cursor = app.getCursorState()
+    expect(cursor).not.toBeNull()
+    expect(cursor!.visible).toBe(true)
+    expect(cursor!.y).toBe(1)
+    expect(cursor!.x).toBe(0)
+  })
+
   test("wrap='off' keeps long input on a single visual row", () => {
     const r = createRenderer({ cols: 40, rows: 10 })
 

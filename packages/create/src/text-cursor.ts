@@ -21,7 +21,7 @@
  * // next = 12 (moved to row 1, col 3 → "foo"[3] = end)
  * ```
  */
-import { type Measurer, wrapText } from "@silvery/ag-term/unicode"
+import { type Measurer, graphemeWidth, splitGraphemes, wrapText } from "@silvery/ag-term/unicode"
 
 // =============================================================================
 // Types
@@ -51,26 +51,48 @@ export function cursorToRowCol(
   measurer?: Measurer,
 ): { row: number; col: number } {
   if (wrapWidth <= 0) return { row: 0, col: 0 }
-  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth, measurer), cursor)
+  return cursorToRowColFromLines(getWrappedLines(text, wrapWidth, measurer), cursor, wrapWidth, measurer)
 }
 
 /** Internal: compute row/col from pre-computed wrapped lines. */
 function cursorToRowColFromLines(
   lines: WrappedLine[],
   cursor: number,
+  wrapWidth: number,
+  measurer?: Measurer,
 ): { row: number; col: number } {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]!
     const lineEnd = line.startOffset + line.line.length
     const isLast = i === lines.length - 1
 
-    if (cursor <= lineEnd || isLast) {
+    if (cursor < lineEnd || isLast) {
+      if (
+        cursor === lineEnd &&
+        isLast &&
+        line.line.length > 0 &&
+        displayWidth(line.line, measurer) >= wrapWidth
+      ) {
+        return { row: i + 1, col: 0 }
+      }
       const col = Math.max(0, Math.min(cursor - line.startOffset, line.line.length))
       return { row: i, col }
+    }
+
+    const nextLine = lines[i + 1]
+    if (cursor === lineEnd && nextLine?.startOffset === cursor) {
+      return { row: i + 1, col: 0 }
     }
   }
 
   return { row: Math.max(0, lines.length - 1), col: 0 }
+}
+
+function displayWidth(text: string, measurer?: Measurer): number {
+  const widthOf = measurer ? measurer.graphemeWidth.bind(measurer) : graphemeWidth
+  let width = 0
+  for (const grapheme of splitGraphemes(text)) width += widthOf(grapheme)
+  return width
 }
 
 /**
@@ -167,7 +189,7 @@ export function cursorMoveUp(
   if (wrapWidth <= 0) return cursor > 0 ? 0 : null
 
   const lines = getWrappedLines(text, wrapWidth, measurer)
-  const { row, col } = cursorToRowColFromLines(lines, cursor)
+  const { row, col } = cursorToRowColFromLines(lines, cursor, wrapWidth, measurer)
 
   if (row === 0) return null // at first visual line — boundary
 
@@ -200,7 +222,7 @@ export function cursorMoveDown(
   if (wrapWidth <= 0) return cursor < text.length ? text.length : null
 
   const lines = getWrappedLines(text, wrapWidth, measurer)
-  const { row, col } = cursorToRowColFromLines(lines, cursor)
+  const { row, col } = cursorToRowColFromLines(lines, cursor, wrapWidth, measurer)
 
   if (row >= lines.length - 1) return null // at last visual line — boundary
 
