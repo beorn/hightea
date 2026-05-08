@@ -562,17 +562,14 @@ export type OverlayOp = {
 
 /**
  * Buffer book-keeping that survives across frames or that must be in
- * place before any cell write within a row. `setSelectableMode` is a
- * mode toggle; per pro review it's hidden mutable state that should
- * eventually be encoded into each cell op (Phase 2 Step 2). For Phase 2
- * Step 1 we capture it as post-state because in the current renderer
- * the toggle pattern is `setSelectableMode(true) at root, then false
- * during traversal of overlays` — predictable and applied last in the
- * commit by inspection.
+ * place before any cell write within a row.
+ *
+ * Selectability is deliberately not post-state. It is encoded into every
+ * clear/paint/transfer op that writes cells so sectioned replay stamps the
+ * same SELECTABLE_FLAG bits as the direct BufferSink path.
  */
 export type PostStateOp =
   | { kind: "setRowMeta"; row: number; softWrapped?: boolean; lastContentCol?: number }
-  | { kind: "setSelectableMode"; selectable: boolean }
   | {
       // Outline snapshots — cells captured during the decoration pass so
       // the next frame can restore the under-cells before drawing the new
@@ -599,7 +596,7 @@ export type PostStateOp =
  *   2. cleanupOps       — destructive clears (excess, overflow, viewport)
  *   3. paintOps         — final-frame content (bg fills, text, borders)
  *   4. overlayOps       — attr overlays (merge into existing cells)
- *   5. postStateOps     — row metadata, selectable mode
+ *   5. postStateOps     — row metadata
  *
  * Wrong-order sibling-stomp becomes unrepresentable: a `ClearOp` cannot
  * end up in `paintOps`. The plan-shape itself is the invariant.
