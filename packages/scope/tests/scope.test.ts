@@ -61,6 +61,70 @@ describe("Scope.signal", () => {
 })
 
 // =============================================================================
+// Timers
+// =============================================================================
+
+describe("Scope timers", () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+  })
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("timeout is cancelled when the scope disposes", async () => {
+    const scope = createScope("timer")
+    const fire = vi.fn()
+    scope.timeout(fire, 100)
+
+    await scope[Symbol.asyncDispose]()
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(fire).not.toHaveBeenCalled()
+  })
+
+  it("timeout cancel function is idempotent", async () => {
+    await using scope = createScope("timer")
+    const fire = vi.fn()
+    const cancel = scope.timeout(fire, 100)
+
+    cancel()
+    cancel()
+    await vi.advanceTimersByTimeAsync(100)
+
+    expect(fire).not.toHaveBeenCalled()
+  })
+
+  it("interval is cancelled when the scope disposes", async () => {
+    const scope = createScope("interval")
+    const tick = vi.fn()
+    scope.interval(tick, 50)
+
+    await vi.advanceTimersByTimeAsync(125)
+    expect(tick).toHaveBeenCalledTimes(2)
+
+    await scope[Symbol.asyncDispose]()
+    await vi.advanceTimersByTimeAsync(125)
+
+    expect(tick).toHaveBeenCalledTimes(2)
+  })
+
+  it("sleep resolves when the scope disposes", async () => {
+    const scope = createScope("sleep")
+    let resolved = false
+    const sleeping = scope.sleep(1000).then(() => {
+      resolved = true
+    })
+
+    await scope[Symbol.asyncDispose]()
+    await sleeping
+
+    expect(resolved).toBe(true)
+  })
+})
+
+// =============================================================================
 // Child cascade
 // =============================================================================
 

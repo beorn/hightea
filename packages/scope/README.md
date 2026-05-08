@@ -37,7 +37,8 @@ await child.sleep(100)
 - **`scope.defer(fn)`** -- Register cleanup (called in reverse order on dispose)
 - **`scope.child(name?)`** -- Create a child scope (auto-disposed with parent)
 - **`scope.sleep(ms)`** -- Cancellation-aware sleep
-- **`scope.timeout(ms, fn)`** -- Cancellation-aware timeout, returns cancel function
+- **`scope.timeout(fn, ms)`** -- Cancellation-aware timeout, returns cancel function
+- **`scope.interval(fn, ms)`** -- Scope-owned interval, returns cancel function
 
 ### Plugin
 

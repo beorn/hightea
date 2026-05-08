@@ -31,6 +31,11 @@ import {
   type RegistrableHandle,
 } from "./handle.js"
 
+export interface ScopeTimerOptions {
+  /** Call `.unref()` on Node/Bun timer handles when available. */
+  readonly unref?: boolean
+}
+
 // =============================================================================
 // Scope
 // =============================================================================
@@ -69,6 +74,77 @@ export class Scope extends AsyncDisposableStack {
   /** Create a child scope. Child's signal aborts when this scope's signal does. */
   child(name?: string): Scope {
     return new Scope(this, name)
+  }
+
+  /**
+   * Schedule a one-shot callback owned by this scope. Disposing the scope
+   * clears the timer if it has not fired yet. The returned function cancels
+   * the timer early and is idempotent.
+   */
+  timeout(callback: () => void, ms: number, opts?: ScopeTimerOptions): () => void {
+    let active = true
+    const timer = setTimeout(() => {
+      if (!active) return
+      active = false
+      callback()
+    }, ms) as ReturnType<typeof setTimeout> & { unref?: () => void }
+    if (opts?.unref === true) timer.unref?.()
+
+    const cancel = () => {
+      if (!active) return
+      active = false
+      clearTimeout(timer)
+    }
+    this.defer(cancel)
+    return cancel
+  }
+
+  /**
+   * Schedule a repeating callback owned by this scope. Disposing the scope
+   * clears the interval. The returned function cancels the interval early
+   * and is idempotent.
+   */
+  interval(callback: () => void, ms: number, opts?: ScopeTimerOptions): () => void {
+    let active = true
+    const timer = setInterval(() => {
+      if (active) callback()
+    }, ms) as ReturnType<typeof setInterval> & { unref?: () => void }
+    if (opts?.unref === true) timer.unref?.()
+
+    const cancel = () => {
+      if (!active) return
+      active = false
+      clearInterval(timer)
+    }
+    this.defer(cancel)
+    return cancel
+  }
+
+  /**
+   * Cancellation-aware sleep. Resolves when the timer fires, when the scope
+   * is disposed, or immediately if the scope is already aborted.
+   */
+  sleep(ms: number, opts?: ScopeTimerOptions): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.signal.aborted) {
+        resolve()
+        return
+      }
+
+      let done = false
+      let cancelTimer: (() => void) | null = null
+      const finish = () => {
+        if (done) return
+        done = true
+        cancelTimer?.()
+        this.signal.removeEventListener("abort", finish)
+        resolve()
+      }
+
+      this.signal.addEventListener("abort", finish, { once: true })
+      cancelTimer = this.timeout(finish, ms, opts)
+      this.defer(finish)
+    })
   }
 
   /**
