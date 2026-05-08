@@ -529,6 +529,7 @@ export interface BoxProps
   /** Text truncation mode for child text content (passed through to Text children). */
   wrap?:
     | "wrap"
+    | "wrap-truncate"
     | "hard"
     | "even"
     | "truncate"
@@ -837,8 +838,29 @@ export interface TextFlexItemProps {
 
 export interface TextProps extends StyleProps, TextFlexItemProps, TestProps, MouseEventProps {
   children?: React.ReactNode
+  /**
+   * Wrap / truncate mode. Each value bundles the CSS-equivalent
+   * `white-space` + `overflow-wrap` + `text-overflow` axes into one
+   * named composite. See `vendor/silvery/docs/components/Text.md` for the
+   * full table.
+   *
+   * - `"wrap"` (default): word-aware multi-line wrap, soft-break separators
+   *   for path-style tokens, character wrap as last-resort fallback.
+   * - `"wrap-truncate"`: same as `"wrap"` but ellipsis-truncates the
+   *   offending line when an unbreakable atomic token would otherwise
+   *   character-wrap. CSS analogue
+   *   `overflow-wrap: break-word` + `text-overflow: ellipsis`.
+   * - `"truncate"` / `"truncate-end"` / `"truncate-start"` /
+   *   `"truncate-middle"`: single-line, ellipsis at the named position.
+   * - `"clip"`: single-line, hard clip without ellipsis.
+   * - `"hard"`: character-wrap regardless of word boundaries (Ink compat).
+   * - `"even"`: optimal Knuth-Plass wrapping (minimize raggedness).
+   * - `false`: no wrap / no clip (overflows container — avoid in bordered
+   *   cells).
+   */
   wrap?:
     | "wrap"
+    | "wrap-truncate"
     | "hard"
     | "even"
     | "truncate"

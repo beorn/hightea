@@ -145,10 +145,14 @@ function measureIntrinsicSize(
     let lines: string[]
 
     if (availableWidth !== undefined && availableWidth > 0 && isWrapEnabled(textProps.wrap)) {
-      // Wrap text at available width to compute correct height
+      // Wrap text at available width to compute correct height. For
+      // `wrap-truncate`, thread the truncate-atomic-overflow flag so the
+      // intrinsic line count matches what render emits (single ellipsis
+      // line) instead of the char-wrap line count.
+      const truncateAtomic = textProps.wrap === "wrap-truncate"
       lines = ctx
-        ? ctx.measurer.wrapText(text, availableWidth, true, true)
-        : wrapText(text, availableWidth, true, true)
+        ? ctx.measurer.wrapText(text, availableWidth, true, true, truncateAtomic)
+        : wrapText(text, availableWidth, true, true, truncateAtomic)
     } else {
       lines = text.split("\n")
     }
@@ -215,7 +219,12 @@ function measureIntrinsicSize(
  */
 function isWrapEnabled(wrap: TextProps["wrap"]): boolean {
   return (
-    wrap === "wrap" || wrap === "hard" || wrap === "even" || wrap === true || wrap === undefined
+    wrap === "wrap" ||
+    wrap === "wrap-truncate" ||
+    wrap === "hard" ||
+    wrap === "even" ||
+    wrap === true ||
+    wrap === undefined
   )
 }
 

@@ -149,7 +149,13 @@ export interface Measurer {
   displayWidth(text: string): number
   displayWidthAnsi(text: string): number
   graphemeWidth(grapheme: string): number
-  wrapText(text: string, width: number, trim?: boolean, hard?: boolean): string[]
+  wrapText(
+    text: string,
+    width: number,
+    trim?: boolean,
+    hard?: boolean,
+    truncateAtomicOverflow?: boolean,
+  ): string[]
   sliceByWidth(text: string, maxWidth: number): string
   sliceByWidthFromEnd(text: string, maxWidth: number): string
 }
@@ -246,8 +252,22 @@ export function createMeasurer(
     return graphemes.slice(startIdx).join("")
   }
 
-  function measuredWrapText(text: string, width: number, trim?: boolean, hard?: boolean): string[] {
-    return wrapTextWithMeasurer(text, width, measurer, trim ?? false, hard ?? false)
+  function measuredWrapText(
+    text: string,
+    width: number,
+    trim?: boolean,
+    hard?: boolean,
+    truncateAtomicOverflow?: boolean,
+  ): string[] {
+    return wrapTextWithMeasurer(
+      text,
+      width,
+      measurer,
+      trim ?? false,
+      hard ?? false,
+      true,
+      truncateAtomicOverflow ?? false,
+    )
   }
 
   const measurer: Measurer = {
@@ -792,6 +812,12 @@ export function splitGraphemesAnsiAware(text: string): string[] {
  * @param width - Maximum display width per line
  * @param preserveNewlines - Whether to preserve existing newlines
  * @param trim - Trim trailing spaces on broken lines and skip leading spaces on continuation lines (useful for rendering)
+ * @param truncateAtomicOverflow - When true, an unbreakable token wider than
+ *   `width` (no soft-break separator) ends with a Unicode `…` ellipsis on
+ *   the offending line and the rest of the token is dropped, instead of
+ *   character-wrapping. Implements the `wrap="wrap-truncate"` mode —
+ *   CSS-equivalent `overflow-wrap: break-word` + `text-overflow: ellipsis`.
+ *   Default `false` preserves existing character-wrap fallback (`wrap="wrap"`).
  * @returns Array of wrapped lines
  */
 export function wrapText(
@@ -799,12 +825,13 @@ export function wrapText(
   width: number,
   preserveNewlines = true,
   trim = false,
+  truncateAtomicOverflow = false,
 ): string[] {
   // When a scoped measurer with its own wrapText is active (e.g., Pretext),
   // delegate to it directly — it uses word-level measurement (layoutWithLines)
   // rather than character-by-character accumulation via wrapTextWithMeasurer.
   if (_scopedMeasurer?.wrapText) {
-    return _scopedMeasurer.wrapText(text, width, trim)
+    return _scopedMeasurer.wrapText(text, width, trim, false, truncateAtomicOverflow)
   }
   return wrapTextWithMeasurer(
     text,
@@ -813,6 +840,7 @@ export function wrapText(
     trim,
     false,
     preserveNewlines,
+    truncateAtomicOverflow,
   )
 }
 
@@ -1074,6 +1102,7 @@ export function wrapTextWithMeasurer(
   trim = false,
   _hard = false,
   preserveNewlines = true,
+  truncateAtomicOverflow = false,
 ): string[] {
   if (width <= 0) {
     return []
@@ -1214,6 +1243,57 @@ export function wrapTextWithMeasurer(
           // so soft-wrapped continuation lines align with the rest of the
           // wrap algorithm (no special start-of-continuation handling).
           i = lastSoftBreakGraphemeIndex - 1
+          currentLine = ""
+          currentWidth = 0
+          lastBreakIndex = -1
+          lastBreakWidth = 0
+          lastBreakGraphemeIndex = -1
+          lastSoftBreakIndex = -1
+          lastSoftBreakWidth = 0
+          lastSoftBreakGraphemeIndex = -1
+        } else if (truncateAtomicOverflow) {
+          // No break point found AND wrap-truncate mode is active — emit
+          // ellipsis-truncated line and skip the rest of the unbreakable
+          // run until we hit a word boundary (where wrapping resumes).
+          // Implements `wrap="wrap-truncate"` per Text.md — CSS analogue
+          // `overflow-wrap: break-word` + `text-overflow: ellipsis`.
+          //
+          // Algorithm:
+          // 1. Trim trailing graphemes from currentLine until ellipsis fits.
+          // 2. Push `<currentLine prefix> + …` as the truncated line.
+          // 3. Fast-forward `i` past the unbreakable run (until next
+          //    word-boundary grapheme) so subsequent text resumes wrapping.
+          const ellipsis = "…"
+          const ellipsisWidth = gWidthFn(ellipsis)
+          // Build the truncated prefix by trimming graphemes from the end
+          // of currentLine until ellipsis fits within `width`. Split once,
+          // pop graphemes off the tail (O(n) instead of O(n²) re-split).
+          const lineGraphemes = splitGraphemes(currentLine)
+          let truncatedWidth = currentWidth
+          while (truncatedWidth + ellipsisWidth > width && lineGraphemes.length > 0) {
+            const last = lineGraphemes.pop()!
+            truncatedWidth -= gWidthFn(last)
+          }
+          let truncatedLine = lineGraphemes.join("")
+          if (trim) truncatedLine = truncatedLine.trimEnd()
+          lines.push(truncatedLine + ellipsis)
+          isFirstLineOfParagraph = false
+
+          // Fast-forward `i` past the rest of the unbreakable run. We're
+          // currently at index `i` (the grapheme that didn't fit). Advance
+          // until we find a word-boundary or soft-break grapheme — that's
+          // where wrapping can legitimately resume on the next iteration.
+          let j = i
+          while (
+            j < graphemes.length &&
+            !isWordBoundary(graphemes[j]!) &&
+            !canBreakAnywhere(graphemes[j]!)
+          ) {
+            j++
+          }
+          // Reset state and rewind `i` so the next loop iteration picks up
+          // at j (the first wrappable grapheme after the truncated run).
+          i = j - 1
           currentLine = ""
           currentWidth = 0
           lastBreakIndex = -1

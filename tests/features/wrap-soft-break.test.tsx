@@ -179,3 +179,124 @@ describe("Text rendering: soft-break wrap in box", () => {
     expect(text).toContain("SKILL.md")
   })
 })
+
+/**
+ * `wrap="wrap-truncate"` — body-text wrap with ellipsis fallback for atomic
+ * tokens that have no soft-break separators. Tracks
+ * `@km/silvery/card-body-truncate-ellipsis`.
+ *
+ * CSS-equivalent: `white-space: normal` + `overflow-wrap: break-word`
+ * + `text-overflow: ellipsis` — the wrap algorithm prefers word and
+ * separator boundaries, but when a single token can't break and would
+ * otherwise character-wrap, it ellipsis-truncates THAT line instead. The
+ * remainder of the unbreakable token is dropped; subsequent text after
+ * the next word boundary continues wrapping normally.
+ *
+ * Compare with `wrap="wrap"` (character-wrap fallback, preserves all
+ * content) and `wrap="truncate"` (single-line, truncates the whole text).
+ */
+describe('wrapText: wrap-truncate mode (atomic-overflow → "…" instead of char-wrap)', () => {
+  test("atomic over-long token: ends with … instead of char-wrap", () => {
+    // 28 a's at width 10 — no soft break. wrap mode would char-wrap into
+    // ["aaaaaaaaaa", "aaaaaaaaaa", "aaaaaaaa"]. wrap-truncate emits one
+    // line ending with the ellipsis and drops the rest.
+    const lines = wrapText("aaaaaaaaaaaaaaaaaaaaaaaaaaaa", 10, true, false, true)
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toBe("aaaaaaaaa…")
+    expect(lines[0]!.endsWith("…")).toBe(true)
+    expect(lines[0]!.length).toBeLessThanOrEqual(10)
+  })
+
+  test("ellipsis is the single Unicode char, not three dots", () => {
+    const lines = wrapText("verylongidentifier", 8, true, false, true)
+    expect(lines).toHaveLength(1)
+    // Single … (HORIZONTAL ELLIPSIS), never "..."
+    expect(lines[0]!.endsWith("…")).toBe(true)
+    expect(lines[0]!.endsWith("...")).toBe(false)
+  })
+
+  test("path with separators still wraps normally — truncate only kicks in for atomic", () => {
+    // wrap mode: ["path/", "to/", "file"]. wrap-truncate: same — soft
+    // breaks let the wrap proceed without falling through to truncate.
+    const linesPlain = wrapText("path/to/file", 6, true, false, false)
+    const linesTrunc = wrapText("path/to/file", 6, true, false, true)
+    expect(linesTrunc).toEqual(linesPlain)
+  })
+
+  test("text after atomic token continues wrapping after a word boundary", () => {
+    // The atomic token gets ellipsis-truncated, but the trailing " more"
+    // is a separate word and wraps normally on the next line. Confirms
+    // that wrap-truncate scopes ellipsis to the offending atomic token,
+    // not the entire text.
+    const lines = wrapText("aaaaaaaaaaaaaaaaaaaa more", 10, true, false, true)
+    // First line: truncated atomic token with ellipsis.
+    expect(lines[0]!.endsWith("…")).toBe(true)
+    expect(lines[0]!.length).toBeLessThanOrEqual(10)
+    // Second line: the surviving word.
+    expect(lines.length).toBeGreaterThanOrEqual(2)
+    expect(lines.some((l) => l.includes("more"))).toBe(true)
+  })
+
+  test("normal multi-word text wraps identically to wrap mode", () => {
+    const text = "the quick brown fox jumps over the lazy dog"
+    const linesPlain = wrapText(text, 12, true, false, false)
+    const linesTrunc = wrapText(text, 12, true, false, true)
+    expect(linesTrunc).toEqual(linesPlain)
+  })
+
+  test("token that fits is not truncated", () => {
+    const lines = wrapText("aaaaaaaaaa", 100, true, false, true)
+    expect(lines).toEqual(["aaaaaaaaaa"])
+  })
+
+  test("paragraph mixing wrappable + atomic tokens wraps the wrappable, truncates the atomic", () => {
+    // The path wraps at separators; the atomic identifier on its own
+    // line gets truncated.
+    const text = "see path/to/file and also veryverylongnoseparator after"
+    const lines = wrapText(text, 14, true, false, true)
+    // No line exceeds 14 cols.
+    for (const line of lines) {
+      expect(line.length).toBeLessThanOrEqual(14)
+    }
+    // The atomic token's line ends with the ellipsis.
+    const truncatedLine = lines.find((l) => l.endsWith("…"))
+    expect(truncatedLine).toBeDefined()
+  })
+})
+
+describe("Text rendering: wrap-truncate in box", () => {
+  test("atomic token in narrow Box renders ending with …", () => {
+    const render = createRenderer({ cols: 30, rows: 10 })
+    const app = render(
+      <Box width={12} flexDirection="column">
+        <Text wrap="wrap-truncate">aaaaaaaaaaaaaaaaaaaaaaaaaaaa</Text>
+      </Box>,
+    )
+    const text = app.text
+    // Some painted line ends with the ellipsis.
+    const lines = text.split("\n").map((l) => l.replace(/\s+$/, ""))
+    const ellipsisLine = lines.find((l) => l.endsWith("…"))
+    expect(ellipsisLine, `expected one line ending with … in:\n${text}`).toBeDefined()
+    expect(ellipsisLine!.length).toBeLessThanOrEqual(12)
+    // No painted line exceeds container width (12).
+    const visibleLines = lines.filter((l) => l.length > 0)
+    for (const line of visibleLines) {
+      expect(line.length).toBeLessThanOrEqual(12)
+    }
+  })
+
+  test("path-style content in Box still wraps at separators (wrap-truncate is superset)", () => {
+    const render = createRenderer({ cols: 30, rows: 10 })
+    const app = render(
+      <Box width={20} flexDirection="column">
+        <Text wrap="wrap-truncate">.claude/skills/SKILL.md</Text>
+      </Box>,
+    )
+    const text = app.text
+    expect(text).toContain(".claude/")
+    expect(text).toContain("skills/")
+    expect(text).toContain("SKILL.md")
+    // No ellipsis was needed — the path soft-broke cleanly.
+    expect(text.includes("…")).toBe(false)
+  })
+})

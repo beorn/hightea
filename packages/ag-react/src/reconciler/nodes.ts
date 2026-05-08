@@ -225,6 +225,12 @@ export function createNode(
       // Hard wrap: character-level wrapping, not word-aware. Each line that
       // exceeds maxWidth is sliced into chunks of exactly maxWidth.
       const isHardWrap = wrap === "hard"
+      // wrap-truncate: word-aware wrap with ellipsis fallback for atomic
+      // tokens that can't break. Measure path threads the flag into the
+      // measurer so intrinsic line count matches the render-time output —
+      // otherwise layout reserves char-wrapped row count but render emits
+      // one truncated line, leaving blank rows below.
+      const isWrapTruncate = wrap === "wrap-truncate"
 
       // internal_transform (set by <Transform>) is applied per-rendered-line
       // and can change the line's display width. fit-content and other
@@ -337,13 +343,16 @@ export function createNode(
           actualWidth = Math.max(actualWidth, longestSegment)
           renderedLineIndex++
         } else {
-          // Wrappable text (wrap, even, undefined) under exact/at-most/undefined.
+          // Wrappable text (wrap, wrap-truncate, even, undefined) under
+          // exact/at-most/undefined.
           if (lineWidth <= maxWidth) {
             totalHeight += lh
             actualWidth = Math.max(actualWidth, widthFor(line))
             renderedLineIndex++
           } else {
-            const wrapped = wt(line, maxWidth, false, true)
+            // wrap-truncate: pass the truncate-atomic-overflow flag so the
+            // measured line count matches what render emits.
+            const wrapped = wt(line, maxWidth, false, true, isWrapTruncate)
             totalHeight += wrapped.length * lh
             for (const wl of wrapped) {
               actualWidth = Math.max(actualWidth, widthFor(wl))

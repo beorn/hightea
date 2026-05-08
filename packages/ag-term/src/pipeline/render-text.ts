@@ -839,6 +839,16 @@ export function formatTextLines(
   // line count) rather than optimizing break placement. Keep the algorithm in
   // pretext.ts for potential future use; just treat "balanced" as greedy here.
 
+  // wrap === "wrap-truncate" — body-text wrap that ellipsis-truncates the
+  // offending line when an atomic token can't break (no soft-break
+  // separator, would otherwise character-wrap). CSS-equivalent
+  // `overflow-wrap: break-word` + `text-overflow: ellipsis`. Tracks
+  // `@km/silvery/card-body-truncate-ellipsis`.
+  if (wrap === "wrap-truncate") {
+    if (ctx) return ctx.measurer.wrapText(normalizedText, width, true, false, true)
+    return wrapText(normalizedText, width, true, true, true)
+  }
+
   // wrap === true or wrap === 'wrap' or wrap === 'balanced' - word-aware wrapping
   // Uses wrapText from unicode.ts with trim for rendering
   // (when trim=true, trims trailing spaces on broken lines, skips leading spaces

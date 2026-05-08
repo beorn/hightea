@@ -26,7 +26,7 @@ import { Text } from "silvery"
 | `underlineColor`  | `string`                                                                                               | --       | Underline color                                        |
 | `strikethrough`   | `boolean`                                                                                              | --       | Strikethrough text                                     |
 | `inverse`         | `boolean`                                                                                              | --       | Inverse (swap fg/bg)                                   |
-| `wrap`            | `"wrap" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end" \| "clip" \| boolean` | `"wrap"` | Text wrapping/truncation mode                          |
+| `wrap`            | `"wrap" \| "wrap-truncate" \| "truncate" \| "truncate-start" \| "truncate-middle" \| "truncate-end" \| "clip" \| boolean` | `"wrap"` | Text wrapping/truncation mode                          |
 
 ### Ref: TextHandle
 
@@ -74,6 +74,7 @@ interface TextHandle {
 | `wrap=`            | Behavior                                                                                                                                              | CSS-equivalent axes                                                                            |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
 | `"wrap"` (default) | Multi-line word wrap. Breaks at word boundaries (space, hyphen). Falls back to soft-break separators (`/`, `\`, `.`, `_`, `:`, `,`) for long path-style tokens. Last-resort character wrap when no separator fits. | `white-space: normal` + `overflow-wrap: break-word`                                            |
+| `"wrap-truncate"`  | Multi-line word wrap with ellipsis fallback. Same as `"wrap"` but when an unbreakable atomic token (no soft-break separators) would otherwise character-wrap, the offending line ends with `…` and the rest of that token is dropped. Subsequent text continues wrapping from the next word boundary. Use for body text where information loss is preferable to mid-token character wrapping (e.g. card bodies that contain occasional long identifiers). | `white-space: normal` + `overflow-wrap: break-word` + `text-overflow: ellipsis`                |
 | `"truncate"`       | Single-line. Trims at end with `…` ellipsis when content exceeds available width.                                                                     | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
 | `"truncate-end"`   | Alias of `"truncate"` — explicit "trim at end".                                                                                                       | `white-space: nowrap` + `overflow: hidden` + `text-overflow: ellipsis`                         |
 | `"truncate-start"` | Single-line. Trims at start with `…` prefix.                                                                                                          | (no direct CSS analogue; named composite — equivalent to `direction: rtl` + `text-overflow: ellipsis`) |
@@ -84,6 +85,7 @@ interface TextHandle {
 ### Picking a mode
 
 - **Body text** (paragraphs, descriptions, list items) → `"wrap"` (default).
+- **Bordered card bodies** that may contain occasional long identifiers (UUIDs, hashes, paste-bin output) → `"wrap-truncate"`. Wraps prose normally, ellipsis-truncates atomic tokens that would otherwise character-wrap and look like garbled text.
 - **Titles and labels in fixed-width chrome** (status bars, table headers, card titles) → `"truncate"`.
 - **File paths** that need both ends visible → `"truncate-middle"`.
 - **Numeric or tabular cells** where `…` would be confused with content → `"clip"`.
@@ -93,7 +95,7 @@ interface TextHandle {
 
 Long path-style or identifier tokens like `.claude/skills/{claim,do}/SKILL.md` are unbreakable from a pure word-boundary perspective. `"wrap"` breaks them at the SECONDARY break points `/`, `\`, `.`, `_`, `:`, `,` (after the separator) — `path/` ends one line, `to` starts the next. Brackets and parens (`{` `}` `[` `]` `(` `)`) are **not** soft breaks — paired delimiters shouldn't be orphaned, matching CSS behavior.
 
-For atomic tokens with no separators (e.g. `aaaaaaaaaaaaaaaaaaaa`), `"wrap"` falls back to character wrap (the token spans multiple lines). If you'd prefer `…` truncation in that case, use `"truncate"` for the title and a separate detail view for the full content — there is no `wrap-or-truncate` composite today (tracked: `@km/silvery/card-body-truncate-ellipsis` and `@km/silvery/css-aligned-wrap-overflow-terminology`).
+For atomic tokens with no separators (e.g. `aaaaaaaaaaaaaaaaaaaa`), `"wrap"` falls back to character wrap (the token spans multiple lines). If you'd prefer `…` truncation in that case, use `"wrap-truncate"`: the wrap algorithm is the same, but when an unbreakable token would otherwise character-wrap, the offending line ends with `…` and the rest of that token is dropped. Subsequent text after the next word boundary continues wrapping normally — only the offending atomic run is truncated, not the entire text. Tracked: `@km/silvery/card-body-truncate-ellipsis` (closed) and `@km/silvery/css-aligned-wrap-overflow-terminology`.
 
 ## See Also
 
