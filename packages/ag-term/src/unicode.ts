@@ -647,6 +647,33 @@ export function isWordBoundary(grapheme: string): boolean {
 }
 
 /**
+ * Check if a grapheme is a *soft* break point inside a token — a separator
+ * that paths and identifiers commonly use, so the wrap algorithm can split
+ * `.claude/skills/{claim,do}/SKILL.md` at a `/` instead of either letting
+ * it overflow or hard-character-wrapping mid-word.
+ *
+ * Soft break points are SECONDARY: the wrap algorithm prefers true word
+ * boundaries (`isWordBoundary`) and only falls back to soft breaks when no
+ * hard boundary fits on the current line. Breaking AFTER the separator
+ * keeps the boundary character with its left context — `path/` on one
+ * line, `to` on the next — which matches how readers visually parse paths.
+ *
+ * The set is deliberately conservative: filesystem path separators (`/`,
+ * `\`), namespace/scope separators (`.`, `:`), and identifier joins (`_`).
+ * Characters like `=`, `?`, `&`, `,` are excluded — they're more often
+ * structural punctuation that shouldn't be split in the middle of text.
+ */
+export function isSoftBreakPoint(grapheme: string): boolean {
+  return (
+    grapheme === "/" ||
+    grapheme === "\\" ||
+    grapheme === "." ||
+    grapheme === "_" ||
+    grapheme === ":"
+  )
+}
+
+/**
  * Look ahead from a space to check if the next word is a single-character
  * operator (like +, =, *, /, etc.) followed by another space. Breaking before
  * such operators looks bad — e.g. "$12k\n+ $400" — so we suppress the break
@@ -870,6 +897,14 @@ export function wrapTextWithOffsets(text: string, width: number): WrapTextSlice[
   let lastBreakWidth = 0
   let lastBreakGraphemeIdx = -1 // index into `graphemes` AFTER the break
 
+  // Last soft (intra-token) break point — used only when no hard break
+  // fits. See `isSoftBreakPoint` for the rationale; same triple shape as
+  // the hard-break tracker but stays unused unless we'd otherwise
+  // character-wrap mid-token.
+  let lastSoftBreakIndex = -1
+  let lastSoftBreakWidth = 0
+  let lastSoftBreakGraphemeIdx = -1
+
   function pushLine(endGraphemeIdx: number): void {
     // endGraphemeIdx is the FIRST grapheme that does NOT belong to this
     // line. The slice covers source [lineStartOffset, breakOffset).
@@ -918,6 +953,9 @@ export function wrapTextWithOffsets(text: string, width: number): WrapTextSlice[
       lastBreakIndex = -1
       lastBreakWidth = 0
       lastBreakGraphemeIdx = -1
+      lastSoftBreakIndex = -1
+      lastSoftBreakWidth = 0
+      lastSoftBreakGraphemeIdx = -1
       continue
     } else if (canBreakAnywhere(grapheme)) {
       // CJK: can break before this character. Mark and fall through to
@@ -942,6 +980,25 @@ export function wrapTextWithOffsets(text: string, width: number): WrapTextSlice[
         lastBreakIndex = -1
         lastBreakWidth = 0
         lastBreakGraphemeIdx = -1
+        lastSoftBreakIndex = -1
+        lastSoftBreakWidth = 0
+        lastSoftBreakGraphemeIdx = -1
+      } else if (lastSoftBreakIndex > 0 && lastSoftBreakGraphemeIdx >= 0) {
+        // Soft break inside a token (path/identifier separator): rewind
+        // to AFTER the separator so `path/to` becomes `path/` + `to`.
+        const savedLine = currentLine
+        currentLine = savedLine.slice(0, lastSoftBreakIndex)
+        pushLine(lastSoftBreakGraphemeIdx)
+        lineStartGraphemeIdx = lastSoftBreakGraphemeIdx
+        i = lastSoftBreakGraphemeIdx - 1
+        currentLine = ""
+        currentWidth = 0
+        lastBreakIndex = -1
+        lastBreakWidth = 0
+        lastBreakGraphemeIdx = -1
+        lastSoftBreakIndex = -1
+        lastSoftBreakWidth = 0
+        lastSoftBreakGraphemeIdx = -1
       } else {
         // No break point: hard char wrap. Push the current line, start a
         // new one with this grapheme.
@@ -954,12 +1011,25 @@ export function wrapTextWithOffsets(text: string, width: number): WrapTextSlice[
         lastBreakIndex = -1
         lastBreakWidth = 0
         lastBreakGraphemeIdx = -1
+        lastSoftBreakIndex = -1
+        lastSoftBreakWidth = 0
+        lastSoftBreakGraphemeIdx = -1
       }
     } else {
       currentLine += grapheme
       currentWidth += gWidth
+      // Track soft (intra-token) break points. Only meaningful if there
+      // is already content before this separator on the line.
+      if (currentLine.length > 1 && isSoftBreakPoint(grapheme)) {
+        lastSoftBreakIndex = currentLine.length
+        lastSoftBreakWidth = currentWidth
+        lastSoftBreakGraphemeIdx = i + 1
+      }
     }
   }
+  // Suppress unused-variable warning — symmetric bookkeeping for the
+  // soft-break triple, kept for parity with the hard-break tracker.
+  void lastSoftBreakWidth
 
   // Trailing content: push as the final line.
   if (currentLine || lineStartGraphemeIdx < graphemes.length) {
@@ -1027,6 +1097,15 @@ export function wrapTextWithMeasurer(
     let lastBreakWidth = 0 // Width at break point
     let lastBreakGraphemeIndex = -1 // Index in graphemes array
 
+    // Track the last soft break point (intra-token separator like `/`, `.`,
+    // `_`, `:`). Soft breaks are SECONDARY: only used when no hard break
+    // (space/hyphen) is available within the current line — the
+    // `lastBreakIndex` triple takes precedence whenever it exists. Resets
+    // alongside the hard-break triple every time a line is pushed.
+    let lastSoftBreakIndex = -1
+    let lastSoftBreakWidth = 0
+    let lastSoftBreakGraphemeIndex = -1
+
     for (let i = 0; i < graphemes.length; i++) {
       const grapheme = graphemes[i]!
       const gWidth = gWidthFn(grapheme)
@@ -1077,6 +1156,9 @@ export function wrapTextWithMeasurer(
         lastBreakIndex = -1
         lastBreakWidth = 0
         lastBreakGraphemeIndex = -1
+        lastSoftBreakIndex = -1
+        lastSoftBreakWidth = 0
+        lastSoftBreakGraphemeIndex = -1
         continue
       } else if (canBreakAnywhere(grapheme)) {
         // CJK: can break before this character
@@ -1088,7 +1170,7 @@ export function wrapTextWithMeasurer(
       // Would this grapheme overflow?
       if (currentWidth + gWidth > width) {
         if (lastBreakIndex > 0) {
-          // We have a valid break point - use it
+          // We have a valid hard break point - use it.
           let lineToAdd = currentLine.slice(0, lastBreakIndex)
           if (trim) lineToAdd = lineToAdd.trimEnd()
           lines.push(lineToAdd)
@@ -1105,6 +1187,32 @@ export function wrapTextWithMeasurer(
           lastBreakIndex = -1
           lastBreakWidth = 0
           lastBreakGraphemeIndex = -1
+          lastSoftBreakIndex = -1
+          lastSoftBreakWidth = 0
+          lastSoftBreakGraphemeIndex = -1
+        } else if (lastSoftBreakIndex > 0) {
+          // Soft break available inside the current token (e.g. `path/to`
+          // becomes `path/` + `to`). Used only when no hard break fits on
+          // the current line — paths and identifiers wrap at separators
+          // instead of either overflowing or doing mid-word char wrap.
+          let lineToAdd = currentLine.slice(0, lastSoftBreakIndex)
+          if (trim) lineToAdd = lineToAdd.trimEnd()
+          lines.push(lineToAdd)
+          isFirstLineOfParagraph = false
+
+          // Rewind to the soft-break point: re-process graphemes from the
+          // position AFTER the separator. This matches the hard-break path
+          // so soft-wrapped continuation lines align with the rest of the
+          // wrap algorithm (no special start-of-continuation handling).
+          i = lastSoftBreakGraphemeIndex - 1
+          currentLine = ""
+          currentWidth = 0
+          lastBreakIndex = -1
+          lastBreakWidth = 0
+          lastBreakGraphemeIndex = -1
+          lastSoftBreakIndex = -1
+          lastSoftBreakWidth = 0
+          lastSoftBreakGraphemeIndex = -1
         } else {
           // No break point found - must do character wrap
           if (currentLine) {
@@ -1117,12 +1225,28 @@ export function wrapTextWithMeasurer(
           lastBreakIndex = -1
           lastBreakWidth = 0
           lastBreakGraphemeIndex = -1
+          lastSoftBreakIndex = -1
+          lastSoftBreakWidth = 0
+          lastSoftBreakGraphemeIndex = -1
         }
       } else {
         currentLine += grapheme
         currentWidth += gWidth
+        // Track soft break points (path-style separators). Mark AFTER the
+        // separator so `path/to` breaks as `path/` + `to`. Only useful if
+        // there's already content before this separator on the line — a
+        // leading separator has nothing to keep with its left context.
+        if (currentLine.length > 1 && isSoftBreakPoint(grapheme)) {
+          lastSoftBreakIndex = currentLine.length
+          lastSoftBreakWidth = currentWidth
+          lastSoftBreakGraphemeIndex = i + 1
+        }
       }
     }
+    // Suppress unused-variable warning — `lastSoftBreakWidth` is part of
+    // the bookkeeping triple kept symmetric with `lastBreakWidth` for
+    // future use; the width itself isn't read back when soft-wrapping.
+    void lastSoftBreakWidth
 
     // Push remaining content
     if (currentLine) {

@@ -18,6 +18,7 @@ import {
 import {
   type Measurer,
   displayWidth,
+  isSoftBreakPoint,
   wrapText,
   getActiveLineHeight,
 } from "@silvery/ag-term/unicode"
@@ -289,25 +290,51 @@ export function createNode(
             renderedLineIndex++
           }
         } else if (isMinContentQuery) {
-          // Wrappable min-content: longest unbreakable token width.
-          // CSS min-content for wrappable text is the longest token that
-          // cannot be broken at a wrap opportunity (whitespace, hyphens).
-          // We approximate by splitting on whitespace and taking the
-          // widest non-empty token. This matches what `wrapText` would
-          // produce at the smallest stable wrap width — but computing it
-          // directly avoids the character-wrap collapse you'd get if you
-          // called `wrapText(line, 1, ...)`.
-          let longestWord = 0
-          for (const word of line.split(/\s+/)) {
-            if (!word) continue
-            const w = dw(word)
-            if (w > longestWord) longestWord = w
+          // Wrappable min-content: longest unbreakable segment between
+          // ALL break opportunities the wrap algorithm would actually
+          // honor. CSS min-content is the longest run of characters that
+          // cannot break — for our wrap algorithm that includes both hard
+          // boundaries (whitespace, hyphens) AND soft separators (`/`,
+          // `\`, `.`, `_`, `:`) per `isSoftBreakPoint`.
+          //
+          // Without the soft-break aware split, paths like
+          // `.claude/skills/{claim,do}/SKILL.md` reported their full
+          // width as min-content, pinning parent Boxes wider than the
+          // assigned cell budget — content overflowed the card border
+          // when soft-wrap would have fit it just fine.
+          //
+          // Strategy: split on whitespace (primary) and on soft-break
+          // points (secondary). The widest segment between any two
+          // break opportunities is the true min-content for wrap.
+          let longestSegment = 0
+          let segmentWidth = 0
+          for (let pos = 0; pos < line.length; pos++) {
+            const ch = line[pos]!
+            if (ch === " " || ch === "\t" || ch === "-") {
+              // Hard break: segment ends BEFORE this char (next segment
+              // starts after).
+              if (segmentWidth > longestSegment) longestSegment = segmentWidth
+              segmentWidth = 0
+              continue
+            }
+            // Account for the grapheme width (not just `1` — wide chars,
+            // CJK etc.). For ASCII this is 1; for multi-codepoint
+            // graphemes the loop step is conservative (per-char) but
+            // the width contribution comes from `dw(ch)`.
+            segmentWidth += dw(ch)
+            if (isSoftBreakPoint(ch)) {
+              // Soft break: segment INCLUDES the separator (we break
+              // AFTER it). Reset for the next segment.
+              if (segmentWidth > longestSegment) longestSegment = segmentWidth
+              segmentWidth = 0
+            }
           }
+          if (segmentWidth > longestSegment) longestSegment = segmentWidth
           // Height at min-content: a single line per source line. Actual
           // wrapped height is computed when the layout pass measures with
           // the assigned width.
           totalHeight += lh
-          actualWidth = Math.max(actualWidth, longestWord)
+          actualWidth = Math.max(actualWidth, longestSegment)
           renderedLineIndex++
         } else {
           // Wrappable text (wrap, even, undefined) under exact/at-most/undefined.
