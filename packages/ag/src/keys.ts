@@ -101,6 +101,19 @@ export interface Key {
   /** True when the key is a modifier pressed alone (Shift, Ctrl, Alt, Super, Hyper, Meta).
    *  Set during parsing for Kitty protocol modifier-only events. */
   isModifierOnly?: boolean
+  /**
+   * Internal Kitty key name (e.g. "leftsuper", "rightcontrol",
+   * "leftshift") for modifier-only events. Surfaced so the modifier-state
+   * tracker (`useModifierKeys`) can drop the matching flag on release —
+   * Kitty release events keep the modifier bit set, so the bit alone
+   * doesn't say which key was lifted.
+   *
+   * Optional + only set for modifier-only events to avoid bloating the
+   * public surface for non-modifier keys (use the existing flag fields
+   * `upArrow`, `escape`, etc. for those). Bead:
+   * @km/silvery/keydown-keyup-test-primitives.
+   */
+  modifierName?: string
 }
 
 /**
@@ -1144,6 +1157,11 @@ export function parseKey(rawInput: string | Buffer): [string, Key] {
   // Flag modifier-only events (Kitty protocol sends Shift/Ctrl/Alt/Super/Hyper/Meta as keys)
   if (input === "" && MODIFIER_ONLY_NAMES.has(keypress.name)) {
     key.isModifierOnly = true
+    // Surface the underlying Kitty name so consumers can tell WHICH
+    // modifier was pressed/released — the modifier byte bits alone
+    // don't disambiguate (release events keep the bit set). Bead:
+    // @km/silvery/keydown-keyup-test-primitives.
+    key.modifierName = keypress.name
   }
 
   // Trace every parsed key — enable with DEBUG=silvery:keys. The raw
@@ -1345,6 +1363,22 @@ for (const [cp, name] of Object.entries(KITTY_CODEPOINT_MAP)) {
   NAME_TO_KITTY_CODEPOINT[name] = Number(cp)
 }
 
+// Bare modifier-name aliases — lookup defaults to the LEFT variant so
+// `keyToKittyAnsi("Super")` produces the same sequence as
+// `keyToKittyAnsi("leftsuper")` (left-cmd press). Tests asserting on a
+// specific physical key (right-shift, right-super, …) keep using the
+// `left*`/`right*` names directly. Bead:
+// @km/silvery/keydown-keyup-test-primitives.
+NAME_TO_KITTY_CODEPOINT["shift"] = 57441
+NAME_TO_KITTY_CODEPOINT["control"] = 57442
+NAME_TO_KITTY_CODEPOINT["alt"] = 57443
+NAME_TO_KITTY_CODEPOINT["super"] = 57444
+NAME_TO_KITTY_CODEPOINT["hyper"] = 57445
+NAME_TO_KITTY_CODEPOINT["meta"] = 57446
+// Aliases for the canonical modifier names that the alias table maps to.
+// `cmd`/`command`/`super` all normalize to "Super"; `keyToKittyAnsi` does
+// `mainKey.toLowerCase()` then this lookup, so we cover the lowered form.
+
 /**
  * Implicit modifier bits for modifier-only keys.
  * When a modifier key is pressed by itself, real terminals include the
@@ -1365,6 +1399,15 @@ const MODIFIER_KEY_IMPLICIT_BITS: Record<string, number> = {
   righthyper: 16,
   leftmeta: 32,
   rightmeta: 32,
+  // Bare modifier-name aliases — same implicit bits as the LEFT variant
+  // so `keyToKittyAnsi("Super")` includes the super(8) bit by itself.
+  // Bead: @km/silvery/keydown-keyup-test-primitives.
+  shift: 1,
+  control: 4,
+  alt: 2,
+  super: 8,
+  hyper: 16,
+  meta: 32,
 }
 
 /** Playwright-style key name → CSI u codepoint for keys using CSI u format */

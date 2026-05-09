@@ -90,6 +90,28 @@ export interface App {
   /** Send a key press (uses keyToAnsi internally) */
   press(key: string): Promise<this>
 
+  /**
+   * Send a key DOWN event without auto-release. Useful for held-modifier
+   * scenarios — e.g., `app.keyDown("Super")` then `app.hover(x, y)` then
+   * `app.keyUp("Super")` to drive a Cmd-hover popover that opens after a
+   * dwell timer reads the (still-held) modifier from the input store.
+   *
+   * Requires Kitty keyboard protocol (`kittyMode: true`) for modifier keys —
+   * legacy ANSI cannot represent Super (Cmd) alone.
+   *
+   * For a single press+release event (the common case) use `press()`. Bead:
+   * @km/silvery/keydown-keyup-test-primitives.
+   */
+  keyDown(key: string): Promise<this>
+
+  /**
+   * Send a key UP event. Pairs with `keyDown(key)`. Drops the implicit
+   * modifier state (mouseState.keyboardModifiers + the input-store
+   * modifier tracker) so subsequent events run without the modifier
+   * asserted. Bead: @km/silvery/keydown-keyup-test-primitives.
+   */
+  keyUp(key: string): Promise<this>
+
   /** Send multiple key presses */
   pressSequence(...keys: string[]): Promise<this>
 
@@ -380,6 +402,42 @@ export function buildApp(options: AppOptions): App {
       const sequence = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
       sendInput(sequence)
       // Allow microtask to flush for test synchronization
+      await Promise.resolve()
+      return app
+    },
+
+    async keyDown(key: string): Promise<App> {
+      // Held-state press — same modifier-tracker update as press() but
+      // emits an explicit Kitty `:1` (press) event-type and does NOT
+      // auto-release. Pairs with keyUp(). Modifier-only keys must use
+      // kittyMode (legacy ANSI can't represent Super/Cmd alone).
+      // Bead: @km/silvery/keydown-keyup-test-primitives.
+      const hotkey = parseHotkey(key)
+      updateKeyboardModifiers(mouseState, {
+        super: hotkey.super || keyIsModifier(key, "Super"),
+        hyper: hotkey.hyper || keyIsModifier(key, "Hyper"),
+        eventType: "press",
+      })
+      const baseSeq = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
+      sendInput(injectKittyEventType(baseSeq, 1))
+      await Promise.resolve()
+      return app
+    },
+
+    async keyUp(key: string): Promise<App> {
+      // Release counterpart to keyDown. Drops modifier state and emits
+      // an explicit Kitty `:3` (release) event-type so input-store
+      // modifier trackers (useModifierKeys) see the release event.
+      // Bead: @km/silvery/keydown-keyup-test-primitives.
+      const hotkey = parseHotkey(key)
+      updateKeyboardModifiers(mouseState, {
+        super: false,
+        hyper: false,
+        eventType: "release",
+      })
+      const baseSeq = kittyMode ? keyToKittyAnsi(key) : keyToAnsi(key)
+      sendInput(injectKittyEventType(baseSeq, 3))
+      void hotkey
       await Promise.resolve()
       return app
     },
@@ -700,6 +758,61 @@ export function buildApp(options: AppOptions): App {
   }
 
   return app
+}
+
+/**
+ * Inject a Kitty CSI u event-type byte (`:1` press, `:2` repeat, `:3`
+ * release) before the trailing terminator (`u`, `~`, or a CSI letter)
+ * of a Kitty key sequence. Used by `keyDown`/`keyUp` to express held
+ * vs. transient state — `keyToKittyAnsi` returns the bare-press shape
+ * (no event-type byte), which the parser interprets as "press" by
+ * default; explicit `:1`/`:3` lets tests drive paired down/up events.
+ *
+ * Examples:
+ *
+ *   `\x1b[57444;9u`   → `\x1b[57444;9:1u`   (left-super press)
+ *   `\x1b[57444;9u`   → `\x1b[57444;9:3u`   (left-super release)
+ *   `\x1b[1;5A`       → `\x1b[1;5:1A`       (Ctrl+ArrowUp press)
+ *   `\x1b[3;5~`       → `\x1b[3;5:1~`       (Ctrl+Delete press)
+ *
+ * Sequences without a modifier byte (`\x1b[CPu`) get a `;1:eventType`
+ * insert: `\x1b[57444u` → `\x1b[57444;1:1u`. The base modifier is `1`
+ * (no modifiers + 1 base) per the Kitty spec.
+ *
+ * Bead: @km/silvery/keydown-keyup-test-primitives.
+ */
+function injectKittyEventType(seq: string, eventType: 1 | 2 | 3): string {
+  // Match the trailing CSI terminator: `u`, `~`, or a single letter A-Z.
+  // The byte before the terminator may be a digit (modifier) or the
+  // codepoint itself when no modifier is present.
+  // Case 1: trailing `;MOD{terminator}` → insert `:eventType` before terminator.
+  const withMod = seq.replace(/(;[0-9]+)([A-Za-z~])$/, `$1:${eventType}$2`)
+  if (withMod !== seq) return withMod
+  // Case 2: trailing `[CP{terminator}` (no modifier byte) → insert `;1:eventType`.
+  return seq.replace(/^(\x1b\[[0-9]+)([A-Za-z~])$/, `$1;1:${eventType}$2`)
+}
+
+/**
+ * Detect whether a key string represents a specific bare modifier
+ * (e.g., `keyIsModifier("Super", "Super")` → true,
+ * `keyIsModifier("leftsuper", "Super")` → true,
+ * `keyIsModifier("a", "Super")` → false). Used by `keyDown`/`keyUp`
+ * to update `mouseState.keyboardModifiers` even when the caller passes
+ * a bare modifier name like "Super" rather than a chord like
+ * "Super+a". `parseHotkey` only sets `.super` when the key is a chord
+ * with Super as a modifier; it doesn't set it for the bare modifier
+ * name itself.
+ *
+ * Bead: @km/silvery/keydown-keyup-test-primitives.
+ */
+function keyIsModifier(key: string, target: "Super" | "Hyper"): boolean {
+  // Strip any +-prefixed modifiers; we only look at the trailing key.
+  const parts = key.split("+")
+  const last = parts[parts.length - 1]?.toLowerCase() ?? ""
+  if (target === "Super") {
+    return last === "super" || last === "cmd" || last === "command" || last === "leftsuper" || last === "rightsuper"
+  }
+  return last === "hyper" || last === "lefthyper" || last === "righthyper"
 }
 
 /**

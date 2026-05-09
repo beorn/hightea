@@ -1,3 +1,17 @@
+/**
+ * Cmd-hover popover dwell — held-modifier integration.
+ *
+ * The popover provider opens a popover when Cmd is held while the cursor
+ * dwells on a hover target for ~650 ms. This test exercises the held-
+ * modifier path using `app.keyDown('Super')` / `app.keyUp('Super')` —
+ * the canonical primitive for modifier-state-with-dwell scenarios. The
+ * pre-existing pattern (raw `app.stdin.write("\x1b[57444;9:1u")`) was
+ * replaced when keyDown/keyUp landed; the byte-sequence pattern is
+ * still supported but should not be needed in new tests.
+ *
+ * Bead: @km/silvery/keydown-keyup-test-primitives.
+ */
+
 import React from "react"
 import { describe, expect, test } from "vitest"
 import { createRenderer } from "@silvery/test"
@@ -48,13 +62,15 @@ describe("Popover Cmd hover", () => {
       </PopoverProvider>,
     )
 
+    await app.keyDown("Super")
     await app.hover(1, 0)
-    app.stdin.write("\x1b[57444;9:1u")
     await settle(650)
 
     expect(app.text).toContain("POPOVER-BODY")
 
     await settle(350)
     expect(app.text).toContain("POPOVER-BODY")
+
+    await app.keyUp("Super")
   })
 })

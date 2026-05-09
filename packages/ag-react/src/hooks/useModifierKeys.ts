@@ -27,6 +27,33 @@ import { useContext, useMemo, useSyncExternalStore } from "react"
 import { ChainAppContext, type ChainAppContextValue } from "../context"
 import type { Key } from "@silvery/ag/keys"
 
+/**
+ * Match `Key.modifierName` against a specific modifier role. The
+ * modifier-state store uses these helpers to drop the matching flag on
+ * release — Kitty keeps the modifier bit set in the release sequence
+ * (e.g. `\x1b[57444;9:3u` for left-super release), so reading
+ * `key.super` verbatim wouldn't tell the store which modifier dropped.
+ */
+function isSuperKey(name: string | undefined): boolean {
+  return name === "leftsuper" || name === "rightsuper"
+}
+
+function isCtrlKey(name: string | undefined): boolean {
+  return name === "leftcontrol" || name === "rightcontrol"
+}
+
+function isAltKey(name: string | undefined): boolean {
+  // Alt and Meta share the same store flag (`alt`) — releasing either
+  // drops it. Hyper has its own representation in `key.hyper` but no
+  // store field today; track it as alt for forward-compat with the
+  // existing surface.
+  return name === "leftalt" || name === "rightalt" || name === "leftmeta" || name === "rightmeta"
+}
+
+function isShiftKey(name: string | undefined): boolean {
+  return name === "leftshift" || name === "rightshift"
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -83,11 +110,27 @@ function buildStore(
   }
 
   subscribeInput((_input, key) => {
-    const next: ModifierState = {
-      super: !!key.super,
-      ctrl: !!key.ctrl,
-      alt: !!key.meta,
-      shift: !!key.shift,
+    // Modifier-key release events keep the modifier bit set on the parsed
+    // key (real terminals emit `\x1b[57444;9:3u` — super still in
+    // modifiers byte 9 when the release fires). Reading `key.super`
+    // verbatim would leave the store thinking Cmd is held forever once
+    // pressed. Detect modifier-only release events and drop the matching
+    // flag explicitly. Bead: @km/silvery/keydown-keyup-test-primitives.
+    let next: ModifierState
+    if (key.eventType === "release" && key.modifierName) {
+      next = {
+        super: state.super && !isSuperKey(key.modifierName),
+        ctrl: state.ctrl && !isCtrlKey(key.modifierName),
+        alt: state.alt && !isAltKey(key.modifierName),
+        shift: state.shift && !isShiftKey(key.modifierName),
+      }
+    } else {
+      next = {
+        super: !!key.super,
+        ctrl: !!key.ctrl,
+        alt: !!key.meta,
+        shift: !!key.shift,
+      }
     }
     if (
       next.super !== state.super ||
