@@ -5,8 +5,9 @@
  * scheme. Everything here reads semantic $tokens; no hex values in JSX.
  *
  * Eats its own dogfood — every section uses real silvery primitives:
- * <Banner>, <Alert>, <TextInput>, <SelectList>, <Spinner>, <ProgressBar>,
- * <Badge>. No locally-drawn approximations.
+ * <Banner>, <Alert>, <TextInput>, <TextArea>, <SelectList>, <Toggle>,
+ * <Spinner>, <ProgressBar>, <Badge>, <Blockquote>, <CodeBlock>, <UL>,
+ * <OL>, <Code>. No locally-drawn approximations.
  *
  * All components sit inside an outer `<ThemeProvider theme={legacyTheme}>`
  * at the App root — swapping schemes there re-renders the whole tree.
@@ -24,6 +25,11 @@ import {
   H2,
   H3,
   P,
+  Blockquote,
+  CodeBlock,
+  Code,
+  UL,
+  OL,
   Badge,
   Banner,
   Alert,
@@ -32,6 +38,8 @@ import {
   Spinner,
   ProgressBar,
   TextInput,
+  TextArea,
+  Toggle,
   useKineticScroll,
   type SelectOption,
 } from "silvery"
@@ -55,6 +63,11 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
   const [selectIdx, setSelectIdx] = useState(0)
   const [searchValue, setSearchValue] = useState("")
   const [projectValue, setProjectValue] = useState("km-tui")
+  const [notesValue, setNotesValue] = useState(
+    "Multi-line notes go here…\nWord-wrap, scroll, kill-ring all built in.",
+  )
+  const [darkMode, setDarkMode] = useState(true)
+  const [autosave, setAutosave] = useState(false)
   // Wheel over the preview pane scrolls its viewport with iOS-style kinetic
   // momentum. The layout phase clamps `scrollOffset` to a valid range so we
   // don't need to know content height up-front.
@@ -83,7 +96,7 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
       </Box>
       <Divider />
       <Box flexDirection="column" paddingX={1} gap={0}>
-        {/* Typography ramp */}
+        {/* Typography ramp — H1..H3, paragraph, blockquote, lists, code blocks */}
         <H1>Sterling Storybook</H1>
         <H2>Semantic tokens, one theme</H2>
         <H3>Heading three</H3>
@@ -91,9 +104,39 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
           A paragraph of body text under the active scheme. Inline{" "}
           <Text color="$fg-accent">accent</Text>, <Text color="$fg-info">info</Text>,{" "}
           <Text color="$fg-success">success</Text>, <Text color="$fg-warning">warning</Text>, and{" "}
-          <Text color="$fg-error">error</Text>.
+          <Text color="$fg-error">error</Text>. Inline <Code>monospace</Code> renders with the muted
+          background.
         </P>
         <Muted>Muted secondary text</Muted>
+
+        <Blockquote>
+          The right palette is the one that disappears — readers see the content, not the colors.
+        </Blockquote>
+
+        <Box flexDirection="row" gap={2} flexWrap="wrap">
+          <Box flexDirection="column">
+            <Small>
+              <Muted>UNORDERED</Muted>
+            </Small>
+            <UL>
+              <Text>First item</Text>
+              <Text>Second item</Text>
+              <Text>Third item</Text>
+            </UL>
+          </Box>
+          <Box flexDirection="column">
+            <Small>
+              <Muted>ORDERED</Muted>
+            </Small>
+            <OL>
+              <Text>Pick a scheme</Text>
+              <Text>Inspect tokens</Text>
+              <Text>Ship the theme</Text>
+            </OL>
+          </Box>
+        </Box>
+
+        <CodeBlock>{`import { ThemeProvider } from "silvery"\n\n<ThemeProvider theme={sterling}>\n  <App />\n</ThemeProvider>`}</CodeBlock>
 
         <Divider />
 
@@ -192,6 +235,27 @@ export function ComponentPreview({ schemeName, mode }: ComponentPreviewProps): R
                   indicator="▸ "
                 />
               </Box>
+            </Box>
+          </Box>
+
+          {/* Multi-line input + toggles — close the input-component gap. */}
+          <Box flexDirection="row" gap={2} flexWrap="wrap" alignItems="flex-start">
+            <Box flexDirection="column" minWidth={28}>
+              <Muted>text area</Muted>
+              <Box borderStyle="single" borderColor="$border-default" paddingX={1} width={40}>
+                <TextArea
+                  value={notesValue}
+                  onChange={setNotesValue}
+                  isActive={false}
+                  minRows={3}
+                  maxRows={5}
+                />
+              </Box>
+            </Box>
+            <Box flexDirection="column" gap={0} minWidth={20}>
+              <Muted>toggles (Switch alias)</Muted>
+              <Toggle value={darkMode} onChange={setDarkMode} label="Dark mode" isActive={false} />
+              <Toggle value={autosave} onChange={setAutosave} label="Autosave" isActive={false} />
             </Box>
           </Box>
         </Box>
