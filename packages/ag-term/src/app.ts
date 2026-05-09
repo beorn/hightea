@@ -111,10 +111,19 @@ export interface App {
   ): Promise<this>
 
   /** Simulate a mouse move/hover at (x, y) terminal coordinates */
-  hover(x: number, y: number): Promise<this>
+  hover(
+    x: number,
+    y: number,
+    options?: { shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+  ): Promise<this>
 
   /** Simulate a mouse wheel event at (x, y) with delta (-1=up, +1=down) */
-  wheel(x: number, y: number, delta: number): Promise<this>
+  wheel(
+    x: number,
+    y: number,
+    delta: number,
+    options?: { shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+  ): Promise<this>
 
   /** Resize the virtual terminal and re-render. Only available in test renderer. */
   resize(cols: number, rows: number): void
@@ -459,7 +468,17 @@ export function buildApp(options: AppOptions): App {
       return app
     },
 
-    async hover(x: number, y: number): Promise<App> {
+    async hover(
+      x: number,
+      y: number,
+      options?: { shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+    ): Promise<App> {
+      // cmd is an alias for setting keyboard-tracked Super (Cmd on macOS)
+      // for the duration of the hover — same hack as click/doubleClick. Lets
+      // tests assert Cmd-hover behaviour (e.g. silvercode tool-call image
+      // popovers) without writing Kitty CSI u modifier-press bytes through
+      // app.stdin. See bead @km/silvery/hover-wheel-modifier-options-parity.
+      if (options?.cmd) mouseState.keyboardModifiers.super = true
       const doHover = () => {
         const parsed: ParsedMouse = {
           button: 0,
@@ -467,9 +486,9 @@ export function buildApp(options: AppOptions): App {
           y,
           coordinateMode: "cell",
           action: "move",
-          shift: false,
-          meta: false,
-          ctrl: false,
+          shift: options?.shift ?? false,
+          meta: options?.meta ?? false,
+          ctrl: options?.ctrl ?? false,
         }
         processMouseEvent(mouseState, parsed, getContainer())
       }
@@ -478,11 +497,22 @@ export function buildApp(options: AppOptions): App {
       } else {
         doHover()
       }
+      if (options?.cmd) mouseState.keyboardModifiers.super = false
       await Promise.resolve()
       return app
     },
 
-    async wheel(x: number, y: number, delta: number): Promise<App> {
+    async wheel(
+      x: number,
+      y: number,
+      delta: number,
+      options?: { shift?: boolean; meta?: boolean; ctrl?: boolean; cmd?: boolean },
+    ): Promise<App> {
+      // Same modifier-options handling as click/hover — cmd flips
+      // keyboardModifiers.super for the duration of the wheel event so
+      // Cmd-wheel scroll handlers see the modifier as held. Bead:
+      // @km/silvery/hover-wheel-modifier-options-parity.
+      if (options?.cmd) mouseState.keyboardModifiers.super = true
       const doWheel = () => {
         const parsed: ParsedMouse = {
           button: 0,
@@ -491,9 +521,9 @@ export function buildApp(options: AppOptions): App {
           coordinateMode: "cell",
           action: "wheel",
           delta,
-          shift: false,
-          meta: false,
-          ctrl: false,
+          shift: options?.shift ?? false,
+          meta: options?.meta ?? false,
+          ctrl: options?.ctrl ?? false,
         }
         processMouseEvent(mouseState, parsed, getContainer())
       }
@@ -502,6 +532,7 @@ export function buildApp(options: AppOptions): App {
       } else {
         doWheel()
       }
+      if (options?.cmd) mouseState.keyboardModifiers.super = false
       await Promise.resolve()
       return app
     },
