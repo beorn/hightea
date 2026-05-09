@@ -774,8 +774,36 @@ export const hostConfig = {
   },
 
   resetAfterCommit(container: Container) {
-    // Trigger render after React finishes committing
-    container.onRender()
+    // Trigger render after React finishes committing.
+    //
+    // Render-budget watchdog (zero-overhead when disabled): if the commit
+    // exceeds `SILVERY_RENDER_BUDGET_MS` (default 500ms), emit a console
+    // warning with the duration. Helps catch cascading-render regressions
+    // before they manifest as user-visible freezes (the symptom that
+    // motivated @km/board/projection-stability-improvements).
+    //
+    // Disabled by default in production by setting the env var to 0 or
+    // unsetting it; budget is opt-in. Set `SILVERY_RENDER_BUDGET_MS=500`
+    // (or any positive number) during dev to enable.
+    const budgetEnv = typeof process !== "undefined" ? process.env.SILVERY_RENDER_BUDGET_MS : undefined
+    const budget = budgetEnv !== undefined ? Number(budgetEnv) : 0
+    if (budget > 0 && Number.isFinite(budget)) {
+      const start = performance.now()
+      container.onRender()
+      const elapsed = performance.now() - start
+      if (elapsed > budget) {
+        // Use console.warn here (not loggily) so the warning surfaces in
+        // the dev console even when no DEBUG namespace is set. Stays out
+        // of the rendered TUI surface — this fires after React's commit
+        // boundary and writes via the console-sink the host installs.
+        // eslint-disable-next-line no-console
+        console.warn(
+          `[silvery] render commit exceeded budget: ${elapsed.toFixed(0)}ms > ${budget}ms — see @km/board/projection-stability-improvements for cascade-prevention guidance`,
+        )
+      }
+    } else {
+      container.onRender()
+    }
   },
 
   // Misc
