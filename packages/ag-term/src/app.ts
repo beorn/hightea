@@ -131,7 +131,21 @@ export interface App {
 
   // === Actions (return ChainableApp for fluent composition) ===
 
-  /** Send a key press (uses keyToAnsi internally) */
+  /**
+   * Send a single key press. Emits the bare Kitty CSI u shape
+   * (no `:eventType` byte) — the parser defaults to "press" without
+   * one. Equivalent to a full down+up keystroke for tests asserting
+   * "user typed key X". For held-state scenarios (Cmd-hover popovers,
+   * multi-key chords) use `keyDown` / `keyUp` which emit explicit
+   * `:1` (press) and `:3` (release) event-type bytes.
+   *
+   * Both bare-press and explicit-`:1` shapes parse to
+   * `{ eventType: "press" | undefined }` respectively; consumers that
+   * test `eventType !== "release"` see them identically. The shape
+   * difference is intentional: bare = transient single event, typed =
+   * paired down/up lifecycle. Bead:
+   * @km/silvery/keydown-keyup-test-primitives.
+   */
   press(key: string): ChainableApp
 
   /**
