@@ -103,6 +103,9 @@ function deriveInnerRect(node: AgNode, boxRect: Rect | null | undefined): Rect |
 /** Selector that picks which committed rect signal to subscribe to. */
 type CommittedRectSignalKey = "boxRectCommitted" | "scrollRectCommitted" | "screenRectCommitted"
 
+/** Selector that picks which in-flight rect signal to subscribe to. */
+type InFlightRectSignalKey = "boxRect" | "scrollRect" | "screenRect"
+
 /**
  * Reactive rect hook (deferred): subscribes to a committed rect signal and
  * re-renders when the value advances at a commit boundary. Returns the
@@ -237,4 +240,225 @@ export function useScrollRect(): Rect {
  */
 export function useScreenRect(): Rect {
   return useReactiveRect((committed) => committed, "screenRectCommitted")
+}
+
+// ============================================================================
+// In-flight escape hatches — read the live (mid-batch) rect signal
+// ============================================================================
+//
+// The reactive `useBoxRect()` / `useScrollRect()` / `useScreenRect()` hooks
+// return the COMMITTED rect (one frame deferred) — see this file's docstring
+// for the contract. The committed-only contract eliminates render → write →
+// re-measure feedback loops by construction, but it forces components that
+// genuinely need first-paint dimensions to wait one frame.
+//
+// `useBoxRectInFlight()` / `useScrollRectInFlight()` / `useScreenRectInFlight()`
+// subscribe to the IN-FLIGHT signal — the rect as written by the most recent
+// layout pass within the current convergence cycle. The value can change
+// between convergence passes within a single event batch, so a render that
+// reads it AND writes a layout-affecting prop CAN form a feedback edge.
+//
+// **For silvery framework internals only.** Image, useCursor, useGridPosition,
+// AutoFit's intrinsic-measurement primitive, and ListView's viewport-tracking
+// path are the real consumers — leaf primitives whose first-paint measurement
+// is critical for scroll, decoration, or absolute-positioning math, and which
+// don't drive layout-affecting props back into the React tree.
+//
+// **Lint-gated.** App code (silvercode, km-tui, downstream consumers) must
+// not import these hooks — the ESLint rule `silvery/no-in-flight-rect-in-app`
+// blocks imports from outside `vendor/silvery/`. App code that needs
+// first-paint layout decisions must use `useResponsiveBoxProps` /
+// `useResponsiveValue` (declarative, no measurement reads) — the path
+// documented in [The Silvery Way §2](../../docs/guide/the-silvery-way.md).
+//
+// **Why both forms exist.** The deferred form is the safe default; the
+// in-flight form is an explicit escape hatch acknowledging that silvery's
+// own primitives can't always wait one frame for measurement. Naming the
+// escape hatch `*InFlight` makes the cost legible at the call site.
+//
+// See bead `@km/silvery/usebox-rect-deferred-only-breaks-first-paint`.
+
+/**
+ * In-flight reactive rect hook (escape hatch): subscribes to the LIVE rect
+ * signal — the value as written by the most recent layout pass within the
+ * current convergence cycle. Re-renders when the in-flight value advances,
+ * which can happen multiple times per event batch as the convergence loop
+ * iterates.
+ *
+ * Use only inside silvery framework internals where first-paint measurement
+ * is required and the consumer does not write layout-affecting props
+ * derived from the read. App code must use the deferred form
+ * (`useBoxRect()` / `useScrollRect()` / `useScreenRect()`) or
+ * `useResponsiveBoxProps`/`useResponsiveValue` instead.
+ */
+function useReactiveRectInFlight(
+  getDerivedRect: (raw: Rect | null, node: AgNode) => Rect | null | undefined,
+  inFlightSignalKey: InFlightRectSignalKey,
+): Rect {
+  const node = useContext(NodeContext)
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
+  const prevRef = useRef<Rect | null>(null)
+
+  useLayoutEffect(() => {
+    if (!node) return
+
+    const signals = getLayoutSignals(node)
+    const rectSignal = signals[inFlightSignalKey]
+
+    // effect() subscribes to the IN-FLIGHT signal — re-runs whenever the
+    // signal advances, including mid-batch as the convergence loop iterates.
+    // This is intentionally permissive vs the committed form; consumers that
+    // can't accept first-paint zero-rect (Image, useCursor, useGridPosition,
+    // AutoFit measurement) opt in via this hook.
+    const dispose = effect(() => {
+      const raw = rectSignal()
+      const next = getDerivedRect(raw, node) ?? null
+      if (!rectEqual(prevRef.current, next)) {
+        prevRef.current = next
+        forceUpdate()
+      }
+    })
+
+    return dispose
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node])
+
+  if (!node) return EMPTY_RECT
+  // Synchronous read (called during render): use the in-flight signal
+  // directly (NOT `node.boxRect` — that bypasses the reactive subscription
+  // edge and would let the render see one value while the effect sees
+  // another). The in-flight signal value reflects the most recent layout
+  // pass; it may differ between convergence passes within a batch.
+  const signals = getLayoutSignals(node)
+  const raw = signals[inFlightSignalKey]()
+  return getDerivedRect(raw, node) ?? EMPTY_RECT
+}
+
+/**
+ * Returns the inner content dimensions of the current Box from the IN-FLIGHT
+ * signal — the value as of the most recent layout pass, which may change
+ * between convergence passes within an event batch.
+ *
+ * Silvery framework internals only — app code must use {@link useBoxRect}
+ * (deferred) or `useResponsiveBoxProps`/`useResponsiveValue` instead.
+ *
+ * Unlike {@link useBoxRect} (the deferred form), this hook returns the
+ * measured value on the first render after layout — there is no one-frame
+ * fallback. The cost is that a render reading this hook AND writing a
+ * layout-affecting prop can form a convergence-loop feedback edge; the
+ * lint rule `silvery/no-in-flight-rect-in-app` enforces the call-site
+ * scope.
+ */
+export function useBoxRectInFlight(): Rect {
+  return useReactiveRectInFlight((raw, node) => deriveInnerRect(node, raw), "boxRect")
+}
+
+/**
+ * Returns the scroll-adjusted position from the IN-FLIGHT signal — the
+ * value as of the most recent layout pass, which may change between
+ * convergence passes within an event batch.
+ *
+ * Silvery framework internals only — see {@link useBoxRectInFlight} for
+ * the contract and the lint rule that gates app-code use.
+ */
+export function useScrollRectInFlight(): Rect {
+  return useReactiveRectInFlight((raw) => raw, "scrollRect")
+}
+
+/**
+ * Returns the actual paint position from the IN-FLIGHT signal — the value
+ * as of the most recent layout pass, which may change between convergence
+ * passes within an event batch.
+ *
+ * Silvery framework internals only — see {@link useBoxRectInFlight} for
+ * the contract and the lint rule that gates app-code use.
+ */
+export function useScreenRectInFlight(): Rect {
+  return useReactiveRectInFlight((raw) => raw, "screenRect")
+}
+
+// ============================================================================
+// Callback observers — fire on commit boundary without triggering re-render
+// ============================================================================
+//
+// The reactive `useBoxRect()` / `useScrollRect()` / `useScreenRect()` hooks
+// re-render the consuming component every time the committed rect advances.
+// For hot paths where the rect change should NOT re-render the consumer
+// (cursor positioning, grid registry, decoration emission), the callback
+// observers below subscribe directly to the committed signal and invoke
+// `cb(rect)` at every commit boundary — no React state churn, no re-render.
+//
+// Restored 2026-05-10 to address the perf regression introduced by removing
+// the callback overload from `useBoxRect()` in silvery `63938779b6`. The
+// previous callback form was `useBoxRect((rect) => …)` overloaded on the
+// reactive hook; that fused two distinct contracts into one signature. The
+// observer hooks below split them: reactive read + commit-boundary observer.
+
+/**
+ * Subscribes to the committed rect signal and fires `cb(rect)` at each
+ * commit boundary, **without** triggering a re-render of the consumer.
+ *
+ * Use for hot paths where a rect change drives an imperative side effect
+ * (cursor store update, registry write, ANSI emission) and there is no
+ * render path that needs to reflect the rect.
+ *
+ * The callback is invoked synchronously from a commit-boundary effect(),
+ * with the derived rect (`getDerivedRect` applied to the committed signal
+ * value). It is NOT invoked when the derived rect is null. The caller may
+ * close over component state via refs; see `useCursor` / `useGridPosition`
+ * for canonical patterns.
+ */
+function useOnRectCommitted(
+  cb: (rect: Rect) => void,
+  getDerivedRect: (committed: Rect | null, node: AgNode) => Rect | null | undefined,
+  committedSignalKey: CommittedRectSignalKey,
+): void {
+  const node = useContext(NodeContext)
+  const cbRef = useRef(cb)
+  cbRef.current = cb
+
+  useLayoutEffect(() => {
+    if (!node) return
+
+    const signals = getLayoutSignals(node)
+    const rectSignal = signals[committedSignalKey]
+    let prev: Rect | null = null
+
+    const dispose = effect(() => {
+      const committed = rectSignal()
+      const next = getDerivedRect(committed, node) ?? null
+      if (next == null) return
+      if (rectEqual(prev, next)) return
+      prev = next
+      cbRef.current(next)
+    })
+
+    return dispose
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node])
+}
+
+/**
+ * Subscribes to the committed boxRect (inner content) and fires `cb` at
+ * each commit boundary without re-rendering. See {@link useBoxRect} for
+ * the deferred-rect contract; this is the observer form.
+ */
+export function useOnBoxRectCommitted(cb: (rect: Rect) => void): void {
+  useOnRectCommitted(cb, (committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")
+}
+
+/**
+ * Subscribes to the committed scrollRect and fires `cb` at each commit
+ * boundary without re-rendering.
+ */
+export function useOnScrollRectCommitted(cb: (rect: Rect) => void): void {
+  useOnRectCommitted(cb, (committed) => committed, "scrollRectCommitted")
+}
+
+/**
+ * Subscribes to the committed screenRect and fires `cb` at each commit
+ * boundary without re-rendering.
+ */
+export function useOnScreenRectCommitted(cb: (rect: Rect) => void): void {
+  useOnRectCommitted(cb, (committed) => committed, "screenRectCommitted")
 }

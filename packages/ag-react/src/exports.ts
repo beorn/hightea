@@ -398,6 +398,24 @@ export type { SixelImageData } from "./ui/image/index"
 export { useBoxRect, useScrollRect, useScreenRect } from "./hooks/useLayout"
 
 /**
+ * In-flight rect hooks — escape hatches for silvery framework internals
+ * that need first-paint measurement and don't drive layout-affecting props
+ * back into the React tree. Lint-gated to silvery internals via the
+ * `silvery/no-in-flight-rect-in-app` ESLint rule. App code must use the
+ * deferred form (`useBoxRect`) or `useResponsiveBoxProps`/`useResponsiveValue`
+ * instead. See [The Silvery Way §2](../../docs/guide/the-silvery-way.md).
+ */
+export { useBoxRectInFlight, useScrollRectInFlight, useScreenRectInFlight } from "./hooks/useLayout"
+
+/**
+ * Commit-boundary callback observers — fire on rect change without
+ * triggering a re-render of the consumer. Use for hot paths where the
+ * rect drives an imperative side effect (cursor store update, registry
+ * write, ANSI emission) and no render path needs to reflect the rect.
+ */
+export { useOnBoxRectCommitted, useOnScrollRectCommitted, useOnScreenRectCommitted } from "./hooks/useLayout"
+
+/**
  * Kinetic wheel scrolling for any scrollable Box. Attach the returned
  * `scrollOffset` + `onWheel` to a `<Box overflow="scroll">` and wheel events
  * drive the viewport with iOS-style momentum. See ListView for the canonical
