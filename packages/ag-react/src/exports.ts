@@ -72,6 +72,8 @@
 export { Box } from "./components/Box"
 export { MeasuredBox } from "./ui/components"
 export type { MeasuredBoxProps, MeasuredBoxRect, MeasuredBoxRenderFn } from "./ui/components"
+export { AutoFit, useAutoFitVisible } from "./components/AutoFit"
+export type { AutoFitProps } from "./components/AutoFit"
 export { Scrollbar } from "./ui/components"
 export type { ScrollbarProps } from "./ui/components"
 export { ScrollArea } from "./ui/components"
