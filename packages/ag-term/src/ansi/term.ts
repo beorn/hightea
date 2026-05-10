@@ -808,6 +808,22 @@ function createNodeTerm(options: CreateTermOptions): Term {
   // See km-silvery.term-sub-owners Phase 5.
   const size = createSize(stdout)
 
+  // Force-install the SIGWINCH listener even if no React subscriber ever
+  // reads `size.cols()` / `size.rows()` / `size.snapshot()`.
+  //
+  // `createSize()` installs the `stdout.on("resize")` listener lazily on
+  // first signal read (avoids piling listeners onto cold Terms during
+  // startup orchestration — see size.ts:`ensureInstalled`). silvercode's
+  // React tree drives layout from `Box.onLayout` rather than `term.size.*`,
+  // so without this read the listener stays dormant and SIGWINCH events
+  // are dropped — the live binary never repaints on terminal resize.
+  //
+  // Calling `snapshot()` once here triggers `ensureInstalled` exactly once
+  // for every live Node Term, regardless of whether downstream code
+  // subscribes to the signal. Tests / emulator paths use `createFixedSize`
+  // which has no listener, so this read is a no-op there.
+  size.snapshot()
+
   let _frame: TextFrame | undefined
 
   // Sub-owner storage declared up-front so `ownedWrite` below can reference
