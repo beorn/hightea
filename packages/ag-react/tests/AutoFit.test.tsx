@@ -29,7 +29,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, useBoxRect } from "@silvery/ag-react"
+import { Box, Text, useBoxRect, useScreenRect } from "@silvery/ag-react"
 import { AutoFit, useAutoFitVisible } from "../src/components/AutoFit"
 
 // ---------------------------------------------------------------------------
@@ -397,6 +397,77 @@ describe("AutoFit — R9 sibling independence", () => {
     expect(rightMounts).toBeLessThanOrEqual(2)
     expect(leftMounts).toBeGreaterThanOrEqual(1)
     expect(rightMounts).toBeGreaterThanOrEqual(1)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// align — visible Box positioning within parent slack
+// ---------------------------------------------------------------------------
+
+describe("AutoFit — align prop", () => {
+  // The visible Box claims `width="100%"` (R2: lane is a ceiling, not
+  // authoritative). Without alignSelf, a parent that wants to center its
+  // child cannot do so — a 100%-wide child has no slack to center within.
+  // align="center" sets `alignSelf="center"` on the visible Box so the
+  // chosen lane lays out in the row's centerline.
+  //
+  // Probe records the visible Box's screen-x (absolute terminal column) and
+  // its width on every commit. With a 5-char content + parent width=80,
+  // the snap target is lane=10; if centering works, the visible Box's
+  // screen-x should be ≈ (80 - 10) / 2 = 35.
+  function ScreenXProbe({
+    record,
+  }: {
+    record: (screenX: number, width: number) => void
+  }) {
+    const visible = useAutoFitVisible()
+    const rect = useScreenRect()
+    React.useEffect(() => {
+      if (!visible) return
+      if (rect.width > 0) record(rect.x, rect.width)
+    }, [visible, rect.x, rect.width, record])
+    return null
+  }
+
+  test("align=center centers the visible Box when parent width > chosen lane", async () => {
+    const render = createRenderer({ cols: 100, rows: 5 })
+    const samples: Array<{ x: number; width: number }> = []
+    const tree = (
+      <Box width={80}>
+        <AutoFit lanes={[...LANES]} align="center">
+          <ScreenXProbe record={(x, width) => samples.push({ x, width })} />
+          <Text>{repeat("a", 5)}</Text>
+        </AutoFit>
+      </Box>
+    )
+    const app = render(tree)
+    await settle(app, tree)
+    expect(samples.length).toBeGreaterThan(0)
+    const final = samples[samples.length - 1] as { x: number; width: number }
+    // Centered: visible Box width=10, parent width=80, so left margin
+    // ≈ (80 - 10) / 2 = 35. ±1 for rounding.
+    expect(final.width).toBe(10)
+    expect(Math.abs(final.x - 35)).toBeLessThanOrEqual(1)
+  })
+
+  test("align=start (default) leaves the visible Box flush-left", async () => {
+    const render = createRenderer({ cols: 100, rows: 5 })
+    const samples: Array<{ x: number; width: number }> = []
+    const tree = (
+      <Box width={80}>
+        <AutoFit lanes={[...LANES]}>
+          <ScreenXProbe record={(x, width) => samples.push({ x, width })} />
+          <Text>{repeat("a", 5)}</Text>
+        </AutoFit>
+      </Box>
+    )
+    const app = render(tree)
+    await settle(app, tree)
+    expect(samples.length).toBeGreaterThan(0)
+    const final = samples[samples.length - 1] as { x: number; width: number }
+    // Default start: flush-left → screen-x = 0 (parent itself is at column 0).
+    expect(final.width).toBe(10)
+    expect(final.x).toBe(0)
   })
 })
 

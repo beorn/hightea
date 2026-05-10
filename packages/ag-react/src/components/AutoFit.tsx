@@ -106,6 +106,19 @@ export interface AutoFitProps {
    * least one entry.
    */
   lanes: number[]
+  /**
+   * How the visible (lane-snapped) Box aligns within its parent's
+   * cross-axis slack. Defaults to `"start"` (flush left), preserving
+   * historical behavior. Use `"center"` to center the chosen lane within
+   * a wider parent (matches `Content.Layout align="center"`); `"stretch"`
+   * disables the lane ceiling visually by stretching to parent width.
+   *
+   * Applied to the visible Box's `alignSelf` only — the AutoFit root keeps
+   * `width="100%"` (R2: lane is a ceiling, not authoritative). Without
+   * this prop, a centered parent cannot center an AutoFit child because
+   * `width="100%"` claims the full row.
+   */
+  align?: "start" | "center" | "stretch"
 }
 
 // ============================================================================
@@ -173,7 +186,7 @@ function PhantomReader({
 /**
  * Lane-snap layout primitive. See file header for invariants and design.
  */
-export function AutoFit({ children, lanes }: AutoFitProps): React.ReactElement {
+export function AutoFit({ children, lanes, align = "start" }: AutoFitProps): React.ReactElement {
   if (lanes.length === 0) {
     throw new Error("AutoFit: `lanes` must contain at least one width")
   }
@@ -215,10 +228,24 @@ export function AutoFit({ children, lanes }: AutoFitProps): React.ReactElement {
   // content widths (lanes line up across a transcript) without making
   // AutoFit set authoritative pixel widths — flexily still owns the
   // resolved width via the min(width%, maxWidth, parent slack) cascade.
+  // align — how the visible Box positions itself within the parent's
+  // cross-axis slack. `width="100%"` on the visible Box claims the row,
+  // so without alignSelf an enclosing flex centerline cannot reach the
+  // lane-snapped child. Centered Content.Layout passes `align="center"`
+  // so width="auto" code blocks (and other auto-snapped surfaces) line
+  // up under the same centerline as the static prose/wide/full lanes.
+  const visibleAlignSelf =
+    align === "center" ? "center" : align === "stretch" ? "stretch" : "flex-start"
+
   return (
     <Box flexDirection="column" width="100%" minWidth={0}>
       {phantom}
-      <Box width="100%" maxWidth={chosenLane} minWidth={0}>
+      <Box
+        width="100%"
+        maxWidth={chosenLane}
+        minWidth={0}
+        alignSelf={visibleAlignSelf}
+      >
         <AutoFitVisibleContext.Provider value={true}>{children}</AutoFitVisibleContext.Provider>
       </Box>
     </Box>
