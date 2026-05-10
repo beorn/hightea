@@ -35,6 +35,22 @@
  */
 
 import { signal, type ReadSignal } from "@silvery/signals"
+import { appendFileSync } from "node:fs"
+
+// Optional instrumentation gated on DEBUG_LOG env var. Pattern mirrors
+// scheduler.ts:768 (existing silvery convention). Logs install + every
+// resize event + every publish so SIGWINCH plumbing is observable in
+// the live binary. Zero overhead when DEBUG_LOG is unset.
+function logSize(message: string): void {
+  const path = process.env.DEBUG_LOG
+  if (!path) return
+  if (process.env.DEBUG && !/silvery(:size|:\*|^)/.test(process.env.DEBUG)) return
+  try {
+    appendFileSync(path, `[silvery:size ${new Date().toISOString()}] ${message}\n`)
+  } catch {
+    // Ignore — instrumentation must never crash the runtime.
+  }
+}
 
 /** Snapshot of terminal dimensions. */
 export interface SizeSnapshot {
@@ -142,7 +158,11 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
   /** Publish a new snapshot if the dims actually changed (equal-value guard). */
   const publish = (cols: number, rows: number) => {
     const prev = _snapshot()
-    if (prev.cols === cols && prev.rows === rows) return
+    if (prev.cols === cols && prev.rows === rows) {
+      logSize(`publish skipped — no change (cols=${cols} rows=${rows})`)
+      return
+    }
+    logSize(`publish: ${prev.cols}x${prev.rows} → ${cols}x${rows}`)
     _snapshot(Object.freeze({ cols, rows }))
   }
 
@@ -150,10 +170,14 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
     coalesceTimer = null
     if (disposed) return
     const prev = _snapshot()
-    publish(validDimension(stdout.columns, prev.cols), validDimension(stdout.rows, prev.rows))
+    const liveCols = validDimension(stdout.columns, prev.cols)
+    const liveRows = validDimension(stdout.rows, prev.rows)
+    logSize(`flush: stdout=${liveCols}x${liveRows} prev=${prev.cols}x${prev.rows}`)
+    publish(liveCols, liveRows)
   }
 
   const onResize = () => {
+    logSize(`onResize fired: stdout=${stdout.columns}x${stdout.rows} disposed=${disposed} coalesceMs=${coalesceMs}`)
     if (disposed) return
     if (coalesceMs === 0) {
       flush()
@@ -185,6 +209,11 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
   const ensureInstalled = () => {
     if (installed || disposed) return
     installed = true
+    logSize(
+      `ensureInstalled: attaching stdout.on("resize") listener — ` +
+        `dimsOverridden=${dimsOverridden} initial=${initialCols}x${initialRows} ` +
+        `live=${stdout.columns}x${stdout.rows}`,
+    )
     stdout.on("resize", onResize)
     if (!dimsOverridden) {
       const prev = _snapshot()
