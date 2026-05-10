@@ -2,13 +2,20 @@
  * Pure helpers for "index" mode windowing math in ListView.
  *
  * Extracted so the math can be unit-tested without spinning up the renderer.
+ * Two pieces:
  *
- * `computeIndexTrailingSpacer` — height of the trailing spacer Box that
- * represents items `[end, n)` not in the rendered window. Must equal
- * `sumHeights(end, n)` (sum of effective heights of items end..n-1 plus
- * the gaps between THEM, not between the spacer and its neighbours).
- * Must be `>= 0` for every valid `(end, n)` — Yoga rejects negative
- * height props.
+ * 1. `computeIndexTrailingSpacer` — height of the trailing spacer Box that
+ *    represents items `[end, n)` not in the rendered window. Must equal
+ *    `sumHeights(end, n)` (sum of effective heights of items end..n-1 plus
+ *    the gaps between THEM, not between the spacer and its neighbours).
+ *    Must be `>= 0` for every valid `(end, n)` — Yoga rejects negative
+ *    height props.
+ *
+ * 2. `mapChildIndexToItem` — given a child index from layout-phase's
+ *    `firstVisibleChild` / `lastVisibleChild`, return the corresponding
+ *    virtual-item index. Accounts for the optional leading spacer AND the
+ *    interstitial gap-Box (or `renderSeparator` node) injected between
+ *    every pair of consecutive visible items.
  */
 
 import type { HeightModel } from "./height-model"
@@ -41,4 +48,61 @@ export function computeIndexTrailingSpacer(
   // but rounding from fractional measurements can produce tiny negatives
   // and Yoga rejects negative heights.
   return Math.max(0, raw)
+}
+
+/**
+ * Map a child-node index from layout-phase back to a virtual-item index.
+ *
+ * Last-frame's rendered child layout (height-independent / index mode):
+ *
+ *     [leadingSpacer?,
+ *      item(prevStart),  [interstitial?],
+ *      item(prevStart+1), [interstitial?],
+ *      ...
+ *      item(prevEnd-1),
+ *      footer?, trailingSpacer?]
+ *
+ * `interstitial` is a single gap-Box (when `gap > 0`) OR a `renderSeparator()`
+ * node. The two are mutually exclusive — see ListView.tsx render path.
+ *
+ * For `m = prevEnd - prevStart` items with one interstitial per pair:
+ *   item(k) child index = leadingOffset + k * stride
+ *   gap(k)  child index = leadingOffset + k * stride + 1   (k = 0..m-2)
+ * where `stride = 1 + (hasInterstitial ? 1 : 0)`.
+ *
+ * Returns:
+ *   - `{ kind: "before" }` if `c < leadingOffset` (in the leading spacer)
+ *   - `{ kind: "item", index }` if `c` lands on an item slot
+ *   - `{ kind: "interstitial" }` if `c` lands on a gap/separator slot
+ *   - `{ kind: "after" }` if `c` is past the visible-items section
+ */
+export type MappedChild =
+  | { kind: "before" }
+  | { kind: "item"; index: number }
+  | { kind: "interstitial" }
+  | { kind: "after" }
+
+export interface MapChildIndexOptions {
+  hasLeadingSpacer: boolean
+  prevStart: number
+  prevEnd: number
+  hasInterstitial: boolean
+}
+
+export function mapChildIndexToItem(c: number, opts: MapChildIndexOptions): MappedChild {
+  const { hasLeadingSpacer, prevStart, prevEnd, hasInterstitial } = opts
+  const leadingOffset = hasLeadingSpacer ? 1 : 0
+  const m = Math.max(0, prevEnd - prevStart)
+  if (c < leadingOffset) return { kind: "before" }
+  if (m <= 0) return { kind: "after" }
+  const stride = hasInterstitial ? 2 : 1
+  // Total child-slots occupied by visible items + interstitials:
+  //   m items * stride - (hasInterstitial ? 1 : 0)   (no trailing interstitial)
+  const itemsSpan = m * stride - (hasInterstitial ? 1 : 0)
+  const local = c - leadingOffset
+  if (local >= itemsSpan) return { kind: "after" }
+  if (!hasInterstitial) return { kind: "item", index: prevStart + local }
+  // Even local index -> item; odd -> interstitial.
+  if (local % 2 === 0) return { kind: "item", index: prevStart + local / 2 }
+  return { kind: "interstitial" }
 }

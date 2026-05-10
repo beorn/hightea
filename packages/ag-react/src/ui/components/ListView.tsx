@@ -56,7 +56,7 @@ import type { AgNode } from "@silvery/ag/types"
 import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
 import { renderStringSync } from "../../render-string"
 import { createHeightModel, type HeightModel } from "./list-view/height-model"
-import { computeIndexTrailingSpacer } from "./list-view/index-window"
+import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
 import {
   resolveRowsAboveViewport,
   shouldApplyVisibleContentAnchoring,
@@ -1348,11 +1348,16 @@ function ListViewInner<T>(
   //
   // We track the previous frame's window structure in a ref so we can map
   // the child indices back to virtual-item indices without re-measuring.
+  // `hasInterstitial` is true when the render path injects a node between
+  // every pair of consecutive visible items — either a `<Box height={gap}>`
+  // (when `gap > 0`) or a `renderSeparator()` node. Without that flag the
+  // mapping `child -> item` would treat a gap-Box at child index 1 as item 1.
   const indexWindowPrevRef = useRef<{
     startIndex: number
     endIndex: number
     hasLeadingSpacer: boolean
-  }>({ startIndex: 0, endIndex: 0, hasLeadingSpacer: false })
+    hasInterstitial: boolean
+  }>({ startIndex: 0, endIndex: 0, hasLeadingSpacer: false, hasInterstitial: false })
 
   const cursorAnchor = Math.max(0, Math.min(activeItems.length - 1, scrollOffset))
 
@@ -1374,14 +1379,27 @@ function ListViewInner<T>(
       indexWindowPrevRef.current.endIndex > indexWindowPrevRef.current.startIndex
     ) {
       const prev = indexWindowPrevRef.current
-      const leadingOffset = prev.hasLeadingSpacer ? 1 : 0
-      const realItemEnd = leadingOffset + (prev.endIndex - prev.startIndex)
-      // Map firstVisibleChild back to a virtual item.
       const f = innerScrollState.firstVisibleChild
       const l = innerScrollState.lastVisibleChild
-      if (f >= leadingOffset && f < realItemEnd) {
-        viewportFirstItem = prev.startIndex + (f - leadingOffset)
-      } else if (f < leadingOffset) {
+      const opts = {
+        hasLeadingSpacer: prev.hasLeadingSpacer,
+        prevStart: prev.startIndex,
+        prevEnd: prev.endIndex,
+        hasInterstitial: prev.hasInterstitial,
+      }
+      const fMapped = mapChildIndexToItem(f, opts)
+      const lMapped = mapChildIndexToItem(l, opts)
+      if (fMapped.kind === "item") {
+        viewportFirstItem = fMapped.index
+      } else if (fMapped.kind === "interstitial") {
+        // Viewport top sits on a gap/separator between items. The item
+        // *just before* the gap is the topmost visible item.
+        // For stride-2 (item, gap, item, gap, ...) this maps cleanly.
+        const leadingOffset = prev.hasLeadingSpacer ? 1 : 0
+        const stride = prev.hasInterstitial ? 2 : 1
+        const local = f - leadingOffset
+        viewportFirstItem = prev.startIndex + Math.floor(local / stride)
+      } else if (fMapped.kind === "before") {
         // Leading spacer is on screen — viewport sits above the rendered
         // window. Anchor at prev.startIndex (the first rendered item) and
         // expand backward via overscan; the spacer height tells us nothing
@@ -1389,9 +1407,16 @@ function ListViewInner<T>(
         // re-mount will refine.
         viewportFirstItem = prev.startIndex
       }
-      if (l >= leadingOffset && l < realItemEnd) {
-        viewportLastItem = prev.startIndex + (l - leadingOffset)
-      } else if (l >= realItemEnd) {
+      if (lMapped.kind === "item") {
+        viewportLastItem = lMapped.index
+      } else if (lMapped.kind === "interstitial") {
+        // Bottom of viewport is on a gap/separator. The item *just before*
+        // the gap is the bottommost visible item.
+        const leadingOffset = prev.hasLeadingSpacer ? 1 : 0
+        const stride = prev.hasInterstitial ? 2 : 1
+        const local = l - leadingOffset
+        viewportLastItem = prev.startIndex + Math.floor(local / stride)
+      } else if (lMapped.kind === "after") {
         viewportLastItem = prev.endIndex - 1
       }
     }
@@ -1569,10 +1594,14 @@ function ListViewInner<T>(
 
   // Update prev-window ref AFTER computing the spacer sums (so the
   // hasLeadingSpacer flag matches what's about to render).
+  // `hasInterstitial` mirrors the render path: a single gap-Box (when
+  // gap > 0) OR a renderSeparator() node lands between every pair of
+  // consecutive visible items. The two are mutually exclusive.
   indexWindowPrevRef.current = {
     startIndex: indexWindowStart,
     endIndex: indexWindowEnd,
     hasLeadingSpacer: effectiveLeadingHeight > 0,
+    hasInterstitial: renderSeparator !== undefined || gap > 0,
   }
 
   // ── Surface / search registration ────────────────────────────────

@@ -97,7 +97,11 @@ export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./
 export { createHeightModel } from "./ui/components/list-view/height-model"
 export type { HeightModel, HeightModelOptions } from "./ui/components/list-view/height-model"
 // Pure index-window helpers — extracted from ListView for unit-testability.
-export { computeIndexTrailingSpacer } from "./ui/components/list-view/index-window"
+export {
+  computeIndexTrailingSpacer,
+  mapChildIndexToItem,
+} from "./ui/components/list-view/index-window"
+export type { MappedChild, MapChildIndexOptions } from "./ui/components/list-view/index-window"
 export { SplitView } from "./ui/components"
 export type { SplitViewProps } from "./ui/components"
 export type { LayoutNode as SplitLayoutNode } from "@silvery/ag-term/pane-manager"
