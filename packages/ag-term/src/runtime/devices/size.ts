@@ -58,6 +58,104 @@ export interface SizeSnapshot {
   readonly rows: number
 }
 
+// ---------------------------------------------------------------------------
+// Stream-shared listener (refcounted)
+//
+// Multiple `createSize(stream)` calls on the SAME WriteStream share ONE
+// underlying `stream.on("resize", …)` attachment. Without sharing, every
+// `createTerm(process.stdout)` call site (km-cli has many module-level
+// singletons — `program.ts`, `index.ts`, every command module) would add
+// its own resize listener; Node's default 10-listener cap fires
+// `MaxListenersExceededWarning: 11 resize listeners added to [WriteStream]`
+// at startup. See bead `@km/silvery/resize-listener-leak` (P2).
+//
+// The shared registration installs lazily on first read of any public
+// signal (preserves the lazy-install contract — cold Terms that never read
+// `size.*` still pay zero listeners — see size.test.ts §"lazy install").
+// Each `createSize(stream)` instance gets its own private fanout slot, so
+// per-instance state (the trailing-edge debounce timer, the alien-signals
+// `_snapshot`, dispose semantics) is unchanged. The refcount tracks the
+// number of installed instances; when the last instance disposes, the
+// underlying `stream.on("resize")` attachment is removed.
+//
+// Keyed off the stream identity, not just `process.stdout`, so test mocks
+// (each test gets its own `EventEmitter` "stdout") share within a test but
+// stay isolated across tests. WeakMap keeps GC-friendliness for synthetic
+// streams.
+// ---------------------------------------------------------------------------
+
+interface SharedResizeEntry {
+  /** Number of `createSize(stream)` instances currently subscribed. */
+  count: number
+  /** Per-instance fan-out — invoked on every stream "resize" event. */
+  readonly fanout: Set<() => void>
+  /** The single function attached to `stream.on("resize", …)`. */
+  readonly handler: () => void
+}
+
+const sharedResizeRegistry: WeakMap<NodeJS.WriteStream, SharedResizeEntry> = new WeakMap()
+
+/**
+ * Subscribe `onResize` to the stream's resize event via the shared
+ * (refcounted) listener. Returns a `detach()` that removes this subscriber
+ * and tears down the underlying `stream.on(...)` when the last subscriber
+ * detaches.
+ *
+ * Calling this is what bumps the refcount — `createSize` defers the call
+ * until first read so the lazy-install contract is preserved.
+ */
+function subscribeShared(stream: NodeJS.WriteStream, onResize: () => void): () => void {
+  let entry = sharedResizeRegistry.get(stream)
+  if (!entry) {
+    const fanout = new Set<() => void>()
+    const handler = () => {
+      // Iterate a snapshot — a subscriber's onResize may detach mid-fire
+      // (e.g. a Size disposes inside its own resize handler).
+      for (const cb of [...fanout]) {
+        try {
+          cb()
+        } catch {
+          // Per-instance handlers must not crash the shared dispatch loop.
+          // Errors surface through the instance's own pathway (signal
+          // updates are catch-free at the consumer level).
+        }
+      }
+    }
+    stream.on("resize", handler)
+    entry = { count: 0, fanout, handler }
+    sharedResizeRegistry.set(stream, entry)
+  }
+  entry.fanout.add(onResize)
+  entry.count += 1
+
+  let detached = false
+  return () => {
+    if (detached) return
+    detached = true
+    const e = sharedResizeRegistry.get(stream)
+    if (!e) return
+    e.fanout.delete(onResize)
+    e.count -= 1
+    if (e.count === 0) {
+      stream.off("resize", e.handler)
+      sharedResizeRegistry.delete(stream)
+    }
+  }
+}
+
+/**
+ * Test/diagnostic helper — returns the current refcount for a stream's
+ * shared resize listener. Zero if no Size is currently subscribed (whether
+ * because none was constructed, or because every Size has disposed). Used
+ * by the SILVERY_STRICT canary that bounds `process.stdout` resize listener
+ * count after app teardown.
+ *
+ * @internal
+ */
+export function _sharedResizeRefcount(stream: NodeJS.WriteStream): number {
+  return sharedResizeRegistry.get(stream)?.count ?? 0
+}
+
 /**
  * Terminal size sub-owner.
  *
@@ -154,6 +252,7 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
   let disposed = false
   let coalesceTimer: ReturnType<typeof setTimeout> | null = null
   let installed = false
+  let detachShared: (() => void) | null = null
 
   /** Publish a new snapshot if the dims actually changed (equal-value guard). */
   const publish = (cols: number, rows: number) => {
@@ -210,11 +309,14 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
     if (installed || disposed) return
     installed = true
     logSize(
-      `ensureInstalled: attaching stdout.on("resize") listener — ` +
+      `ensureInstalled: attaching stdout.on("resize") listener (shared) — ` +
         `dimsOverridden=${dimsOverridden} initial=${initialCols}x${initialRows} ` +
         `live=${stdout.columns}x${stdout.rows}`,
     )
-    stdout.on("resize", onResize)
+    // Shared, refcounted attachment — multiple Sizes on the same stream
+    // share ONE underlying `stream.on("resize")` listener. See
+    // `subscribeShared` block at top of this file.
+    detachShared = subscribeShared(stdout, onResize)
     if (!dimsOverridden) {
       const prev = _snapshot()
       publish(validDimension(stdout.columns, prev.cols), validDimension(stdout.rows, prev.rows))
@@ -244,7 +346,11 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
       if (disposed) return
       disposed = true
       if (installed) {
-        stdout.off("resize", onResize)
+        // Detach our subscriber from the shared registration. The
+        // underlying `stream.on("resize")` is removed only when the last
+        // Size detaches; refcount drops to 0 → handler off.
+        detachShared?.()
+        detachShared = null
         installed = false
       }
       if (coalesceTimer !== null) {

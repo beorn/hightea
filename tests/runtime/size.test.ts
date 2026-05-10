@@ -416,6 +416,87 @@ describe("createSize: dispose", () => {
   })
 })
 
+describe("createSize: stream-shared listener (no MaxListenersExceeded leak)", () => {
+  // Bug `@km/silvery/resize-listener-leak` (P2). Every `bun km view` printed
+  // `MaxListenersExceededWarning: 11 resize listeners added to [WriteStream]`
+  // on stderr at startup because km-cli has many module-level
+  // `const term = createTerm(process)` singletons. Each `createNodeTerm()`
+  // calls `size.snapshot()` once at construction (eager-install for SIGWINCH
+  // repaint, see `term-size-eager-install.test.ts`), and each install added a
+  // *fresh* `process.stdout.on("resize")` listener — N call sites → N
+  // listeners → Node's 10-listener default warning fired.
+  //
+  // Fix: `createSize(stdout)` reuses one underlying `stdout.on("resize")`
+  // attachment per stream via refcounting. N Sizes on the same stream still
+  // see one listener on the stream; each Size's dispose decrements the
+  // refcount, and the underlying listener detaches when the count hits zero.
+  // Per-Size delivery is fanned out internally — every Size still gets its
+  // own `onResize` callback (signal updates, debounce timer) so the public
+  // API is unchanged.
+  test("N Sizes on the same stdout add at most ONE underlying listener", () => {
+    const stdout = createMockStdout(80, 24)
+    using a = mkSize(stdout)
+    using b = mkSize(stdout)
+    using c = mkSize(stdout)
+    a.cols()
+    b.cols()
+    c.cols()
+    // Pre-fix: 3 listeners (one per Size). Post-fix: 1.
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+  })
+
+  test("N Sizes on the same stdout each receive resize notifications", async () => {
+    const stdout = createMockStdout(80, 24)
+    using a = mkSize(stdout)
+    using b = mkSize(stdout)
+
+    const aChanges = observeChanges(a)
+    const bChanges = observeChanges(b)
+
+    setDims(stdout, 132, 40)
+    await sleep(50)
+
+    expect(aChanges.changes).toEqual([{ cols: 132, rows: 40 }])
+    expect(bChanges.changes).toEqual([{ cols: 132, rows: 40 }])
+    expect(a.cols()).toBe(132)
+    expect(b.cols()).toBe(132)
+
+    aChanges.stop()
+    bChanges.stop()
+  })
+
+  test("disposing one Size leaves the shared listener intact for the rest", () => {
+    const stdout = createMockStdout(80, 24)
+    const a = mkSize(stdout)
+    const b = mkSize(stdout)
+    a.cols()
+    b.cols()
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+
+    a[Symbol.dispose]()
+    // b still active → listener stays attached.
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+    expect(b.cols()).toBe(80)
+
+    b[Symbol.dispose]()
+    // Last consumer gone → listener detached, refcount cleared.
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
+  })
+
+  test("simulates `bun km view` startup — 12 createSize calls, 1 listener", () => {
+    // Reproduces the field repro from the bead acceptance criterion:
+    // multiple `createTerm(process)` module-level singletons in km-cli.
+    const stdout = createMockStdout(80, 24)
+    const sizes = Array.from({ length: 12 }, () => mkSize(stdout))
+    for (const s of sizes) s.snapshot()
+    // Pre-fix: 12 listeners → MaxListenersExceededWarning at 11.
+    // Post-fix: 1 shared listener regardless of N.
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(1)
+    for (const s of sizes) s[Symbol.dispose]()
+    expect((stdout as EventEmitter).listenerCount("resize")).toBe(0)
+  })
+})
+
 // ============================================================================
 // Tests — createFixedSize
 // ============================================================================

@@ -78,6 +78,8 @@ import {
   getTerminalFingerprint,
 } from "../text-sizing"
 import { createWidthDetector, applyWidthConfig } from "../ansi/width-detection"
+import { isStrictEnabled } from "../strict-mode.js"
+import { _sharedResizeRefcount } from "./devices/size"
 import {
   createContainer,
   createFiberRoot,
@@ -1814,6 +1816,55 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
     // Dispose runtime
     runtime[Symbol.dispose]()
+
+    // SILVERY_STRICT canary — bound `process.stdout` resize listener count.
+    //
+    // Slug: `resize-listener-bound` (tier 1+). Default `SILVERY_STRICT=1`
+    // catches the regression that prompted bead
+    // `@km/silvery/resize-listener-leak` (P2): pre-fix every
+    // `createTerm(process)` module-level singleton stacked a fresh
+    // `process.stdout.on("resize")` attachment, surfacing as
+    // `MaxListenersExceededWarning: 11 resize listeners ...` on `bun km
+    // view` startup. Post-fix, all `createSize` instances share one
+    // refcounted listener per stream — count is bounded by N (refcount-of-
+    // active-Sizes) regardless of how many Terms were built.
+    //
+    // We assert two things at app teardown (after providerCleanups, which
+    // disposed autoTerm and any Term-owned Size):
+    //   1. `process.stdout.listenerCount("resize")` <= 1 — a single
+    //      installed listener is fine (other Sizes from outside this app
+    //      may still be active); the previous pathology was N>10.
+    //   2. The shared refcount equals what `listenerCount` reports for our
+    //      installation — proves the registry is the only attacher.
+    //
+    // Per `vendor/silvery/CLAUDE.md` mandate: no new SILVERY_* env vars —
+    // the check threads through `isStrictEnabled(slug, minTier)`.
+    if (isStrictEnabled("resize-listener-bound", 1)) {
+      try {
+        const sharedCount = _sharedResizeRefcount(process.stdout)
+        const totalCount =
+          typeof process.stdout.listenerCount === "function"
+            ? process.stdout.listenerCount("resize")
+            : 0
+        // Hard upper bound: 10 (Node's default warning threshold). The
+        // shared-listener fix bounds the silvery contribution to 1 per
+        // stream regardless of N Sizes, so any breach signals a regression.
+        if (totalCount > 10) {
+          // eslint-disable-next-line no-console
+          console.error(
+            `[SILVERY_STRICT] resize-listener-bound: process.stdout has ${totalCount} ` +
+              `resize listeners after app teardown (silvery shared refcount: ${sharedCount}). ` +
+              `Slug: SILVERY_STRICT=resize-listener-bound. Per-test opt-out: ` +
+              `SILVERY_STRICT=1,!resize-listener-bound. ` +
+              `Likely regression of @km/silvery/resize-listener-leak — ` +
+              `every createSize() instance is attaching its own listener instead of ` +
+              `sharing the refcounted one in devices/size.ts:subscribeShared.`,
+          )
+        }
+      } catch {
+        // Diagnostic must never crash teardown
+      }
+    }
 
     // Flush explicit app panics after terminal cleanup so the diagnostic lands
     // on the normal screen instead of disappearing with alt-screen contents.
