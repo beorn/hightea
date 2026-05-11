@@ -581,22 +581,8 @@ export function dispatchMouseEvent(event: SilveryMouseEvent): void {
       pathSummary.push(`${node.type}#${id}${has ? "*" : ""}`)
     }
     mouseLog.info?.(
-      `dispatchWheel x=${event.x} y=${event.y} target=${event.target.type} pathLen=${path.length} handlers=${handlerCount}`,
+      `dispatchWheel x=${event.x} y=${event.y} target=${event.target.type} pathLen=${path.length} handlers=${handlerCount} path=${pathSummary.slice(0, 12).join("/")}`,
     )
-    // Log the full path in chunks so it fits readability. Show top 6
-    // (root-most) and bottom 6 (target-most) so we know what the wheel
-    // hit-tested INTO and what the top of the tree looks like.
-    const head = pathSummary.slice(0, 6).join("/")
-    const tail = pathSummary.slice(-6).join("/")
-    mouseLog.info?.(`dispatchWheel path-head=${head}`)
-    mouseLog.info?.(`dispatchWheel path-tail=${tail}`)
-    // Log every node's prop keys (just keys, not values) so we can see
-    // which ones DO have onWheel and what other props they expose.
-    for (let i = 0; i < Math.min(path.length, 15); i++) {
-      const node = path[i]!
-      const keys = Object.keys(node.props as object).sort().join(",")
-      mouseLog.info?.(`dispatchWheel path[${i}] type=${node.type} keys=${keys}`)
-    }
   }
   for (const node of path) {
     if (event.propagationStopped) break
