@@ -125,21 +125,46 @@ export function createClsMonitor(): ClsMonitor {
   }
 
   function nodePath(node: AgNode): string {
-    // Identity chain: walk ancestors, encoding type + key (from
-    // props.id / data-testid / index). Cheap stable identifier — does
-    // not need to be globally unique, only stable across commits for
-    // the same logical node.
+    // CSS-selector-style identity chain. Walk ancestors, keep ONLY
+    // nodes with an `id` / `data-testid` (rendered as `#name`); the
+    // unidentified intermediate `silvery-box` chains drop out. The
+    // leaf always renders even if untagged (as its bare type minus
+    // the `silvery-` prefix). Joins with ` > ` like a CSS descendant
+    // selector. Bead: @km/silvery/layout-shift-instrumentation-cls
+    // user feedback 2026-05-11: paths were "silvery-root/silvery-box/
+    // silvery-box#main/..." which is the full-chain — switch to
+    // "#main > #bottom-bar > ... > text#watcher-status".
     const parts: string[] = []
     let n: AgNode | null = node
     let depth = 0
-    while (n && depth < 12) {
+    let isLeaf = true
+    while (n && depth < 20) {
       const props = n.props as { id?: string; "data-testid"?: string }
-      const key = props.id ?? props["data-testid"] ?? ""
-      parts.push(`${n.type}${key ? `#${key}` : ""}`)
+      const key = props.id ?? props["data-testid"]
+      if (key) {
+        // Tagged ancestor — emit `#name`. Type prefix only when
+        // disambiguation matters (text inside a same-named box
+        // would be ambiguous as `#foo`; the leaf token shows
+        // type when it isn't a plain box).
+        const typeTag = n.type === "silvery-box" ? "" : `${typeShort(n.type)}`
+        parts.push(`${typeTag}#${key}`)
+      } else if (isLeaf) {
+        // Leaf without id — emit the bare type so the log still
+        // names what shifted.
+        parts.push(typeShort(n.type))
+      }
+      // Else: untagged intermediate — skip.
+      isLeaf = false
       n = n.parent
       depth++
     }
-    return parts.reverse().join("/")
+    return parts.reverse().join(" > ")
+  }
+
+  function typeShort(type: string): string {
+    // Drop the `silvery-` prefix when present: `silvery-text` → `text`,
+    // `silvery-box` → `box`, `silvery-root` → `root`.
+    return type.startsWith("silvery-") ? type.slice("silvery-".length) : type
   }
 
   function recordShift(rec: ShiftRecord, now: number): boolean {
@@ -209,7 +234,15 @@ export function createClsMonitor(): ClsMonitor {
         // those are the deferred-only useBoxRect contract working as
         // designed (0,0 seed → real rect on next commit).
         const isFirstMeasure = prev.width === 0 && prev.height === 0 && next.width > 0 && next.height > 0
-        if (!isFirstMeasure) {
+        // Virtual inline text children always have {0,0,0,0} or
+        // size-zero rects (they don't own layout — they inherit
+        // position from their parent silvery-box). Their "shifts"
+        // are just propagation noise from the real parent shift.
+        const isInlineTextNoise =
+          node.type === "silvery-text" &&
+          (prev.width === 0 || prev.height === 0) &&
+          (next.width === 0 || next.height === 0)
+        if (!isFirstMeasure && !isInlineTextNoise) {
           commitShifts.push({ path: nodePath(node), prev, next })
         }
       }
