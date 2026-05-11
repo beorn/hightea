@@ -585,16 +585,24 @@ export const MAX_CONVERGENCE_PASSES =
   PASS_CAUSE_BOUNDS.unknown
 
 /**
- * Initial-render pass cap. The first render of a fresh fiber root needs a
- * wider cap than the production-derived MAX_CONVERGENCE_PASSES because hooks
- * like useBoxRect must subscribe → layout → forceUpdate → re-render before
- * the first frame is stable. This cap is the test renderer's only
- * non-MAX_CONVERGENCE_PASSES bound — used exclusively at first-render time
- * (renderer.ts initial-render block).
+ * Initial-render pass cap. Historical: the test renderer's initial render
+ * used to run with this wider cap so hooks like useBoxRect could
+ * subscribe → layout → forceUpdate → re-render before the first frame was
+ * stable. As of `@km/silvery/test-harness-convergence-cap-parity` the
+ * test harness uses the same `MAX_CONVERGENCE_PASSES` cap as production
+ * on first paint — tests asserting post-convergence state opt in via
+ * `await app.waitForLayoutStable()`.
  *
- * Production's create-app.tsx doesn't need this because the initial render
- * runs once and the first user-visible frame comes after the event loop
- * starts.
+ * The constant is retained for the structural ceiling assertions in
+ * `tests/pipeline/bounded-convergence*.test.ts`, but is no longer wired
+ * into any production or test runtime code path. The layout-signals
+ * refactor (`@km/silvery/listview-layout-signals-from-getlayoutsignals`)
+ * eliminated the structural 3+ pass convergence requirement that
+ * motivated the wider cap in the first place.
+ *
+ * @deprecated Not used by any runtime path as of 2026-05-11. Will be
+ * removed once the asserting tests in `bounded-convergence*.test.ts`
+ * migrate to a pure-constant fixture.
  */
 export const INITIAL_RENDER_MAX_PASSES = 5
 

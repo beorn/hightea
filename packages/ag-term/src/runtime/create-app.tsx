@@ -98,6 +98,7 @@ import {
 } from "./event-handlers"
 import { keyToAnsi, keyToKittyAnsi, isModifierOnlyEvent } from "@silvery/ag/keys"
 import { findActiveCursorRect } from "@silvery/ag/layout-signals"
+import { isAnyDirty } from "@silvery/ag/epoch"
 import { parseKey, type Key } from "./keys"
 import { ensureLayoutEngine } from "./layout"
 import {
@@ -513,6 +514,29 @@ export interface AppHandle<S> {
   readonly scope: Scope
   /** Wait until the app exits */
   waitUntilExit(): Promise<void>
+  /**
+   * Drain additional commit / layout cycles until layout reports stable
+   * (no pending React commit, no dirty layout nodes) OR a budget cap is
+   * reached (default 20 passes / 50ms wall clock).
+   *
+   * The default frame exposed by `run()` matches what production silvery
+   * commits on first paint — bounded by `MAX_CONVERGENCE_PASSES`. Tests
+   * asserting layout that needs more passes to settle call this method
+   * to explicitly wait for full convergence:
+   *
+   * ```ts
+   * const handle = await run(<App />, term)
+   * await handle.waitForLayoutStable()
+   * expect(term.screen).toContainText("Item 1")
+   * ```
+   *
+   * Resolves without throwing when the cap is reached — an infinitely
+   * non-converging app is a structural bug surfaced by SILVERY_STRICT's
+   * convergence assertions, not a test-author concern here.
+   *
+   * Bead: `@km/silvery/test-harness-convergence-cap-parity`.
+   */
+  waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void>
   /** Exit fullscreen, restore terminal state, and print a copyable diagnostic to stderr */
   panic(reason: unknown, options?: PanicOptions): void
   /** Unmount and cleanup */
@@ -3897,6 +3921,55 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     },
     waitUntilExit() {
       return exitPromise
+    },
+    async waitForLayoutStable(opts?: {
+      timeoutMs?: number
+      maxPasses?: number
+    }): Promise<void> {
+      // Drain additional commit / layout cycles until stable OR cap.
+      //
+      // Implementation note: production's processEventBatch runs its own
+      // bounded-convergence flush loop after every event. Calling this
+      // method on a `run()` handle simply drives the same loop one extra
+      // time — `renderer.commitLayout()` to promote in-flight rect signals,
+      // then await a microtask to drain React's passive-effect queue, then
+      // check `pendingRerender`. Loops until stable or cap.
+      //
+      // Bead: `@km/silvery/test-harness-convergence-cap-parity`.
+      if (shouldExit) return
+      const timeoutMs = opts?.timeoutMs ?? 50
+      const maxPasses = opts?.maxPasses ?? 20
+      const start = performance.now()
+      for (let pass = 0; pass < maxPasses; pass++) {
+        if (performance.now() - start >= timeoutMs) return
+        pendingRerender = false
+        renderer.commitLayout()
+        await Promise.resolve()
+        if (!pendingRerender) {
+          // Also verify no node is epoch-dirty — a render could be pending
+          // outside React's commit pipeline (e.g., signal subscribers that
+          // forceUpdate after the microtask drained).
+          try {
+            const root = getContainerRoot(container)
+            if (root && !isAnyDirty(root.dirtyBits, root.dirtyEpoch)) return
+          } catch {
+            return
+          }
+          return
+        }
+        pendingRerender = false
+        isRendering = true
+        try {
+          currentBuffer = doRender()
+        } finally {
+          isRendering = false
+        }
+      }
+      // Budget exhausted — resolve without throwing. Structural non-
+      // convergence is caught by SILVERY_STRICT's bounded-convergence
+      // assertions in the event-loop's own flush; this method is the
+      // test-author opt-in for post-convergence assertions, not a
+      // determinism check.
     },
     panic(reason: unknown, options?: PanicOptions) {
       panicApp(reason, options)

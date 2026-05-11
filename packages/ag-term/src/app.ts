@@ -230,6 +230,31 @@ export interface App {
   /** Promise that resolves when the app exits (alias for run()) */
   waitUntilExit(): Promise<void>
 
+  /**
+   * Drain additional commit / layout cycles until layout reports stable
+   * (no node dirty, no pending React commit) OR a budget cap is reached
+   * (default 20 passes / 50ms wall clock).
+   *
+   * The default test harness exposes the post-`MAX_CONVERGENCE_PASSES`
+   * frame — matching what production silvery commits on first paint.
+   * Most tests don't need to wait further: keyboard / mouse input each
+   * runs its own bounded-convergence loop, so an assertion after `press()`
+   * already sees post-convergence state for that batch.
+   *
+   * This method is for assertions on layout state IMMEDIATELY after mount
+   * that require chains needing more than `MAX_CONVERGENCE_PASSES` passes
+   * to settle (rare with the layout-signals primitive, common with older
+   * useState+onLayout chains). Returns once stable so tests can assert
+   * post-convergence text/layout.
+   *
+   * Resolves without throwing even when the cap is hit — an infinitely
+   * non-converging app is a structural bug surfaced by SILVERY_STRICT's
+   * `assertBoundedConvergence`, not a test-author concern here.
+   *
+   * Bead: `@km/silvery/test-harness-convergence-cap-parity`.
+   */
+  waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void>
+
   /** Clear the terminal output */
   clear(): void
 
@@ -351,6 +376,15 @@ export interface AppOptions {
 
   /** Per-instance cursor state accessor */
   getCursorState?: () => import("@silvery/ag-react/hooks/useCursor").CursorState | null
+
+  /**
+   * Drain commit / layout cycles until stable (test renderer only).
+   * See {@link App.waitForLayoutStable} for the contract.
+   */
+  waitForLayoutStable?: (opts?: {
+    timeoutMs?: number
+    maxPasses?: number
+  }) => Promise<void>
 }
 
 /**
@@ -376,6 +410,7 @@ export function buildApp(options: AppOptions): App {
     actAndRender,
     resize: resizeFn,
     focusManager: fm,
+    waitForLayoutStable: waitForLayoutStableFn,
   } = options
 
   // Create auto-refreshing locator factory
@@ -739,6 +774,14 @@ export function buildApp(options: AppOptions): App {
       app.unmount()
     },
     waitUntilExit,
+    waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void> {
+      if (!waitForLayoutStableFn) {
+        return Promise.reject(
+          new Error("waitForLayoutStable() is only available in the test renderer"),
+        )
+      }
+      return waitForLayoutStableFn(opts)
+    },
     clear,
 
     // === Debug ===

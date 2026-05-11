@@ -69,10 +69,9 @@ import {
   logPass,
   assertBoundedConvergence,
   MAX_CONVERGENCE_PASSES,
-  INITIAL_RENDER_MAX_PASSES,
   INSTRUMENT,
 } from "./runtime/pass-cause"
-import { ALL_RECONCILER_BITS, getRenderEpoch } from "@silvery/ag/epoch"
+import { ALL_RECONCILER_BITS, getRenderEpoch, isAnyDirty } from "@silvery/ag/epoch"
 // Side-effect import: arms `@silvery/ag`'s wrap-measurer registry with the
 // terminal grapheme-aware adapter. Importing renderer.ts (via createRenderer
 // in tests, or run() in production) now means soft-wrap-aware
@@ -1036,16 +1035,102 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     return doRender()
   }
 
+  /**
+   * Drain additional commit / layout cycles until the React tree is stable
+   * (no pending commit, no dirty layout nodes) OR a budget is reached.
+   * Resolves once stable so tests can assert post-convergence state.
+   *
+   * The default is production timing — `render()` exposes a frame after the
+   * production-cap `MAX_CONVERGENCE_PASSES`. Tests asserting layout that
+   * requires more passes to settle (multi-layer measurement chains,
+   * AutoFit lane chooser cascading, etc.) call this explicitly:
+   *
+   * ```ts
+   * const app = render(<MyApp />)
+   * await app.waitForLayoutStable()
+   * expect(app.text).toMatchSnapshot()
+   * ```
+   *
+   * Stability detection: a pass is run, then `flushSyncWork` runs in a
+   * separate `act()`. If `hadReactCommit` flips during the flush, layout
+   * is still in-flight; loop again (run another commit boundary + flush).
+   * Same predicate the renderer uses internally — does not invent a new
+   * readiness probe.
+   *
+   * Bounded by `maxPasses` (default 20) and `timeoutMs` (default 50ms).
+   * If the cap is reached, resolves WITHOUT throwing — an infinitely
+   * non-converging app is a bug, not a test fault. The contract is "best
+   * effort within the budget."
+   *
+   * Bead: `@km/silvery/test-harness-convergence-cap-parity`.
+   */
+  async function waitForLayoutStable(opts?: {
+    timeoutMs?: number
+    maxPasses?: number
+  }): Promise<void> {
+    if (!instance.mounted) return
+    const timeoutMs = opts?.timeoutMs ?? 50
+    const maxPasses = opts?.maxPasses ?? 20
+    const start = performance.now()
+    let lastFrame = instance.frames[instance.frames.length - 1] ?? ""
+    for (let pass = 0; pass < maxPasses; pass++) {
+      if (performance.now() - start >= timeoutMs) return
+      // Drain microtask queue so async React work (passive effects, signal
+      // effects scheduled via queueMicrotask) gets a chance to set state
+      // before we test for convergence.
+      await Promise.resolve()
+      if (!instance.mounted) return
+      // Run a commit-boundary + flush cycle. settleAfterCommit promotes
+      // in-flight rect signals to committed and flushes any resulting
+      // React work. Returns the prior output unchanged when nothing
+      // committed — meaning the tree is stable.
+      hadReactCommit = false
+      const next = settleAfterCommit(lastFrame)
+      if (next === lastFrame && !hadReactCommit) {
+        // Stable: no commit fired during the boundary, and the settle
+        // pass had nothing to render. Layout is at a fixed point.
+        // Also verify no node remains epoch-dirty — a render could have
+        // run without flipping hadReactCommit if no React state mutated.
+        try {
+          const root = getContainerRoot(instance.container)
+          if (root && !isAnyDirty(root.dirtyBits, root.dirtyEpoch)) return
+        } catch {
+          return
+        }
+        return
+      }
+      lastFrame = next
+      instance.frames.push(next)
+      onFrame?.(next, instance.prevBuffer!, getRootContentHeight())
+    }
+    // Budget exhausted — the app didn't converge in the cap. Resolve
+    // anyway (per the contract — best effort within budget). The
+    // SILVERY_STRICT bound assertion already catches structural
+    // non-convergence in the inner loops; this method is for test-author
+    // ergonomics, not a determinism check.
+  }
+
   // Execute the render pipeline.
-  // The initial render uses a wider pass cap (5) regardless of the caller's
-  // maxLayoutPasses, because hooks like useBoxRect need multiple passes to
-  // stabilize (subscribe → layout → forceUpdate → re-render). This matches
-  // production where the initial render runs once and the first user-visible
-  // frame comes after the event loop starts. For tests we need the initial
-  // state to be stable. The caller's cap takes effect for subsequent renders
-  // (sendInput/press) to match production's processEventBatch path.
-  const savedCap = instance.maxLayoutPasses
-  instance.maxLayoutPasses = INITIAL_RENDER_MAX_PASSES
+  //
+  // Production parity (bead `@km/silvery/test-harness-convergence-cap-parity`):
+  // the initial render uses the same `MAX_CONVERGENCE_PASSES` cap as
+  // production's `processEventBatch` and `app.run()` initial-render flush
+  // loops (see `create-app.tsx` ~line 2435). Production NEVER runs an extra-
+  // wide cap on first paint, so the test harness must not either — otherwise
+  // tests see post-convergence layout that real users never get on first
+  // paint, and bugs that fire during the first 1-2 passes are invisible.
+  //
+  // Tests that need post-convergence state for their assertions call
+  // `await app.waitForLayoutStable()` explicitly — see that method's docs.
+  // The default is production timing; opt-in is the explicit primitive.
+  //
+  // Historical note: this used to be `INITIAL_RENDER_MAX_PASSES = 5` to
+  // accommodate multi-layer measurement chains (useBoxRect → forceUpdate
+  // → re-render → useBoxRect again). With the layout-signals refactor
+  // (`@km/silvery/listview-layout-signals-from-getlayoutsignals`), the
+  // canonical primitive `boxRectCommitted` reads synchronously during the
+  // SAME render that consumes it, so multi-layer chains converge in 1-2
+  // passes via signal idempotence rather than needing 3-5 React commits.
   let output = doRender()
   // Commit boundary for the initial render. Reactive useBoxRect/useScrollRect/
   // useScreenRect hooks subscribed during this render see the seeded committed
@@ -1053,7 +1138,6 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   // here fires their effects so the next render reads real rects. See bead
   // `@km/silvery/use-deferred-box-rect-and-post-commit-observers`.
   output = settleAfterCommit(output)
-  instance.maxLayoutPasses = savedCap
 
   instance.frames.push(output)
   onFrame?.(output, instance.prevBuffer!, getRootContentHeight())
@@ -1478,6 +1562,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     resize: resizeFn,
     focusManager,
     getCursorState: cursorStore.accessors.getCursorState,
+    waitForLayoutStable,
   })
 }
 
