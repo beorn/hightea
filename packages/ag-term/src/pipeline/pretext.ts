@@ -463,14 +463,21 @@ export function optimalWrap(text: string, analysis: TextAnalysis, width: number 
   let pendingAnsiPrefix = ""
 
   for (const bp of breaks) {
-    // Trim trailing whitespace (skip zero-width ANSI tokens)
+    // Trim trailing whitespace, but CAPTURE zero-width ANSI tokens.
+    // Without capture, an ANSI OFF token sitting between the last visible
+    // grapheme and the break point falls into the gap [lineEnd, bp) and is
+    // silently dropped from the output — the styling state then bleeds
+    // into the next line and beyond. Capture preserves source order via
+    // prepend (we walk backward).
     let lineEnd = bp
+    let trailingAnsi = ""
     while (lineEnd > lineStart) {
       const w = widths[lineEnd - 1]!
       if (w === 0) {
+        trailingAnsi = graphemes[lineEnd - 1]! + trailingAnsi
         lineEnd--
         continue
-      } // ANSI token
+      }
       const g = graphemes[lineEnd - 1]!
       if (g === " " || g === "\t" || g === "\n") {
         lineEnd--
@@ -478,7 +485,7 @@ export function optimalWrap(text: string, analysis: TextAnalysis, width: number 
       }
       break
     }
-    lines.push(pendingAnsiPrefix + graphemes.slice(lineStart, lineEnd).join(""))
+    lines.push(pendingAnsiPrefix + graphemes.slice(lineStart, lineEnd).join("") + trailingAnsi)
     pendingAnsiPrefix = ""
 
     // Skip leading whitespace AND zero-width ANSI tokens at line start.

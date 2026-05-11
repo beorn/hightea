@@ -176,17 +176,29 @@ describe("optimalWrap", () => {
   const stripAnsi = (s: string) => s.replace(ANSI_RE, "")
 
   describe("ANSI-aware line breaks (regression)", () => {
-    // Bug: optimalWrap's leading-whitespace skip loop bailed on the first
-    // ANSI token (w===0), leaving any post-ANSI whitespace as a line-start
-    // slug. The trailing-side skip was correctly symmetric (skipped both
-    // w===0 AND whitespace), but the leading-side didn't — so a wrap
-    // landing right before [ANSI-on][ ][word] left " word" at column 0.
-    // The fix makes the leading-side symmetric, AND preserves any
-    // ANSI tokens scanned past as a styling prefix so the line still
-    // renders with the correct color/attributes.
+    // Two related bugs in optimalWrap's break-boundary trimming:
+    //
+    // 1. LEADING-side (from the bead): the leading-whitespace skip bailed on
+    //    the first w===0 ANSI token, leaving any post-ANSI whitespace as a
+    //    line-start slug ([ANSI][ ][word] → " word" visible at col 0).
+    //
+    // 2. TRAILING-side (found by /pro review): the trailing-whitespace skip
+    //    decremented past ANSI tokens but never re-emitted them. ANSI tokens
+    //    landing in the gap [lineEnd, bp) — between the last visible
+    //    grapheme and the break point — were silently DROPPED from output.
+    //    Real-world cost: ANSI OFF tokens after a styled word are lost when
+    //    the wrap lands at the trailing whitespace; the styling state then
+    //    bleeds into following text and the rest of the UI.
+    //
+    // The fix makes both sides symmetric: skip whitespace, capture ANSI.
+    // Leading-side captures into `pendingAnsiPrefix` (prepended to next
+    // line); trailing-side captures into `trailingAnsi` (appended to the
+    // current line). ANSI source-order is preserved on both sides.
+    //
     // See @km/silvery/pretext-leading-whitespace-leaks-after-ansi.
     const ON = "\x1b[33m" // yellow fg
     const OFF = "\x1b[39m" // reset fg
+    const BLUE_ON = "\x1b[34m" // distinct color for trailing-side tests
 
     test("no leading-space slug when ANSI token + space precede line content", () => {
       // The canonical buggy pattern: when the wrap candidate falls at the
@@ -257,6 +269,69 @@ describe("optimalWrap", () => {
           ).toBe(false)
         }
       }
+    })
+
+    test("preserves ANSI off-token trimmed off trailing edge of wrapped line", () => {
+      // Trailing-side bug (/pro review): when the wrap break lands on/after
+      // trailing [ANSI-off][ ], the old code decremented lineEnd past the
+      // ANSI-off but never emitted it. The off-token fell in the gap
+      // [lineEnd, bp) and was silently dropped — color/attributes bleed into
+      // the next line and the rest of the UI.
+      //
+      // Pattern: [ANSI-on]@agent[ANSI-off] cursor — at width 6, the break
+      // lands at position 9 (after " "). Trim skips " " then "[ANSI-off]",
+      // leaving lineEnd at "t". Without the fix, the off-token is gone.
+      const text = `${BLUE_ON}@agent${OFF} cursor`
+      const analysis = buildTextAnalysis(text, graphemeWidth)
+      const lines = optimalWrap(text, analysis, 6)
+      // The ANSI-off MUST appear somewhere in the emitted lines — either at
+      // the tail of L1 (where it originally sat) or the head of L2. Joining
+      // the lines and searching is the load-bearing assertion: the ANSI off
+      // must round-trip through wrapping.
+      const all = lines.join("")
+      expect(all, `wrap output dropped ANSI-off: ${JSON.stringify(lines)}`).toContain(OFF)
+      // Also verify the ANSI-on is preserved.
+      expect(all).toContain(BLUE_ON)
+    })
+
+    test("trailing ANSI preserved across many widths (no color bleed)", () => {
+      // Sweep: every wrapped output must round-trip every ANSI token from
+      // the source. Drop-any-token = terminal-state corruption.
+      const text = `${BLUE_ON}@agent${OFF} cursor ${BLUE_ON}@other${OFF} more text here`
+      const analysis = buildTextAnalysis(text, graphemeWidth)
+      // Count source ANSI tokens.
+      const sourceOns = (text.match(/\x1b\[34m/g) ?? []).length
+      const sourceOffs = (text.match(/\x1b\[39m/g) ?? []).length
+      for (let w = 5; w <= 20; w++) {
+        const lines = optimalWrap(text, analysis, w)
+        const all = lines.join("")
+        const ons = (all.match(/\x1b\[34m/g) ?? []).length
+        const offs = (all.match(/\x1b\[39m/g) ?? []).length
+        expect(ons, `width=${w} lost ANSI-on tokens (had ${sourceOns}, got ${ons})`).toBe(sourceOns)
+        expect(offs, `width=${w} lost ANSI-off tokens (had ${sourceOffs}, got ${offs})`).toBe(sourceOffs)
+      }
+    })
+
+    test("trailing ANSI preserved in source order on emitted line", () => {
+      // Multiple ANSI tokens trailing a word (e.g., [OFF][ANSI-RESET]) must
+      // appear at the tail of the wrapped line in their original order, not
+      // reversed (the trim walks backward — a naive append would reverse).
+      const RESET = "\x1b[0m"
+      const text = `word${BLUE_ON}${OFF}${RESET} next more`
+      const analysis = buildTextAnalysis(text, graphemeWidth)
+      const lines = optimalWrap(text, analysis, 4)
+      // Find the line containing "word"
+      const wordLine = lines.find((l) => stripAnsi(l).includes("word"))!
+      expect(wordLine).toBeDefined()
+      // The three ANSI tokens must appear in their source order on this line.
+      const onIdx = wordLine.indexOf(BLUE_ON)
+      const offIdx = wordLine.indexOf(OFF)
+      const resetIdx = wordLine.indexOf(RESET)
+      expect(onIdx, `line ${JSON.stringify(wordLine)} missing ON token`).toBeGreaterThanOrEqual(0)
+      expect(offIdx, `line ${JSON.stringify(wordLine)} missing OFF token`).toBeGreaterThanOrEqual(0)
+      expect(resetIdx, `line ${JSON.stringify(wordLine)} missing RESET token`).toBeGreaterThanOrEqual(0)
+      expect(onIdx).toBeLessThan(offIdx)
+      expect(offIdx).toBeLessThan(resetIdx)
     })
   })
 })
