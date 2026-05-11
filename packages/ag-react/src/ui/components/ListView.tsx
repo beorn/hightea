@@ -895,11 +895,6 @@ function ListViewInner<T>(
   const handleWheel = useCallback(
     (event: { deltaY: number }) => {
       const maxRow = maxScrollRowRef.current
-      // TEMP-INSTRUMENT — bumped to info so it fires in production
-      // silvercode (bootstrap.ts forces LOG_LEVEL=info; .debug is filtered).
-      // Revert to .debug after diagnosing the real-Ghostty first-paint bug.
-      // Bead: @km/silvery/useboxrect-refactor-incomplete-tracking.
-      wheelLog.info?.(`handleWheel entry: maxRow=${maxRow} deltaY=${event.deltaY}`)
       if (maxRow <= 0) {
         // Diagnostic — wheel event arrived but layout hasn't converged
         // yet (initial post-resume render in silvercode triggers this
@@ -907,7 +902,7 @@ function ListViewInner<T>(
         // but the renderer caps at 2). Wheel events silently no-op
         // until the chain settles. Bead:
         // @km/silvercode/trackpad-wheel-not-scrolling.
-        wheelLog.info?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
+        wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
         return
       }
       if (event.deltaY < 0) followActiveRef.current = false
@@ -2520,10 +2515,7 @@ function ListViewInner<T>(
     ].join(":")
     if (key === lastListLogKey.current) return
     lastListLogKey.current = key
-    // TEMP-INSTRUMENT — bumped to info so first-paint state is visible
-    // in production silvercode. Revert after diagnosing the real-Ghostty
-    // first-paint bug. Bead: @km/silvery/useboxrect-refactor-incomplete-tracking.
-    listLog.info?.("listview state", {
+    listLog.debug?.("listview state", {
       itemCount: items.length,
       activeCount: activeItems.length,
       visibleCount: visibleItems.length,
