@@ -202,19 +202,42 @@ export function balancedWidth(analysis: TextAnalysis, maxWidth: number): number 
 // ============================================================================
 
 /**
+ * Per-line width function: takes the 0-based line index, returns the
+ * available width for that line. Use to express CSS-float-equivalent
+ * layouts (e.g. line 0 narrowed by a top-right pill, lines 1+ at full
+ * container width). Inspired by chenglou's original Pretext, which
+ * supports per-line widths to wrap text around floated images.
+ */
+export type WidthFn = (lineIndex: number) => number
+
+/**
  * Find optimal line breaks that minimize total raggedness.
  *
  * Runs per-paragraph (split by newlines) to avoid penalty interactions
  * around forced breaks. Falls back to greedy wrapping for paragraphs
  * where the DP finds no feasible solution (overlong words).
  *
- * O(breakpoints²) per paragraph, typically much less with pruning.
+ * `width` accepts either a constant number (uniform width — fast path)
+ * or a `WidthFn(lineIndex)` for per-line widths. Per-line uses a
+ * forward DP that tracks line index in state.
+ *
+ * O(breakpoints²) for the constant-width case; O(breakpoints² × maxLines)
+ * for per-line. Both negligible for terminal-scale text.
  */
-export function knuthPlassBreaks(analysis: TextAnalysis, width: number): number[] {
-  if (width <= 0) return []
-  if (analysis.totalWidth <= width && analysis.newlineIndices.length === 0) return []
+export function knuthPlassBreaks(analysis: TextAnalysis, width: number | WidthFn): number[] {
+  // Quick reject: empty or single-line at the widest available width.
+  // For per-line, use width(0) as the conservative single-line check —
+  // if the whole text fits on line 0, no breaks are needed regardless
+  // of what subsequent lines would have permitted.
+  const w0 = typeof width === "function" ? width(0) : width
+  if (w0 <= 0) return []
+  if (analysis.totalWidth <= w0 && analysis.newlineIndices.length === 0) return []
 
-  // Split into paragraphs at newlines and process each independently
+  // Split into paragraphs at newlines and process each independently.
+  // Note: per-line width is paragraph-LOCAL — line 0 of each paragraph
+  // is "line 0" for width purposes. Most callers pass single-paragraph
+  // text (titles, labels) so this matches expectations; multi-paragraph
+  // callers wanting absolute line indexing should pre-split + offset.
   const { newlineIndices, graphemes } = analysis
   const allBreaks: number[] = []
 
@@ -229,7 +252,10 @@ export function knuthPlassBreaks(analysis: TextAnalysis, width: number): number[
 
     if (pStart >= pEnd) continue // empty paragraph
 
-    const breaks = knuthPlassForParagraph(analysis, pStart, pEnd, width)
+    const breaks =
+      typeof width === "function"
+        ? knuthPlassForParagraphPerLine(analysis, pStart, pEnd, width)
+        : knuthPlassForParagraph(analysis, pStart, pEnd, width)
     allBreaks.push(...breaks)
 
     // Add newline break if not the last paragraph
@@ -241,7 +267,7 @@ export function knuthPlassBreaks(analysis: TextAnalysis, width: number): number[
   return allBreaks
 }
 
-/** DP for a single paragraph (no newlines). */
+/** DP for a single paragraph (no newlines). Constant-width fast path. */
 function knuthPlassForParagraph(
   analysis: TextAnalysis,
   pStart: number,
@@ -318,16 +344,115 @@ function knuthPlassForParagraph(
 }
 
 /**
+ * DP for a single paragraph (no newlines), per-line width.
+ *
+ * Forward DP — `f[i]` is the min cost to reach candidate i with `line[i]`
+ * tracking the line index of position i in the optimal path. Each segment
+ * (j → i) is on line `line[j]`, so its allowed width is `widthFn(line[j])`.
+ *
+ * O(n² × m) where m is max meaningful line index. For titles n is small
+ * (~30 candidates, ~5 lines) so this is trivial. The constant-width path
+ * above stays as the fast path for callers that don't need per-line.
+ */
+function knuthPlassForParagraphPerLine(
+  analysis: TextAnalysis,
+  pStart: number,
+  pEnd: number,
+  widthFn: WidthFn,
+): number[] {
+  const { cumWidths, breakIndices, widths, graphemes } = analysis
+
+  // Build candidates for this paragraph
+  const candidates: number[] = [pStart]
+  for (const bp of breakIndices) {
+    if (bp > pStart && bp <= pEnd) candidates.push(bp)
+  }
+  candidates.push(pEnd)
+
+  const n = candidates.length
+  if (n <= 2) return [] // single segment, no breaks needed
+
+  // Forward DP: f[i] = min cost to reach candidate i; from[i] = optimal predecessor
+  // line[i] = line index of candidate i in the optimal path (= breaks taken before i)
+  const f = new Array<number>(n).fill(Infinity)
+  const from = new Array<number>(n).fill(-1)
+  const line = new Array<number>(n).fill(0)
+  f[0] = 0
+  // line[0] = 0
+
+  for (let i = 1; i < n; i++) {
+    const lineEnd = candidates[i]!
+    // Trim trailing whitespace on the segment ending at i
+    let trimEnd = lineEnd
+    while (trimEnd > 0) {
+      const prevG = graphemes[trimEnd - 1]
+      const prevW = widths[trimEnd - 1]
+      if (prevW === 0) {
+        trimEnd--
+        continue
+      }
+      if (prevG === " " || prevG === "\t") {
+        trimEnd--
+        continue
+      }
+      break
+    }
+    const trimEndCum = cumWidths[trimEnd]!
+
+    for (let j = 0; j < i; j++) {
+      if (f[j] === Infinity) continue
+      const lineStart = candidates[j]!
+      const lineWidth = trimEndCum - cumWidths[lineStart]!
+
+      // The segment (j → i) is the (line[j])-th line in the optimal path
+      // through j (0-indexed). Its allowed width comes from widthFn at that
+      // index.
+      const segLineIndex = line[j]!
+      const allowedWidth = widthFn(segLineIndex)
+      if (lineWidth > allowedWidth) continue
+
+      const leftover = allowedWidth - lineWidth
+      const lineCost = i === n - 1 ? 0 : leftover * leftover
+      const totalCost = f[j]! + lineCost
+
+      if (totalCost < f[i]!) {
+        f[i] = totalCost
+        from[i] = j
+        line[i] = segLineIndex + 1
+      }
+    }
+  }
+
+  if (f[n - 1] === Infinity) return [] // infeasible — caller falls back to greedy
+
+  // Trace back: collect break candidate indices (excluding sentinel start/end)
+  const breaks: number[] = []
+  let idx = n - 1
+  while (from[idx]! > 0) {
+    idx = from[idx]!
+    breaks.push(candidates[idx]!)
+  }
+  breaks.reverse()
+  return breaks
+}
+
+/**
  * Wrap text using Knuth-Plass optimal breaks.
  * Returns line strings — drop-in replacement for greedy wrap.
  * Falls back to greedy wrapText when DP finds no feasible solution.
+ *
+ * `width` accepts a constant `number` (uniform width) OR a `WidthFn(lineIndex)`
+ * for per-line widths (e.g. line 0 narrowed by a top-right pill, lines 1+
+ * full width — CSS-float-equivalent layouts).
  */
-export function optimalWrap(text: string, analysis: TextAnalysis, width: number): string[] {
+export function optimalWrap(text: string, analysis: TextAnalysis, width: number | WidthFn): string[] {
   const breaks = knuthPlassBreaks(analysis, width)
+  // For greedy fallback, use line-0 width as the conservative single value
+  const fallbackWidth = typeof width === "function" ? width(0) : width
   if (breaks.length === 0) {
     // No breaks found — either single line or DP infeasible → fall back to greedy
-    if (analysis.totalWidth <= width && analysis.newlineIndices.length === 0) return [text]
-    return wrapText(text, width, true, true)
+    if (analysis.totalWidth <= fallbackWidth && analysis.newlineIndices.length === 0) return [text]
+    return wrapText(text, fallbackWidth, true, true)
   }
 
   const { graphemes, widths } = analysis
