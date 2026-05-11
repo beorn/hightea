@@ -113,9 +113,11 @@ describe("ListView height-independent — scrollbar with multi-line items", () =
       </Box>,
     )
 
-    // Scrollbars use macOS/iOS-style visibility: hidden while idle, shown
-    // during scroll activity.
-    expect(findThumbCell(app, COLS, ROWS)).toBeNull()
+    // First-paint flash: 6 multi-line items overflow the 20-row viewport,
+    // so the scrollbar appears immediately on mount (auto-flash on the
+    // 0→6 item transition). Bead:
+    // @km/silvercode/trackpad-scrolling-no-scrollbar.
+    expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
     // Wheel-scroll once — content overflows (48 rows in 20-row viewport),
     // scrollbar should remain rendered. Before the height-independent fix, it

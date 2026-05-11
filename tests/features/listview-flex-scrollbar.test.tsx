@@ -40,7 +40,7 @@ function findThumbCell(
 }
 
 describe("ListView flex-mode scrollbar", () => {
-  test("renders scrollbar after wheel scroll when ListView is height-independent", async () => {
+  test("renders scrollbar on first paint when ListView is height-independent and content overflows", async () => {
     const COLS = 60
     const ROWS = 20
     const N = 200
@@ -56,10 +56,11 @@ describe("ListView flex-mode scrollbar", () => {
       </Box>,
     )
 
-    // Pre-scroll: scrollbar should not appear (idle, isScrolling=false).
-    expect(findThumbCell(app, COLS, ROWS)).toBeNull()
+    // First-paint flash: 200 items overflow 20 rows → scrollbar visible
+    // immediately. Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
-    // Wheel-scroll down once — flips isScrolling=true.
+    // Wheel-scroll down once — flash re-fires; scrollbar remains visible.
     await app.wheel(5, ROWS / 2, 1)
     const thumb = findThumbCell(app, COLS, ROWS)
     expect(thumb).not.toBeNull()
@@ -82,10 +83,11 @@ describe("ListView flex-mode scrollbar", () => {
     }
 
     const app = render(<Harness items={initialItems} />)
-    // Idle — no scrollbar yet.
-    expect(findThumbCell(app, COLS, ROWS)).toBeNull()
+    // First-paint flash: 50 items overflow 20 rows → scrollbar visible
+    // immediately (auto-flash on the 0→50 transition).
+    expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
-    // Add more items — the auto-flash useEffect should fire setIsScrolling(true).
+    // Add more items — the auto-flash useEffect re-fires.
     app.rerender(<Harness items={buildItems(150)} />)
     const thumb = findThumbCell(app, COLS, ROWS)
     expect(thumb).not.toBeNull()

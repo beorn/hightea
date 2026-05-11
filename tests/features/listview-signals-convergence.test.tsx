@@ -188,11 +188,19 @@ describe("ListView signals refactor — convergence", () => {
     expect(app.text).toContain("item 1")
   })
 
-  test("auto-flash scrollbar still appears when items grow (height-independent)", () => {
-    // Regression coverage: this is the existing
-    // `listview-flex-scrollbar.test.tsx` shape. It hit the wired-up signal
-    // path during refactor — keeping it here makes the convergence file
-    // self-contained for "did we break the visible-scrollbar surface?"
+  test("auto-flash scrollbar appears on first paint when content overflows (height-independent)", () => {
+    // Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    // `prevItemCountRef` initialises to 0 (NOT `activeItems.length`) so a
+    // ListView that mounts with items already present (resumed chat, server-
+    // rendered list, etc.) sees the 0→N transition as "items grew" and
+    // fires the auto-flash. The prior `useRef(activeItems.length)` init
+    // meant ListView treated "already 50 items on first paint" as the
+    // steady state — no flash, scrollbar invisible until the user wheeled.
+    //
+    // The semantically correct behavior: if N items overflow the viewport
+    // on first paint, the scrollbar should flash, telling the user "there
+    // is more content above/below this viewport." Without the flash, the
+    // user can't tell whether content overflows until they try to scroll.
     const COLS = 60
     const ROWS = 20
     const initialItems = makeItems(50)
@@ -209,10 +217,68 @@ describe("ListView signals refactor — convergence", () => {
     }
 
     const app = render(<Harness items={initialItems} />)
-    expect(findThumbCell(app, COLS, ROWS)).toBeNull()
+    // First-paint flash: scrollbar visible immediately because 50 items
+    // overflow a 20-row viewport.
+    expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
+    // Grow further — flash re-fires (same auto-hide timer cycles).
     app.rerender(<Harness items={makeItems(150)} />)
     expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
+  })
+
+  test("silvercode shape — items appear AFTER first render, scrollbar visible without input", async () => {
+    // Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    //
+    // The exact silvercode resumed-session shape: ListView mounts initially
+    // with zero items (Welcome screen path), then the controller's projected
+    // events land via setState and the ListView re-renders with a large
+    // overflowing item array. With `prevItemCountRef = useRef(0)` (NOT
+    // `useRef(activeItems.length)`), the 0→N transition is detected and
+    // `flashScrollbar` fires — scrollbar visible WITHOUT a wheel or submit.
+    //
+    // Mirrors the live-repro at apps/silvercode/src/test/live-repro.ts:
+    // run() mounts the app with empty items, then 60 turns emit synchronously
+    // and React batches them into one re-render. ListView sees 0 → 121.
+    //
+    // Configuration mirrors silvercode's ChatBlockList:
+    //   follow="end", gap=0, nav=false, no estimateHeight.
+    const COLS = 60
+    const ROWS = 20
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+
+    function Harness({ items: it }: { items: string[] }): React.ReactElement {
+      return (
+        <Box width={COLS} height={ROWS} flexDirection="column">
+          <Box flexGrow={1} flexShrink={1} minHeight={0}>
+            <ListView
+              items={it}
+              getKey={(item) => item}
+              gap={0}
+              nav={false}
+              follow="end"
+              renderItem={(item) => <Text>{item}</Text>}
+            />
+          </Box>
+        </Box>
+      )
+    }
+
+    // Initial mount with EMPTY items (Welcome path).
+    const app = render(<Harness items={[]} />)
+    // Empty → no scrollbar (no content to scroll over).
+    expect(findThumbCell(app, COLS, ROWS)).toBeNull()
+
+    // Items "stream in" — re-render with 60 items. This mirrors the
+    // resume-session path where the controller's projected events land
+    // after mount.
+    app.rerender(<Harness items={makeItems(60)} />)
+
+    // Scrollbar visible on the very next paint — no wheel, no submit, no
+    // app.press. The auto-flash on the 0→60 transition fires.
+    expect(
+      findThumbCell(app, COLS, ROWS),
+      "scrollbar must be visible on first paint after items stream in (resumed-session shape)",
+    ).not.toBeNull()
   })
 
   test("wheel scrolls immediately on first paint (no first-prompt-submit needed)", async () => {

@@ -2123,7 +2123,18 @@ function ListViewInner<T>(
   // totalRows avoids false-positive flashes during initial measurement
   // ramp-up where height grows as items are measured but no content was
   // actually added. Same auto-hide timer as wheel events.
-  const prevItemCountRef = useRef(activeItems.length)
+  //
+  // Initialised to 0 (not `activeItems.length`) so that a ListView that
+  // mounts with items already present (e.g. resumed chat session where the
+  // controller's projected events land before the ListView first renders,
+  // or any caller that hands a non-empty array on first mount) sees the
+  // initial 0→N transition as "grew" and fires the flash. With the prior
+  // `useRef(activeItems.length)` init, ListView would treat "already 121
+  // items on first paint" as the steady state — the scrollbar never
+  // flashed and `scrollbarVisibility="auto"` consumers would have to wheel
+  // or click before the chrome appeared. Bead:
+  // @km/silvercode/trackpad-scrolling-no-scrollbar.
+  const prevItemCountRef = useRef(0)
   // Follow-end + atBottom transition tracking.
   //
   // `prevAtBottomRef` records the at-bottom state from the prior commit so
