@@ -895,7 +895,16 @@ function ListViewInner<T>(
   const handleWheel = useCallback(
     (event: { deltaY: number }) => {
       const maxRow = maxScrollRowRef.current
-      if (maxRow <= 0) return
+      if (maxRow <= 0) {
+        // Diagnostic — wheel event arrived but layout hasn't converged
+        // yet (initial post-resume render in silvercode triggers this
+        // path because the height-convergence chain takes 3+ commits
+        // but the renderer caps at 2). Wheel events silently no-op
+        // until the chain settles. Bead:
+        // @km/silvercode/trackpad-wheel-not-scrolling.
+        wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
+        return
+      }
       if (event.deltaY < 0) followActiveRef.current = false
       activeScrollDirectionRef.current = event.deltaY < 0 ? "up" : "down"
       isWheelDrivenRef.current = true
