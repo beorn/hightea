@@ -361,13 +361,15 @@ export function createTermless(
   //   ghostty-native  — Ghostty via Zig native binding (truest fidelity)
   //
   // TERMLESS_BACKEND env var globally overrides; per-call `backend` arg
-  // overrides the env. `initGhostty()` MUST have been awaited before any
-  // ghostty-backed `createTermless` call (preferred from a vitest setup).
-  const envBackend = (typeof process !== "undefined" ? process.env.TERMLESS_BACKEND : undefined) as
-    | "xterm"
-    | "ghostty"
-    | "ghostty-native"
-    | undefined
+  // overrides the env. Unknown values throw immediately — no silent fallback
+  // to xterm. `initGhostty()` MUST have been awaited before any ghostty-
+  // backed `createTermless` call (preferred from a vitest setup).
+  //
+  // Note: this is a thin wrapper over `createTerm(backend, dims)`, which
+  // already accepts any TermEmulatorBackend. Pass a custom backend by
+  // calling `createTerm(myBackend, dims)` directly — the named choices
+  // here are just the bundled backends.
+  const envBackend = typeof process !== "undefined" ? process.env.TERMLESS_BACKEND : undefined
   const choice = dims.backend ?? envBackend ?? "xterm"
 
   let backend: import("@silvery/ag-term").TermEmulatorBackend
@@ -381,11 +383,17 @@ export function createTermless(
       createGhosttyNativeBackend: () => import("@silvery/ag-term").TermEmulatorBackend
     }
     backend = createGhosttyNativeBackend()
-  } else {
+  } else if (choice === "xterm") {
     const { createXtermBackend } = require("@termless/xtermjs") as {
       createXtermBackend: () => import("@silvery/ag-term").TermEmulatorBackend
     }
     backend = createXtermBackend()
+  } else {
+    throw new Error(
+      `[silvery/test] createTermless: unknown backend "${choice}". ` +
+        `Valid choices: "xterm", "ghostty", "ghostty-native". ` +
+        `For a custom backend, call createTerm(backend, dims) directly.`,
+    )
   }
   const term = createTerm(backend, dims)
 
