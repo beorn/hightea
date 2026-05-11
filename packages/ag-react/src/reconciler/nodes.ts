@@ -264,13 +264,31 @@ export function createNode(
         measureStats.displayWidthCalls++
         const lineWidth = dw(line)
         if (isTruncate) {
-          // Non-wrappable text: report natural width as both min-content and
-          // max-content. Paint-time clipping in render-text.ts uses
-          // layout.width to truncate. Returning min(lineWidth, maxWidth) here
-          // would lie about intrinsic size and force CSS auto-min-size to
-          // collapse padded-text columns to the available width.
+          // Non-wrappable text. CSS analogue: `text-overflow: ellipsis`
+          // (or `clip`) with `white-space: nowrap`. The element implicitly
+          // declares "I'll fit in any width — overflow becomes ellipsis."
+          //
+          // min-content = 1 cell (one for the ellipsis) so flexbox CAN
+          // shrink the Text below natural width. Without this, a
+          // `<Text wrap="truncate">` in a narrow container reports
+          // min-content = max-content = full natural width, the parent
+          // gets pinned at natural width, the parent's overflow="hidden"
+          // hard-clips with no ellipsis. User report 2026-05-11
+          // (@km/silvery/text-truncation-mid-word-no-ellipsis):
+          // "ProjectedMap auto-stabilization + render watc" — the "watc"
+          // is a hard-clip at the parent's render-time width, with the
+          // truncateText ellipsis path never reached because flex never
+          // shrank the Text.
+          //
+          // max-content stays at natural width — fit-content / shrink-
+          // wrap queries still see the full text so an unconstrained
+          // parent sizes to the natural content width.
           totalHeight += lh
-          actualWidth = Math.max(actualWidth, widthFor(line))
+          if (isMinContentQuery) {
+            actualWidth = Math.max(actualWidth, lineWidth > 0 ? 1 : 0)
+          } else {
+            actualWidth = Math.max(actualWidth, widthFor(line))
+          }
           renderedLineIndex++
         } else if (isHardWrap) {
           if (isMinContentQuery) {
