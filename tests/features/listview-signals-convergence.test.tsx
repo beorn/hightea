@@ -214,4 +214,57 @@ describe("ListView signals refactor — convergence", () => {
     app.rerender(<Harness items={makeItems(150)} />)
     expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
   })
+
+  test("wheel scrolls immediately on first paint (no first-prompt-submit needed)", async () => {
+    // The user-reported trackpad-wheel-not-scrolling symptom: at first
+    // paint in silvercode's resumed-session shape, wheel events were
+    // silently dropped by `handleWheel`'s `if (maxRow <= 0) return` gate
+    // because `maxScrollRowRef` hadn't been written yet — the layout-
+    // height convergence chain needed 3+ commits to settle but the
+    // renderer's MAX_CONVERGENCE_PASSES is 2. Users had to submit a
+    // prompt (forcing another render) before wheel started working.
+    //
+    // With the signals refactor the outer Box's `boxRectCommitted`
+    // resolves in the same batch as the first paint, so by the time
+    // the first wheel event arrives `maxScrollRowRef` is already
+    // populated. Asserts wheel produces forward scroll on first paint —
+    // without an intervening `rerender` or input.
+    const COLS = 60
+    const ROWS = 20
+    const items = makeItems(100)
+    const render = createRenderer({ cols: COLS, rows: ROWS })
+
+    const app = render(
+      <Box width={COLS} height={ROWS} flexDirection="column">
+        <Box flexGrow={1} flexShrink={1} minHeight={0}>
+          <ListView
+            items={items}
+            nav
+            getKey={(item) => item}
+            renderItem={(item) => <Text>{item}</Text>}
+          />
+        </Box>
+      </Box>,
+    )
+
+    // Item 0 visible on first paint.
+    expect(app.text).toContain("item 0")
+    // The top item before scrolling — we verify it leaves the viewport
+    // after wheel-down. If `handleWheel` drops on `maxRow <= 0`, the
+    // viewport doesn't move and item 0 remains visible.
+    const textBeforeWheel = app.text
+
+    // Wheel-down at viewport center — 5 deltaY rows worth. With the
+    // refactor, this advances the visible window past item 0.
+    await app.wheel(5, ROWS / 2, 5)
+
+    // After wheel, the text frame has changed and item 0 should be off
+    // the top of the viewport (replaced by a later item). The exact
+    // boundary depends on item heights, but the frame MUST differ from
+    // the pre-wheel snapshot — proving the wheel was not dropped.
+    expect(
+      app.text,
+      `wheel produced no frame change — handleWheel likely dropped on maxRow<=0:\n${app.text}`,
+    ).not.toBe(textBeforeWheel)
+  })
 })
