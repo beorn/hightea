@@ -659,11 +659,17 @@ export function constrainText(
 }
 
 /**
- * Check if a grapheme is a word boundary character (space, hyphen, etc.)
+ * Check if a grapheme is a hard word-boundary character — space or tab.
+ *
+ * Hyphen-minus (`-`) is intentionally NOT a boundary: CSS, browsers, and
+ * `@chenglou/pretext` all keep hyphenated tokens together (`cmd-hover` stays
+ * one word, not `cmd-` + `hover`). When a hyphenated token is wider than its
+ * container the wrap algorithm falls back to the atomic-overflow path
+ * (analogous to CSS `overflow-wrap: anywhere`), not a hyphen split. See
+ * `@km/silvery/wrap-stop-breaking-at-hyphen` for the rationale.
  */
 export function isWordBoundary(grapheme: string): boolean {
-  // Common word boundary characters
-  return grapheme === " " || grapheme === "-" || grapheme === "\t"
+  return grapheme === " " || grapheme === "\t"
 }
 
 /**

@@ -39,6 +39,31 @@ describe("buildTextAnalysis", () => {
     expect(analysis.totalWidth).toBe(0)
     expect(analysis.graphemes.length).toBe(0)
   })
+
+  // `@km/silvery/wrap-stop-breaking-at-hyphen`: hyphen-minus is not a word
+  // boundary anymore. Hyphenated tokens like `cmd-hover` stay together; the
+  // wrap algorithm only falls back to per-grapheme breaks via the
+  // atomic-overflow path when the container is narrower than the longest
+  // unbreakable token.
+  test("hyphen-minus does not emit a break index — `cmd-hover` is one token", () => {
+    const analysis = buildTextAnalysis("cmd-hover", graphemeWidth)
+    // Pure ASCII string of length 9: graphemes 0-8, no whitespace, no CJK.
+    // `isWordBoundary` returns true only for space + tab, so no break index
+    // should be emitted at all — the entire string is one atomic word.
+    expect(analysis.breakIndices).toEqual([])
+    // maxWordWidth = whole token width, not just `cmd` or `hover`.
+    expect(analysis.maxWordWidth).toBe(9)
+  })
+
+  test("hyphen in a multi-word string only breaks at spaces", () => {
+    const analysis = buildTextAnalysis("the cmd-hover option", graphemeWidth)
+    // Break indices land AFTER each space (per the `i + 1` convention in
+    // buildTextAnalysis). No hyphen-driven breaks.
+    // Positions: "the cmd-hover option"
+    //             0123456789012345678901234
+    //                ^space@3      ^space@13
+    expect(analysis.breakIndices).toEqual([4, 14])
+  })
 })
 
 describe("countLinesAtWidth", () => {
@@ -169,6 +194,46 @@ describe("optimalWrap", () => {
     expect(joined).toContain("world")
     expect(joined).toContain("foo")
     expect(joined).toContain("bar")
+  })
+
+  // `@km/silvery/wrap-stop-breaking-at-hyphen`: hyphenated tokens stay
+  // together unless the container is narrower than the token itself.
+  describe("hyphenated tokens stay together (km-silvery.wrap-stop-breaking-at-hyphen)", () => {
+    test("`cmd-hover` is one token when width allows", () => {
+      const text = "the cmd-hover option"
+      const analysis = buildTextAnalysis(text, graphemeWidth)
+      // Width 14: "the cmd-hover" fits (13 chars). "option" wraps to its own
+      // line. The key assertion: no line ends with `cmd-` and the next starts
+      // with `hover`.
+      const lines = optimalWrap(text, analysis, 14)
+      for (const [i, line] of lines.entries()) {
+        const next = lines[i + 1]
+        if (line.endsWith("cmd-") && next?.startsWith("hover")) {
+          throw new Error(
+            `cmd-hover split across lines ${i}/${i + 1}: ${JSON.stringify(line)} + ${JSON.stringify(next)}`,
+          )
+        }
+      }
+      // Sanity: all word content is preserved.
+      expect(lines.join(" ")).toContain("cmd-hover")
+      expect(lines.join(" ")).toContain("option")
+    })
+
+    test("hyphenated token wider than container falls back to atomic-overflow", () => {
+      // `cmd-hover` is 9 chars; container is 5. The token can't fit on one
+      // line at width 5; the algorithm must let the token overflow rather
+      // than split it at the hyphen.
+      const text = "cmd-hover"
+      const analysis = buildTextAnalysis(text, graphemeWidth)
+      const lines = optimalWrap(text, analysis, 5)
+      // Either: single line that overflows (atomic-overflow path) OR
+      // per-grapheme break (overflow-wrap: anywhere analogue). What we
+      // explicitly REJECT is the hyphen-split `cmd-` + `hover`.
+      const hyphenSplit = lines.some((l, i) => l.endsWith("cmd-") && lines[i + 1] === "hover")
+      expect(hyphenSplit).toBe(false)
+      // Content preserved either way.
+      expect(lines.join("").replace(/\s+/g, "")).toBe("cmd-hover")
+    })
   })
 
   // Helper: strip ANSI escapes for visual-content assertions.
