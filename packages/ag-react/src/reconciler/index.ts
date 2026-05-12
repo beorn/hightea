@@ -46,9 +46,38 @@ export function createContainer(onRender: () => void): Container {
 }
 
 /**
- * Create a React fiber root for a container (wraps the 10-argument reconciler call).
+ * Optional callbacks passed to `createFiberRoot` so the React reconciler can
+ * surface render/effect errors back to the host runtime instead of swallowing
+ * them. Each callback is invoked with the unwrapped `Error` (React passes the
+ * raw thrown value; we adapt to `Error` for the callback shape).
+ *
+ * - `onUncaughtError` — render or effect error that React could not recover
+ *   from. The host should panic: restore the terminal, dump the stack to
+ *   stderr (on the real screen, not the altscreen overlay), and exit non-zero.
+ * - `onCaughtError` — error caught by an `<ErrorBoundary>`. Usually the host
+ *   leaves these alone; useful for telemetry.
+ * - `onRecoverableError` — React was able to recover (e.g. fell back to a
+ *   non-concurrent render). Worth a debug log.
+ *
+ * @see `@silvery/ag-term`'s `runtime/create-app.tsx` — wires `onUncaughtError`
+ *   to `panicApp` so React render errors panic cleanly.
  */
-export function createFiberRoot(container: Container) {
+export interface FiberRootOptions {
+  onUncaughtError?: (error: Error) => void
+  onCaughtError?: (error: Error) => void
+  onRecoverableError?: (error: Error) => void
+}
+
+/**
+ * Create a React fiber root for a container (wraps the 10-argument reconciler call).
+ *
+ * Pass `options.onUncaughtError` to route React-thrown render errors back to
+ * the host's panic path. Without it, render errors are silently swallowed
+ * (the default `() => {}` callback) and the only surface for them is whatever
+ * the host's `console.error` capture decides to do — typically an altscreen
+ * overlay the user can't copy-paste or screenshot reliably.
+ */
+export function createFiberRoot(container: Container, options: FiberRootOptions = {}) {
   return reconciler.createContainer(
     container,
     1, // ConcurrentRoot
@@ -56,9 +85,9 @@ export function createFiberRoot(container: Container) {
     false, // isStrictMode
     null, // concurrentUpdatesByDefaultOverride
     "", // identifierPrefix
-    () => {}, // onUncaughtError
-    () => {}, // onCaughtError
-    () => {}, // onRecoverableError
+    options.onUncaughtError ?? (() => {}), // onUncaughtError
+    options.onCaughtError ?? (() => {}), // onCaughtError
+    options.onRecoverableError ?? (() => {}), // onRecoverableError
     null, // onDefaultTransitionIndicator
   )
 }
