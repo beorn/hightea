@@ -241,6 +241,46 @@ per tier; `truecolor` is an identity no-op.
 
 6. **Text bg inheritance**: Text nodes inherit bg via `nodeState.inheritedBg` (threaded top-down, O(1) per node), not buffer reads. Viewport clears and region clears still affect buffer state, which matters for the `getCellBg` legacy fallback (used by scroll indicators). If your fix clears a region, verify it clears to the correct bg (usually `null` to match fresh render state).
 
+## Panic on render error — auto-restore + stderr dump
+
+Silvery routes uncaught React render errors (and effect errors that escape every `ErrorBoundary`) to the same `panicApp` path that `handle.panic()` uses. Concretely:
+
+1. The fiber root is created with an `onUncaughtError` callback that calls `panicApp(error, { title: "react" })`.
+2. The outermost `SilveryErrorBoundary` calls `panicApp(error)` from its `onError` — so caught render errors panic too, instead of surfacing in the altscreen overlay where they're invisible after process exit.
+3. `panicApp` records the panic, drains late stdin bytes, disables interactive protocols (raw mode, mouse, Kitty keyboard, alt-screen), then writes the panic report to **stderr** — on the user's normal screen, not the alt-screen — with the message, details, dump-file path, and the full `Error.stack` inline.
+4. `process.exitCode` is set to 1 (or `options.exitCode`) so scripts and CI notice.
+
+The user-facing shape after a render error:
+
+```
+react: Rendered more hooks than during the previous render. (dump: /tmp/silvery-panic-…txt)
+Error: Rendered more hooks than during the previous render.
+    at … (Component.tsx:42:8)
+    …
+```
+
+Both the inline stack and the dump file are preserved. The dump file is the canonical artifact when the stack is long enough to exceed the user's scrollback; the inline stack is what CI grep, scripts, and screenshots capture.
+
+### What you DON'T need to wire yourself
+
+When using `run()` or `createApp().run()`, you do NOT need to:
+
+- Register your own `process.on("uncaughtException", …)` to restore the terminal on render errors — the fiber root does it.
+- Manually catch React errors with an outer `<ErrorBoundary>` — silvery's outermost boundary already routes through `panicApp`. Inner error boundaries that you author still work; they're for graceful recovery within the app, not for panic handling.
+- Call `process.stderr.write(error.stack)` from your own crash handler — `panicApp` does it after the terminal is restored.
+
+### When to disable panicking
+
+Tests that explicitly want to verify render-error behavior (without exiting the test process) should mock `process.exitCode` and `process.stderr.write` around the `run()` call — see `tests/runtime/panic.test.tsx` for the canonical pattern. The panic still records the error; the harness just observes it without the global side effects.
+
+For production code, there's currently no `panicOnRenderError: false` opt-out — render errors should always panic. Add one only if you have a concrete production use case for resuming a tree after an uncaught error.
+
+### Related primitives
+
+- `handle.panic(reason, options?)` — explicit panic from outside the React tree.
+- `usePanic()` from `silvery/runtime` — explicit panic from inside the React tree (effects, event handlers).
+- `panicApp` — internal; not exported. Wired into the fiber root + the outer boundary.
+
 ## Symptom → Check Cross-Reference
 
 | Symptom                                                    | Check First                                                                                                                    |
