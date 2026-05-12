@@ -1325,6 +1325,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Errors caught by SilveryErrorBoundary — flushed to stderr on cleanup so
   // the user sees them after the alt screen exits. Also dumped to a temp file
   // (path included in the stderr message) for full stack/component trace.
+  //
+  // Per `@km/silvery/auto-panic-on-render-error`: react render errors must
+  // panic. The boundary still RECORDS for cleanup-time flushing (so any error
+  // path that doesn't reach `panicApp` still surfaces something), but the
+  // primary disposition is `panicApp(error)` — restore the terminal, dump the
+  // stack to stderr on the user's normal screen, exit non-zero. Without the
+  // panic call, the boundary's `log.error?.()` goes through silvery's console
+  // capture which surfaces the error as an altscreen overlay (invisible after
+  // process exit, not copy-pasteable, not in scrollback).
   const caughtErrors: Array<{ error: Error; dumpPath?: string }> = []
   function recordBoundaryError(error: Error) {
     let dumpPath: string | undefined
@@ -1333,9 +1342,10 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       writeFileSync(dumpPath, `${error.message}\n\n${error.stack ?? "(no stack)"}\n`)
     } catch {}
     caughtErrors.push({ error, dumpPath })
-    log.error?.(
-      `React render error caught by SilveryErrorBoundary: ${error.message}${dumpPath ? ` (dump: ${dumpPath})` : ""}`,
-    )
+    // panicApp is declared later in this same closure (line ~1973). The body
+    // of recordBoundaryError only runs once React calls it, well after every
+    // `const` in this scope has initialized.
+    panicApp(error, { title: "react" })
   }
 
   type PanicReport = {
@@ -1343,6 +1353,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     message: string
     details: ReadonlyArray<string>
     dumpPath?: string
+    stack?: string
   }
 
   const panicReports: PanicReport[] = []
@@ -1383,6 +1394,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       message,
       details: normalizePanicDetails(options.details),
       dumpPath,
+      stack,
     })
     process.exitCode = options.exitCode ?? 1
   }
@@ -1391,6 +1403,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (panicReportsFlushed || panicReports.length === 0) return
     panicReportsFlushed = true
     try {
+      // Inline the full stack on stderr so a non-interactive caller
+      // (CI, scripts, screenshots) sees the cause without having to open
+      // the dump file. The dump path is still printed for convenience and
+      // for cases where the stack is too long to scroll back through.
+      // Per `@km/silvery/auto-panic-on-render-error`: "dump the full
+      // exception to stderr — message + stack + component stack."
       const lines: string[] = [""]
       for (const report of panicReports) {
         lines.push(
@@ -1398,6 +1416,9 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         )
         for (const detail of report.details) {
           lines.push(`  ${detail}`)
+        }
+        if (report.stack) {
+          lines.push(report.stack)
         }
       }
       lines.push("")
@@ -2054,8 +2075,21 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     }
   })
 
-  // Create React fiber root
-  const fiberRoot = createFiberRoot(container)
+  // Create React fiber root.
+  //
+  // `onUncaughtError` wires React's render-error path to `panicApp` so a
+  // thrown render or effect (`Rendered more hooks than during the previous
+  // render`, `throw new Error(...)` in a component, etc.) restores the
+  // terminal, dumps the stack to stderr on the user's normal screen, and
+  // exits non-zero. Before this wiring the callback was `() => {}` and
+  // render errors only surfaced via `console.error` capture — visible only
+  // in the altscreen overlay, not copyable, not scrollbackable. See
+  // `@km/silvery/auto-panic-on-render-error`.
+  const fiberRoot = createFiberRoot(container, {
+    onUncaughtError: (error) => {
+      panicApp(error, { title: "react" })
+    },
+  })
 
   // Track current buffer for text access
   let currentBuffer: Buffer
