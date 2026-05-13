@@ -349,16 +349,21 @@ export function createClsMonitor(): ClsMonitor {
     rows: number,
     scrollOrResize: boolean,
   ): void {
+    // Dimension tracking is metadata, not gated. Tracking prevCols/rows on
+    // every commit (regardless of envEnabled/capturing) means a capture
+    // started mid-session can use the established baseline instead of
+    // treating its first commit as a first-paint resize. Two field
+    // assignments per commit when nobody's listening — negligible.
+    const resized = cols !== prevCols || rows !== prevRows
+    const suppressShift = scrollOrResize || resized || prevCols === 0 || prevRows === 0
+    prevCols = cols
+    prevRows = rows
+
     // Cheap gate: opt-in via DEBUG=silvery:cls or SILVERY_INSTRUMENT=cls,
     // OR an active test-time capture window. Outside both, this is a
     // single boolean compare per commit — zero overhead.
     if (!envEnabled && !capturing) return
     if (!root) return
-
-    const resized = cols !== prevCols || rows !== prevRows
-    const suppressShift = scrollOrResize || resized || prevCols === 0 || prevRows === 0
-    prevCols = cols
-    prevRows = rows
 
     const commitShifts: ShiftRecord[] = []
     walk(root, cols, rows, suppressShift, commitShifts)

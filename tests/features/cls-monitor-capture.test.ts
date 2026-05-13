@@ -1,0 +1,291 @@
+/**
+ * ClsMonitor capture API — unit tests for Phase 8 of CLS consolidation.
+ *
+ * These exercise the new `beginCapture` / `endCapture` / `cancelCapture`
+ * methods directly via `createClsMonitor()`. The methods are the Option C
+ * consolidation surface that replaces the boxRect-based test-capture
+ * primitive (cls-recorder + cls-active + layout-phase hook, slated for
+ * deletion in Phase 9).
+ *
+ * Integration tests through createRenderer → App.beginCLSCapture move in
+ * Phase 10/11 once app.ts is re-wired. These unit tests cover the state
+ * machine + onCommit capture path in isolation.
+ *
+ * Bead: @km/silvery/cls-instrumentation-primitive (REOPENED 2026-05-13)
+ */
+
+import { afterEach, describe, expect, test } from "vitest"
+import { createClsMonitor } from "@silvery/ag-term/runtime/cls-monitor"
+import { UnexpectedLayoutShiftError } from "@silvery/ag-term/strict-cls"
+import { resetStrictCache } from "@silvery/ag-term/strict-mode"
+import type { AgNode, Rect } from "@silvery/ag/types"
+
+// Minimal AgNode fake — only the fields cls-monitor's walk reads.
+// Avoids pulling in the full reconciler for state-machine unit tests.
+function fakeNode(opts: {
+  type?: string
+  id?: string
+  prevRect?: Rect | null
+  rect?: Rect | null
+  children?: ReturnType<typeof fakeNode>[]
+}): AgNode {
+  const node = {
+    type: opts.type ?? "silvery-box",
+    props: opts.id ? { id: opts.id } : {},
+    parent: null as AgNode | null,
+    prevScreenRect: opts.prevRect ?? null,
+    screenRect: opts.rect ?? null,
+    children: opts.children ?? [],
+  } as unknown as AgNode
+  for (const child of node.children) {
+    ;(child as { parent: AgNode | null }).parent = node
+  }
+  return node
+}
+
+afterEach(() => {
+  delete process.env.SILVERY_STRICT
+  resetStrictCache()
+})
+
+describe("ClsMonitor capture API (Phase 8 Option C consolidation)", () => {
+  test("beginCapture → endCapture returns empty report when no shifts", () => {
+    const m = createClsMonitor()
+    m.beginCapture()
+    const report = m.endCapture()
+    expect(report.shifts).toHaveLength(0)
+    expect(report.unexpectedShifts).toHaveLength(0)
+    expect(report.cumulativeScore).toBe(0)
+  })
+
+  test("double-begin throws", () => {
+    const m = createClsMonitor()
+    m.beginCapture()
+    expect(() => m.beginCapture()).toThrow(/already capturing/)
+  })
+
+  test("endCapture without beginCapture throws", () => {
+    const m = createClsMonitor()
+    expect(() => m.endCapture()).toThrow(/not capturing/)
+  })
+
+  test("cancelCapture is idempotent (no-op when not capturing)", () => {
+    const m = createClsMonitor()
+    expect(() => m.cancelCapture()).not.toThrow()
+    m.beginCapture()
+    expect(() => m.cancelCapture()).not.toThrow()
+    expect(() => m.cancelCapture()).not.toThrow()
+  })
+
+  test("cancelCapture clears state — subsequent beginCapture works", () => {
+    const m = createClsMonitor()
+    m.beginCapture()
+    m.cancelCapture()
+    expect(() => m.beginCapture()).not.toThrow()
+    expect(() => m.endCapture()).not.toThrow()
+  })
+
+  test("capture-pushed shifts appear in report (via onCommit walk)", () => {
+    const m = createClsMonitor()
+    // Prime prevCols/prevRows so the first real commit isn't dropped via
+    // first-paint suppressShift gate.
+    const primer = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [],
+    })
+    m.onCommit(primer, 80, 24, false)
+
+    m.beginCapture()
+    const root = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [
+        fakeNode({
+          type: "silvery-box",
+          id: "movable",
+          prevRect: { x: 0, y: 0, width: 10, height: 1 },
+          rect: { x: 5, y: 0, width: 10, height: 1 },
+        }),
+      ],
+    })
+    m.onCommit(root, 80, 24, false)
+    const report = m.endCapture()
+
+    expect(report.shifts.length).toBe(1)
+    expect(report.unexpectedShifts.length).toBe(1) // default classifier
+    expect(report.shifts[0]!.blockId).toContain("movable")
+    expect(report.shifts[0]!.reflowReason).toBe("unexpected")
+    expect(report.cumulativeScore).toBeGreaterThan(0)
+  })
+
+  test("custom classifier labels shifts; non-unexpected stays out of unexpectedShifts", () => {
+    const m = createClsMonitor()
+    const primer = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [],
+    })
+    m.onCommit(primer, 80, 24, false)
+
+    m.beginCapture(() => "content-arrival")
+    const root = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [
+        fakeNode({
+          type: "silvery-box",
+          id: "streaming-block",
+          prevRect: { x: 0, y: 0, width: 10, height: 1 },
+          rect: { x: 0, y: 1, width: 10, height: 1 },
+        }),
+      ],
+    })
+    m.onCommit(root, 80, 24, false)
+    const report = m.endCapture()
+
+    expect(report.shifts.length).toBe(1)
+    expect(report.shifts[0]!.reflowReason).toBe("content-arrival")
+    expect(report.unexpectedShifts.length).toBe(0)
+  })
+
+  test("scroll-suppressed commits do NOT push to sessionShifts", () => {
+    const m = createClsMonitor()
+    const primer = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [],
+    })
+    m.onCommit(primer, 80, 24, false)
+
+    m.beginCapture()
+    const root = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [
+        fakeNode({
+          type: "silvery-box",
+          id: "scroll-shifted",
+          prevRect: { x: 0, y: 5, width: 10, height: 1 },
+          rect: { x: 0, y: 2, width: 10, height: 1 },
+        }),
+      ],
+    })
+    // scrollOrResize=true → suppressShift filters this from sessionShifts
+    m.onCommit(root, 80, 24, true)
+    const report = m.endCapture()
+
+    expect(report.shifts.length).toBe(0)
+    expect(report.unexpectedShifts.length).toBe(0)
+  })
+
+  test("SILVERY_STRICT=cls causes endCapture to throw on unexpected shifts", () => {
+    const m = createClsMonitor()
+    const primer = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [],
+    })
+    m.onCommit(primer, 80, 24, false)
+
+    m.beginCapture()
+    const root = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [
+        fakeNode({
+          type: "silvery-box",
+          id: "flicker",
+          prevRect: { x: 0, y: 0, width: 10, height: 1 },
+          rect: { x: 5, y: 0, width: 10, height: 1 },
+        }),
+      ],
+    })
+    m.onCommit(root, 80, 24, false)
+
+    process.env.SILVERY_STRICT = "cls"
+    resetStrictCache()
+    expect(() => m.endCapture()).toThrow(UnexpectedLayoutShiftError)
+  })
+
+  test("SILVERY_STRICT=cls passes when classifier labels all shifts non-unexpected", () => {
+    const m = createClsMonitor()
+    const primer = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [],
+    })
+    m.onCommit(primer, 80, 24, false)
+
+    m.beginCapture(() => "user-action")
+    const root = fakeNode({
+      type: "silvery-root",
+      id: "root",
+      rect: { x: 0, y: 0, width: 80, height: 24 },
+      children: [
+        fakeNode({
+          type: "silvery-box",
+          id: "shifted",
+          prevRect: { x: 0, y: 0, width: 10, height: 1 },
+          rect: { x: 5, y: 0, width: 10, height: 1 },
+        }),
+      ],
+    })
+    m.onCommit(root, 80, 24, false)
+
+    process.env.SILVERY_STRICT = "cls"
+    resetStrictCache()
+    const report = m.endCapture()
+    expect(report.shifts.length).toBe(1)
+    expect(report.unexpectedShifts.length).toBe(0)
+  })
+
+  test("capture works without DEBUG=silvery:cls — envEnabled gate bypassed", () => {
+    // Ensure no DEBUG/SILVERY_INSTRUMENT env vars active.
+    const prevDebug = process.env.DEBUG
+    const prevInstrument = process.env.SILVERY_INSTRUMENT
+    delete process.env.DEBUG
+    delete process.env.SILVERY_INSTRUMENT
+    try {
+      const m = createClsMonitor()
+      const primer = fakeNode({
+        type: "silvery-root",
+        id: "root",
+        rect: { x: 0, y: 0, width: 80, height: 24 },
+        children: [],
+      })
+      m.onCommit(primer, 80, 24, false)
+
+      m.beginCapture()
+      const root = fakeNode({
+        type: "silvery-root",
+        id: "root",
+        rect: { x: 0, y: 0, width: 80, height: 24 },
+        children: [
+          fakeNode({
+            type: "silvery-box",
+            id: "moved",
+            prevRect: { x: 0, y: 0, width: 10, height: 1 },
+            rect: { x: 5, y: 0, width: 10, height: 1 },
+          }),
+        ],
+      })
+      m.onCommit(root, 80, 24, false)
+      const report = m.endCapture()
+
+      expect(report.shifts.length).toBe(1)
+    } finally {
+      if (prevDebug !== undefined) process.env.DEBUG = prevDebug
+      if (prevInstrument !== undefined) process.env.SILVERY_INSTRUMENT = prevInstrument
+    }
+  })
+})
