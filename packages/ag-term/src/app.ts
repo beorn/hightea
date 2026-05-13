@@ -45,6 +45,14 @@ import type { FocusManager } from "@silvery/ag/focus-manager"
 import { pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode } from "@silvery/ag/types"
 import type { FrameCell } from "@silvery/ag/text-frame"
+import type { CLSReport } from "@silvery/ag/cls"
+import {
+  clearActiveCLSRecorder,
+  getActiveCLSRecorder,
+  setActiveCLSRecorder,
+} from "@silvery/ag/cls-active"
+import { createCLSRecorder, type ReasonClassifier } from "@silvery/ag/cls-recorder"
+import { assertNoUnexpectedShifts } from "./strict-cls"
 
 /**
  * App interface - unified return type from render()
@@ -254,6 +262,46 @@ export interface App {
    * Bead: `@km/silvery/test-harness-convergence-cap-parity`.
    */
   waitForLayoutStable(opts?: { timeoutMs?: number; maxPasses?: number }): Promise<void>
+
+  // === CLS (Cumulative Layout Shift) capture ===
+
+  /**
+   * Begin a CLS capture window. Layout shifts that occur between this call
+   * and the next `endCLSCapture()` are recorded with the supplied
+   * `ReasonClassifier` (default: every shift labeled "unexpected"). Use
+   * `waitForLayoutStable()` to drain pending layout passes before reading
+   * the report.
+   *
+   * Throws if a capture is already active — call `endCLSCapture()` or
+   * `cancelCLSCapture()` first. The capture is process-wide (single active
+   * recorder per process); two parallel captures on different App
+   * instances is not supported by design.
+   *
+   * Bead: km-silvery.cls-instrumentation-primitive
+   */
+  beginCLSCapture(classifier?: import("@silvery/ag/cls-recorder").ReasonClassifier): void
+
+  /**
+   * End the active CLS capture and return the aggregated report. When
+   * `SILVERY_STRICT=cls` (or tier 2+) is enabled, throws
+   * `UnexpectedLayoutShiftError` if any shift has reflowReason="unexpected"
+   * — failing-fast under STRICT lets close-gate tests skip explicit
+   * assertions and rely on the umbrella env var.
+   *
+   * Throws if no capture is active.
+   *
+   * Bead: km-silvery.cls-instrumentation-primitive
+   */
+  endCLSCapture(): import("@silvery/ag/cls").CLSReport
+
+  /**
+   * Cancel the active CLS capture without producing a report. Idempotent
+   * — safe to call when no capture is active. Used by test-cleanup paths
+   * that need to bail without asserting.
+   *
+   * Bead: km-silvery.cls-instrumentation-primitive
+   */
+  cancelCLSCapture(): void
 
   /** Clear the terminal output */
   clear(): void
@@ -779,6 +827,41 @@ export function buildApp(options: AppOptions): App {
       }
       return waitForLayoutStableFn(opts)
     },
+
+    // CLS capture is process-wide: a single active recorder is registered
+    // with the cls-active module-level slot so the pipeline hook
+    // (layout-phase.ts → getActiveCLSRecorder) picks it up without
+    // threading state through every layout call. The methods below
+    // bracket begin/end; the recorder lifecycle lives inside this closure.
+    // Bead: km-silvery.cls-instrumentation-primitive
+    beginCLSCapture(classifier?: ReasonClassifier): void {
+      const recorder = createCLSRecorder()
+      recorder.beginCapture(classifier)
+      setActiveCLSRecorder(recorder)
+    },
+    endCLSCapture(): CLSReport {
+      const recorder = getActiveCLSRecorder()
+      if (recorder === null) {
+        throw new Error(
+          "endCLSCapture: no active capture. Call beginCLSCapture() first.",
+        )
+      }
+      const report = recorder.endCapture()
+      clearActiveCLSRecorder()
+      // STRICT gate: when SILVERY_STRICT=cls (or tier 2+) is enabled,
+      // throw on any unexpected shifts. Off by default — most tests
+      // assert on `report.unexpectedShifts` explicitly.
+      assertNoUnexpectedShifts(report)
+      return report
+    },
+    cancelCLSCapture(): void {
+      const recorder = getActiveCLSRecorder()
+      if (recorder !== null) {
+        recorder.cancelCapture()
+        clearActiveCLSRecorder()
+      }
+    },
+
     clear,
 
     // === Debug ===

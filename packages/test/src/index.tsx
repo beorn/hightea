@@ -94,6 +94,18 @@ export type { TerminalBuffer } from "@silvery/ag-term/buffer"
 
 export type { Rect } from "@silvery/ag/types"
 
+// CLS (Cumulative Layout Shift) types — re-exported so tests can import
+// from @silvery/test rather than reaching across @silvery/ag and
+// @silvery/ag-term. Bead: km-silvery.cls-instrumentation-primitive
+export type { CLSReport, LayoutShift, ReflowReason } from "@silvery/ag/cls"
+export type { ReasonClassifier } from "@silvery/ag/cls-recorder"
+export {
+  CLS_STRICT_MIN_TIER,
+  CLS_STRICT_SLUG,
+  UnexpectedLayoutShiftError,
+  isClsStrictEnabled,
+} from "@silvery/ag-term/strict-cls"
+
 // Re-export keyboard utilities
 export { keyToAnsi, keyToKittyAnsi, CODE_TO_KEY } from "@silvery/ag/keys"
 
