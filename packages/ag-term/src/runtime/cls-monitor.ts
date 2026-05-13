@@ -37,7 +37,16 @@
  */
 
 import { createLogger } from "loggily"
+import {
+  aggregateReport,
+  defaultClassifier,
+  makeShift,
+  type CLSReport,
+  type LayoutShift,
+  type ReasonClassifier,
+} from "@silvery/ag/cls"
 import type { AgNode, Rect } from "@silvery/ag/types"
+import { assertNoUnexpectedShifts } from "../strict-cls"
 
 const log = createLogger("silvery:cls")
 
@@ -116,13 +125,49 @@ export interface ClsMonitor {
   /** Drop accumulated path history. Tests and dimension changes use
    *  this to start with a clean storm-detector state. */
   reset(): void
+
+  /**
+   * Start a CLS capture window. Subsequent `onCommit` calls accumulate
+   * layout shifts (post-scroll `screenRect` transitions) into a session
+   * buffer. The classifier labels each shift with a ReflowReason; default
+   * classifier marks every shift "unexpected" (most pessimistic — surfaces
+   * every shift). Throws on double-begin. While capturing, the monitor's
+   * walk runs even without `DEBUG=silvery:cls` / `SILVERY_INSTRUMENT=cls`.
+   *
+   * Bead: @km/silvery/cls-instrumentation-primitive (Phase 8 — Option C consolidation).
+   */
+  beginCapture(classifier?: ReasonClassifier): void
+
+  /**
+   * End the active capture window, return aggregated `CLSReport`, reset
+   * session state. Throws when not capturing. Under `SILVERY_STRICT=cls`
+   * (tier 2 by default), throws `UnexpectedLayoutShiftError` when any
+   * shift in the window was labeled "unexpected".
+   */
+  endCapture(): CLSReport
+
+  /**
+   * Cancel the active capture without producing a report. Idempotent —
+   * safe to call when no capture is active (cleanup paths, error
+   * recovery).
+   */
+  cancelCapture(): void
 }
 
 export function createClsMonitor(): ClsMonitor {
-  const enabled = clsEnabled()
+  const envEnabled = clsEnabled()
   const pathHistory = new Map<string, PathHistory>()
   let prevCols = 0
   let prevRows = 0
+
+  // Capture-window state. Independent of the env-gate so test-time
+  // capture works without DEBUG=silvery:cls. When `capturing === true`
+  // the walk runs even when `envEnabled === false`, and per-commit
+  // shifts are pushed into `sessionShifts` for `endCapture()` to
+  // aggregate into a `CLSReport`.
+  let capturing = false
+  let activeClassifier: ReasonClassifier = defaultClassifier
+  let sessionShifts: LayoutShift[] = []
 
   function ensureHistory(path: string): PathHistory {
     let h = pathHistory.get(path)
@@ -304,8 +349,10 @@ export function createClsMonitor(): ClsMonitor {
     rows: number,
     scrollOrResize: boolean,
   ): void {
-    // Cheap gate: opt-in via DEBUG=silvery:cls or SILVERY_INSTRUMENT=cls.
-    if (!enabled) return
+    // Cheap gate: opt-in via DEBUG=silvery:cls or SILVERY_INSTRUMENT=cls,
+    // OR an active test-time capture window. Outside both, this is a
+    // single boolean compare per commit — zero overhead.
+    if (!envEnabled && !capturing) return
     if (!root) return
 
     const resized = cols !== prevCols || rows !== prevRows
@@ -316,6 +363,26 @@ export function createClsMonitor(): ClsMonitor {
     const commitShifts: ShiftRecord[] = []
     walk(root, cols, rows, suppressShift, commitShifts)
 
+    // Capture path: stash shifts into the active session for endCapture()
+    // to aggregate. Skipped when suppressShift is true — scroll/resize
+    // motion is user-action, not an unexpected layout shift. Classifier
+    // still sees every non-suppressed shift and may override the default
+    // "unexpected" label per-shift (e.g. label streamed chat reflow as
+    // content-arrival).
+    if (capturing && !suppressShift && commitShifts.length > 0) {
+      const ts = Date.now()
+      for (const rec of commitShifts) {
+        if (rec.prev === null || rec.next === null) continue
+        const reason = activeClassifier(rec.path, rec.prev, rec.next, ts)
+        const shift = makeShift(rec.path, rec.prev, rec.next, ts, reason)
+        if (shift !== null) sessionShifts.push(shift)
+      }
+    }
+
+    // Production path: storm-detection + silvery:cls logging. Only runs
+    // when env-gated — test-time captures don't pollute the storm history
+    // (independent buffers, independent thresholds).
+    if (!envEnabled) return
     if (commitShifts.length === 0) return
 
     const now = performance.now()
@@ -347,5 +414,37 @@ export function createClsMonitor(): ClsMonitor {
     prevRows = 0
   }
 
-  return { onCommit, reset }
+  function beginCapture(classifier?: ReasonClassifier): void {
+    if (capturing) {
+      throw new Error(
+        "ClsMonitor.beginCapture: already capturing. Call endCapture() or cancelCapture() before starting a new window.",
+      )
+    }
+    capturing = true
+    activeClassifier = classifier ?? defaultClassifier
+    sessionShifts = []
+  }
+
+  function endCapture(): CLSReport {
+    if (!capturing) {
+      throw new Error("ClsMonitor.endCapture: not capturing. Call beginCapture() first.")
+    }
+    const report = aggregateReport(sessionShifts)
+    capturing = false
+    activeClassifier = defaultClassifier
+    sessionShifts = []
+    // Honors SILVERY_STRICT=cls — throws UnexpectedLayoutShiftError when
+    // tier 2 strict is active and the window saw any "unexpected" shifts.
+    // No-op when strict isn't engaged.
+    assertNoUnexpectedShifts(report)
+    return report
+  }
+
+  function cancelCapture(): void {
+    capturing = false
+    activeClassifier = defaultClassifier
+    sessionShifts = []
+  }
+
+  return { onCommit, reset, beginCapture, endCapture, cancelCapture }
 }

@@ -18,24 +18,21 @@
  * Bead: km-silvery.cls-instrumentation-primitive
  */
 
-import { aggregateReport, makeShift, type CLSReport, type LayoutShift, type ReflowReason } from "./cls"
+import {
+  aggregateReport,
+  defaultClassifier,
+  makeShift,
+  type CLSReport,
+  type LayoutShift,
+  type ReasonClassifier,
+} from "./cls"
 import type { Rect } from "./types"
 
-/**
- * Classifier function — given a block + rect transition, returns the
- * reflow reason. The pipeline-side wiring will pass a classifier that
- * inspects layout-phase context (user-action vs streamed content vs
- * unsolicited reflow). Default classifier returns "unexpected" — most
- * pessimistic, captures the bug class CLS is designed to detect.
- */
-export type ReasonClassifier = (
-  blockId: string,
-  fromRect: Rect,
-  toRect: Rect,
-  frameTimestamp: number,
-) => ReflowReason
-
-export const defaultClassifier: ReasonClassifier = () => "unexpected"
+// ReasonClassifier + defaultClassifier moved to ./cls.ts (single source of truth).
+// Re-exported here for back-compat with consumers that import from cls-recorder
+// (slated for deletion under @km/silvery/cls-instrumentation-primitive Phase 9 — Option C consolidation).
+export type { ReasonClassifier } from "./cls"
+export { defaultClassifier } from "./cls"
 
 export interface CLSRecorder {
   /** Whether capture is currently active. Pipeline check before recordRect. */

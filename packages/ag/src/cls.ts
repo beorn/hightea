@@ -27,6 +27,27 @@ export type ReflowReason =
   | "animation" // ongoing animation that's expected to move stuff
   | "content-arrival" // new content streamed in — expected for chat / log views
 
+/**
+ * Classifier function — given a block + rect transition, returns the
+ * reflow reason. The capture API passes a classifier that inspects layout
+ * context (user-action vs streamed content vs unsolicited reflow). Default
+ * classifier returns "unexpected" — most pessimistic, captures the bug
+ * class CLS is designed to detect.
+ */
+export type ReasonClassifier = (
+  blockId: string,
+  fromRect: Rect,
+  toRect: Rect,
+  frameTimestamp: number,
+) => ReflowReason
+
+/**
+ * Default reflow-reason classifier — every shift is "unexpected". Tests
+ * + close-gates use this to surface every shift; apps with legitimate
+ * reflow events (streaming chat, animation) pass a custom classifier.
+ */
+export const defaultClassifier: ReasonClassifier = () => "unexpected"
+
 export interface LayoutShift {
   /** Stable identifier for the shifted block. */
   blockId: string
