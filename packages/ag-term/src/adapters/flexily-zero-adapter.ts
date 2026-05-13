@@ -78,23 +78,25 @@ import type {
 /**
  * Capabilities advertised by the flexily-zero adapter.
  *
- * Five flags shipped: four at A0.1 (engine-native CQ resolution at vendor/flexily
- * `46141e9`), one at A0.2 (fitWidth single-pass lane snap at vendor/flexily `4b44bf9`).
+ * All six A0 primitives shipped: four at A0.1 (engine-native CQ resolution at
+ * vendor/flexily `46141e9`), one at A0.2 (fitWidth single-pass lane snap at
+ * vendor/flexily `4b44bf9`), one at A0.3 (CSS math functions at vendor/flexily
+ * `0aebb95`).
  *
  * - `containerQueries`     → A0.1 ✓ — Pass 1 freezeQuerySize + Pass 2 ancestor walk
  * - `containSize`          → A0.1 ✓ — Phase 9 inline-axis shrink-wrap gate
  * - `containerQueryUnits`  → A0.1 ✓ — UNIT_CQI / UNIT_CQMIN parsed and resolved
  * - `childStyleMutation`   → A0.1 ✓ — setContainerQueryStyle hook (A0.0 substrate)
  * - `fitWidth`             → A0.2 ✓ — Phase 3 lane-select prefix; AutoFit replacement
- * - `styleMathFunctions`   → A0.3 (late-bound min/max/clamp, contract in
- *   vendor/flexily/docs/two-phase-layout.md)
+ * - `styleMathFunctions`   → A0.3 ✓ — UNIT_CALC + MathExpr; late-bound per
+ *   vendor/flexily/docs/two-phase-layout.md
  */
 const FLEXILY_CAPABILITIES: EngineCapabilities = Object.freeze({
   containerQueries: true, // ✓ A0.1
   containSize: true, // ✓ A0.1
   containerQueryUnits: true, // ✓ A0.1
   fitWidth: true, // ✓ A0.2
-  styleMathFunctions: false, // → A0.3
+  styleMathFunctions: true, // ✓ A0.3
   childStyleMutation: true, // ✓ A0.1
 })
 
