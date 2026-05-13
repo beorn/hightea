@@ -259,10 +259,12 @@ export function useScreenRect(): Rect {
 // reads it AND writes a layout-affecting prop CAN form a feedback edge.
 //
 // **For silvery framework internals only.** Image, useCursor, useGridPosition,
-// AutoFit's intrinsic-measurement primitive, and ListView's viewport-tracking
-// path are the real consumers — leaf primitives whose first-paint measurement
-// is critical for scroll, decoration, or absolute-positioning math, and which
-// don't drive layout-affecting props back into the React tree.
+// and ListView's viewport-tracking path are the real consumers — leaf
+// primitives whose first-paint measurement is critical for scroll, decoration,
+// or absolute-positioning math, and which don't drive layout-affecting props
+// back into the React tree. (Lane snapping, once an in-flight consumer here,
+// now lives in the engine as the `fitWidth` Box prop and doesn't reach for
+// these hooks at all.)
 //
 // **Lint-gated.** App code (silvercode, km-tui, downstream consumers) must
 // not import these hooks — the ESLint rule `silvery/no-in-flight-rect-in-app`
@@ -308,8 +310,8 @@ function useReactiveRectInFlight(
     // effect() subscribes to the IN-FLIGHT signal — re-runs whenever the
     // signal advances, including mid-batch as the convergence loop iterates.
     // This is intentionally permissive vs the committed form; consumers that
-    // can't accept first-paint zero-rect (Image, useCursor, useGridPosition,
-    // AutoFit measurement) opt in via this hook.
+    // can't accept first-paint zero-rect (Image, useCursor, useGridPosition)
+    // opt in via this hook.
     const dispose = effect(() => {
       const raw = rectSignal()
       const next = getDerivedRect(raw, node) ?? null

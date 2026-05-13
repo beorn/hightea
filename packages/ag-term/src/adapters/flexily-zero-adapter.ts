@@ -95,7 +95,7 @@ import type {
  * - `containSize`          → A0.1 ✓ — Phase 9 inline-axis shrink-wrap gate
  * - `containerQueryUnits`  → A0.1 ✓ — UNIT_CQI / UNIT_CQMIN parsed and resolved
  * - `childStyleMutation`   → A0.1 ✓ — setContainerQueryStyle hook (A0.0 substrate)
- * - `fitWidth`             → A0.2 ✓ — Phase 3 lane-select prefix; AutoFit replacement
+ * - `fitWidth`             → A0.2 ✓ — Phase 3 lane-select prefix; single-pass lane snap
  * - `styleMathFunctions`   → A0.3 ✓ — UNIT_CALC + MathExpr; late-bound per
  *   vendor/flexily/docs/two-phase-layout.md
  */

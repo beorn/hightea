@@ -1063,7 +1063,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
    * The default is production timing — `render()` exposes a frame after the
    * production-cap `MAX_CONVERGENCE_PASSES`. Tests asserting layout that
    * requires more passes to settle (multi-layer measurement chains,
-   * AutoFit lane chooser cascading, etc.) call this explicitly:
+   * Suspense-driven first-paint cascades, etc.) call this explicitly:
    *
    * ```ts
    * const app = render(<MyApp />)

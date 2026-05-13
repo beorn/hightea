@@ -33,7 +33,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer } from "@silvery/test"
-import { Box, Text, AutoFit } from "@silvery/ag-react"
+import { Box, Text } from "@silvery/ag-react"
 import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
 
 const THUMB_EIGHTHS = new Set(["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"])
@@ -154,17 +154,18 @@ describe("ListView signals refactor — convergence", () => {
     expect(app.text).toContain("item 49")
   })
 
-  test("AutoFit composition — height-independent ListView nested in AutoFit lane chooser", () => {
-    // AutoFit measures children at unconstrained width on a phantom subtree
-    // and renders them at the chosen lane on the visible subtree. Per the
-    // /pro audit hidden-gotcha #5, the interaction with the prior useState
-    // chain risked an extra commit / measurement-cache invalidation on the
-    // phantom→visible transition.
+  test("fitWidth composition — height-independent ListView nested in fitWidth lane chooser", () => {
+    // The post-A0.7 substrate: `<Box fitWidth>` resolves the lane in flexily's
+    // single-pass layout (no phantom subtree, no React round-trip). The
+    // composition concern is the same as the prior AutoFit-flavored test:
+    // when a lane-snapping wrapper sits between a flexGrow container and a
+    // height-independent ListView, the ListView's viewport-rect signals
+    // settle in one batch and content paints on the first frame.
     //
-    // With committed-signal reads, AutoFit's chosen-lane width is itself a
-    // committed value by the time ListView reads its own viewport — same
-    // batch, no race. We assert the composition renders without error and
-    // ListView's content appears.
+    // Pre-A0.7 this test exercised AutoFit's phantom→visible transition;
+    // with that machinery deleted, the engine-native fitWidth path is the
+    // canonical lane chooser, and this test pins the same composition
+    // invariant against it.
     const COLS = 80
     const ROWS = 20
     const items = makeItems(50)
@@ -173,17 +174,17 @@ describe("ListView signals refactor — convergence", () => {
     const app = render(
       <Box width={COLS} height={ROWS} flexDirection="column">
         <Box flexGrow={1} flexShrink={1} minHeight={0}>
-          <AutoFit lanes={[40, 60, 80]}>
+          <Box fitWidth={[40, 60, 80]} alignSelf="flex-start" minWidth={0}>
             <ListView items={items} nav renderItem={(item) => <Text>{item}</Text>} />
-          </AutoFit>
+          </Box>
         </Box>
       </Box>,
     )
 
-    // Items render through the AutoFit visible subtree. The phantom subtree
-    // is parked off-screen (render-phase viewport clip) and contributes no
-    // pixels, so the visible-text assertion is sufficient to verify the
-    // composition didn't throw or render an empty viewport.
+    // The lane Box sets its used inline-size in one layout pass; ListView's
+    // viewport-rect signal is a committed value by the time it consumes it
+    // — same batch, no race. visible-text assertion is sufficient to verify
+    // the composition didn't throw or render an empty viewport.
     expect(app.text).toContain("item 0")
     expect(app.text).toContain("item 1")
   })

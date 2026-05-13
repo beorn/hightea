@@ -858,7 +858,8 @@ export interface BoxProps
   containerQueries?: readonly ContainerQueryBranch[]
 
   /**
-   * Single-pass fit-content lane snap (A0.2). Replaces `<AutoFit>` entirely.
+   * Single-pass fit-content lane snap (A0.2). The engine-resolved lane
+   * primitive — no React round-trip, no measurement subtree.
    *
    * Box's inline-size snaps to the smallest lane that fits its children's
    * max-content. Lane entries accept numbers (treated as cells) or strings

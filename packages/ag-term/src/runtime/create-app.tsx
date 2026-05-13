@@ -2629,7 +2629,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // first user-visible frame paints with zero rects, then a second frame
   // snaps to the settled layout — that's the visible "first-frame zero,
   // second-frame snap" flicker (scrollbar-invisible-on-first-paint,
-  // codeblock-not-centered-then-reflow, AutoFit-snaps-to-fallback). The
+  // codeblock-not-centered-then-reflow). The
   // test renderer settles before publishing its frame; production must do
   // the same so live behavior matches what unit tests assert.
   //
