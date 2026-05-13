@@ -317,7 +317,14 @@ export function createClsMonitor(): ClsMonitor {
       for (const child of node.children) walk(child, cols, rows, suppressShift, commitShifts)
       return
     }
-    checkSizeInvariants(node, cols, rows)
+    // Size-invariant WARN logging is a production-diagnostic side effect
+    // gated by env (DEBUG=silvery:cls / SILVERY_INSTRUMENT=cls). Test-time
+    // capture must walk silently — surfacing `silvery:cls` WARNs during a
+    // capture window would fail consumers that treat any console output
+    // as a test error (e.g. silvercode's vitest setup). Bead:
+    // @km/silvery/cls-instrumentation-primitive — first-consumer broke
+    // post-Option-C until this gate landed.
+    if (envEnabled) checkSizeInvariants(node, cols, rows)
     if (!suppressShift) {
       const prev = node.prevScreenRect
       const next = node.screenRect
