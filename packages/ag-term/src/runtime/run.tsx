@@ -30,6 +30,11 @@
 import React, { type ReactElement } from "react"
 
 import { createApp } from "./create-app"
+// Test-only re-export so the auto-panic circuit-break regression suite
+// can reset the process-level dump counter between cases. See
+// `_resetPanicCircuitBreaker` in `./create-app` for the contract.
+// Bead: @km/silvery/auto-panic-circuit-break.
+export { _resetPanicCircuitBreaker } from "./create-app"
 import type { Term } from "../ansi/term"
 import type { PanicOptions } from "@silvery/ag-react/context"
 import {

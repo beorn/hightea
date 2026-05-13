@@ -210,6 +210,57 @@ const traceLog = createLogger("silvery:trace")
 const ENV = typeof process !== "undefined" ? process.env : undefined
 const NO_INCREMENTAL = ENV?.SILVERY_NO_INCREMENTAL === "1"
 const PANIC_STDIN_DRAIN_MS = 75
+
+/**
+ * Auto-panic circuit-breaker — caps dump-file writes when panic loops.
+ *
+ * Without this, a recurrent crash (component throwing on every render,
+ * fixture bug, infinite render loop reaching the boundary) writes one
+ * `silvery-panic-*.txt` per panic invocation indefinitely. Observed
+ * 2026-05-13 overnight: 1,139 dumps / 5.6 GB / 2h 25m / sustained 100%
+ * CPU on a single vitest worker after a fixture bug
+ * (`workspace.panes undefined`) made every test panic on render. The
+ * panic feature was designed as a safety net, not a DoS multiplier.
+ *
+ * State is *module-level* (process-scoped), not per-App, because in
+ * vitest workers many App instances run sequentially in the same
+ * process — a per-instance counter would reset on every test and
+ * never reach the threshold.
+ *
+ * - `SILVERY_AUTO_PANIC_MAX_DUMPS=N` (default 10) — dump cap.
+ * - `SILVERY_AUTO_PANIC_TEST_NO_EXIT=1` — skip the hard `process.exit(2)`
+ *   that fires after the cap is hit. ONLY for the regression test;
+ *   real callers want the hard-exit so a runaway loop terminates.
+ *
+ * Reset via `_resetPanicCircuitBreaker()` from test infrastructure.
+ *
+ * Bead: @km/silvery/auto-panic-circuit-break.
+ */
+const MAX_PANIC_DUMPS_PER_RUN = (() => {
+  const v = ENV?.SILVERY_AUTO_PANIC_MAX_DUMPS
+  if (v === undefined) return 10
+  const n = Number.parseInt(v, 10)
+  return Number.isFinite(n) && n > 0 ? n : 10
+})()
+/** Read the test-only hard-exit override fresh on every panic so tests
+ *  can flip it via `vi.stubEnv` between cases without re-importing the
+ *  module. Static-const capture would freeze the value at module load. */
+function isPanicTestNoExit(): boolean {
+  return process.env.SILVERY_AUTO_PANIC_TEST_NO_EXIT === "1"
+}
+let _processPanicDumpCount = 0
+let _processPanicCircuitBroken = false
+
+/**
+ * Test helper — reset the process-level panic circuit-break state.
+ * Call in `beforeEach` of any test that exercises the panic flow more
+ * than `MAX_PANIC_DUMPS_PER_RUN` times within one suite. Not part of
+ * the public runtime API.
+ */
+export function _resetPanicCircuitBreaker(): void {
+  _processPanicDumpCount = 0
+  _processPanicCircuitBroken = false
+}
 const STRICT_MODE = (() => {
   const v = ENV?.SILVERY_STRICT
   return !!v && v !== "0" && v !== "false"
@@ -1336,11 +1387,20 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // process exit, not copy-pasteable, not in scrollback).
   const caughtErrors: Array<{ error: Error; dumpPath?: string }> = []
   function recordBoundaryError(error: Error) {
+    // Circuit-break: when the per-process panic dump cap has been hit,
+    // skip the side-effect of writing a render-error dump. panicApp()
+    // below still routes through recordPanic which honours the same
+    // cap (and, in non-test mode, triggers a hard process.exit). See
+    // MAX_PANIC_DUMPS_PER_RUN.
+    const skipDumpWrite =
+      _processPanicCircuitBroken || _processPanicDumpCount >= MAX_PANIC_DUMPS_PER_RUN
     let dumpPath: string | undefined
-    try {
-      dumpPath = `${tmpdir()}/silvery-render-error-${Date.now()}.txt`
-      writeFileSync(dumpPath, `${error.message}\n\n${error.stack ?? "(no stack)"}\n`)
-    } catch {}
+    if (!skipDumpWrite) {
+      try {
+        dumpPath = `${tmpdir()}/silvery-render-error-${Date.now()}.txt`
+        writeFileSync(dumpPath, `${error.message}\n\n${error.stack ?? "(no stack)"}\n`)
+      } catch {}
+    }
     caughtErrors.push({ error, dumpPath })
     // panicApp is declared later in this same closure (line ~1973). The body
     // of recordBoundaryError only runs once React calls it, well after every
@@ -1380,11 +1440,44 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   function recordPanic(reason: unknown, options: PanicOptions = {}): void {
     const { message, stack } = normalizePanicReason(reason)
     const title = options.title?.trim() || "silvery"
+
+    // Auto-panic circuit-break — refuse further dump-writes once the
+    // per-process cap is hit. The FIRST overage emits the circuit-break
+    // line on stderr; subsequent ones silently push a dump-less report
+    // so cleanup-time flush still surfaces something. See
+    // MAX_PANIC_DUMPS_PER_RUN and bead
+    // @km/silvery/auto-panic-circuit-break.
+    if (_processPanicCircuitBroken || _processPanicDumpCount >= MAX_PANIC_DUMPS_PER_RUN) {
+      if (!_processPanicCircuitBroken) {
+        _processPanicCircuitBroken = true
+        try {
+          process.stderr.write(
+            `\n[silvery] auto-panic circuit-break: ${_processPanicDumpCount} dump(s) ` +
+              `written to ${tmpdir()}/silvery-panic-*.txt. Refusing further dumps to ` +
+              `prevent disk + CPU bleed. Set SILVERY_AUTO_PANIC_MAX_DUMPS to override ` +
+              `(default: ${MAX_PANIC_DUMPS_PER_RUN}).\n`,
+          )
+        } catch {
+          /* best-effort */
+        }
+      }
+      panicReports.push({
+        title,
+        message,
+        details: normalizePanicDetails(options.details),
+        dumpPath: undefined,
+        stack,
+      })
+      process.exitCode = options.exitCode ?? 2
+      return
+    }
+
     let dumpPath: string | undefined
     if (stack) {
       try {
         dumpPath = `${tmpdir()}/silvery-panic-${Date.now()}.txt`
         writeFileSync(dumpPath, `${message}\n\n${stack}\n`)
+        _processPanicDumpCount++
       } catch {
         // Best-effort: panic must still restore the terminal and print a summary.
       }
@@ -1993,6 +2086,31 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   const panicApp = (reason: unknown, options?: PanicOptions) => {
     recordPanic(reason, options)
+
+    // Circuit-break hard-exit: once the per-process dump cap fires, force
+    // terminal cleanup and process.exit(2) so a runaway panic loop in a
+    // long-lived process (vitest worker, daemon, server) terminates
+    // cleanly instead of pinning CPU forever. Skipped under the test-only
+    // SILVERY_AUTO_PANIC_TEST_NO_EXIT env (see module-level docstring).
+    if (_processPanicCircuitBroken && !isPanicTestNoExit()) {
+      try {
+        disableInteractiveProtocolsEarly()
+      } catch {
+        /* best-effort */
+      }
+      try {
+        flushPanicReports()
+      } catch {
+        /* best-effort */
+      }
+      try {
+        cleanup()
+      } catch {
+        /* best-effort */
+      }
+      process.exit(2)
+    }
+
     if (cleanedUp) {
       flushPanicReports()
       exitResolve()
