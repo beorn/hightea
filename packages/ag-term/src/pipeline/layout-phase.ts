@@ -21,7 +21,6 @@ import {
 } from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
 import { syncDecorationRects, syncRectSignals, hasLayoutSignals } from "@silvery/ag/layout-signals"
-import { getActiveCLSRecorder } from "@silvery/ag/cls-active"
 import { logPass, INSTRUMENT } from "../runtime/pass-cause"
 
 const log = createLogger("silvery:layout")
@@ -232,12 +231,12 @@ function propagateLayout(
   node.prevLayout = node.boxRect
   node.boxRect = rect
 
-  // CLS instrumentation — record rect transition for the active capture
-  // window. Optional-chain skips the call entirely when no recorder is
-  // active (zero overhead in the common case). Date.now() runs only when
-  // a capture is in flight.
-  // Bead: km-silvery.cls-instrumentation-primitive
-  getActiveCLSRecorder()?.recordRect(nodeIdent(node), node.prevLayout, node.boxRect, Date.now())
+  // CLS instrumentation moved out of layout phase 2026-05-13 (Option C
+  // consolidation, bead @km/silvery/cls-instrumentation-primitive Phase 9b).
+  // The boxRect-domain hook here missed scroll- and sticky-induced shifts —
+  // exactly the user-visible flicker class CLS exists to catch. CLS now
+  // reads screenRect (post-scroll, sticky-aware) via cls-monitor.onCommit
+  // at the renderer-level commit boundary (renderer.ts doRender).
 
   // Set authoritative "layout changed this frame" epoch stamp.
   // Unlike !rectEqual(prevLayout, boxRect) which becomes stale when

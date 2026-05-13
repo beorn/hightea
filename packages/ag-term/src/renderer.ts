@@ -12,6 +12,7 @@
 import { EventEmitter } from "node:events"
 import React, { type ReactElement, type ReactNode, act } from "react"
 import { type App, buildApp } from "./app.js"
+import { createClsMonitor } from "./runtime/cls-monitor.js"
 import { type TerminalBuffer, cellEquals } from "./buffer.js"
 import {
   ChainAppContext,
@@ -421,6 +422,14 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
   let hadReactCommit = false
   let autoRenderScheduled = false
   let inRenderCycle = false // true during doRender() and explicit operations
+
+  // Per-App ClsMonitor instance. The monitor walks the tree on every commit
+  // (reading post-scroll, sticky-aware `screenRect`) and feeds shifts to
+  // any active capture window. Always instantiated; production logging
+  // remains env-gated (DEBUG=silvery:cls / SILVERY_INSTRUMENT=cls) while
+  // test-time `beginCLSCapture()` engages the per-window collector.
+  // Bead: @km/silvery/cls-instrumentation-primitive (Phase 9/11).
+  const clsMonitor = createClsMonitor()
   instance.container = createContainer(() => {
     hadReactCommit = true
     // Auto-render: schedule a microtask re-render on async React commits
@@ -955,6 +964,17 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
         verifyNoResidueLeak(realPrev, sentinelResult.buffer, freshFromZero, instance.renderCount)
       }
     }
+
+    // CLS monitor: walk the post-commit tree, record screenRect shifts.
+    // Cheap when no capture is active and no DEBUG=silvery:cls env var set
+    // (single boolean compare per commit). Bead:
+    // @km/silvery/cls-instrumentation-primitive (Phase 9 Option C consolidation).
+    clsMonitor.onCommit(
+      getContainerRoot(instance.container),
+      instance.columns,
+      instance.rows,
+      /*scrollOrResize*/ false,
+    )
 
     return output!
   }
@@ -1589,6 +1609,7 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
     focusManager,
     getCursorState: cursorStore.accessors.getCursorState,
     waitForLayoutStable,
+    clsMonitor,
   })
 }
 

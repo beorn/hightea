@@ -127,7 +127,9 @@ describe("CLS integration — capture API + pipeline hook", () => {
   test("endCLSCapture without beginCLSCapture throws", () => {
     const r = createRenderer({ cols: COLS, rows: ROWS })
     const app = r(<StableApp label="x" />)
-    expect(() => app.endCLSCapture()).toThrow(/no active capture/)
+    // Post-Option-C: endCLSCapture delegates to ClsMonitor.endCapture(),
+    // which throws "ClsMonitor.endCapture: not capturing.".
+    expect(() => app.endCLSCapture()).toThrow(/not capturing/)
   })
 })
 

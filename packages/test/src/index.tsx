@@ -98,7 +98,7 @@ export type { Rect } from "@silvery/ag/types"
 // from @silvery/test rather than reaching across @silvery/ag and
 // @silvery/ag-term. Bead: km-silvery.cls-instrumentation-primitive
 export type { CLSReport, LayoutShift, ReflowReason } from "@silvery/ag/cls"
-export type { ReasonClassifier } from "@silvery/ag/cls-recorder"
+export type { ReasonClassifier } from "@silvery/ag/cls"
 export {
   CLS_STRICT_MIN_TIER,
   CLS_STRICT_SLUG,

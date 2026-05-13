@@ -45,14 +45,8 @@ import type { FocusManager } from "@silvery/ag/focus-manager"
 import { pointInRect } from "@silvery/ag/tree-utils"
 import type { AgNode } from "@silvery/ag/types"
 import type { FrameCell } from "@silvery/ag/text-frame"
-import type { CLSReport } from "@silvery/ag/cls"
-import {
-  clearActiveCLSRecorder,
-  getActiveCLSRecorder,
-  setActiveCLSRecorder,
-} from "@silvery/ag/cls-active"
-import { createCLSRecorder, type ReasonClassifier } from "@silvery/ag/cls-recorder"
-import { assertNoUnexpectedShifts } from "./strict-cls"
+import type { CLSReport, ReasonClassifier } from "@silvery/ag/cls"
+import type { ClsMonitor } from "./runtime/cls-monitor"
 
 /**
  * App interface - unified return type from render()
@@ -279,7 +273,7 @@ export interface App {
    *
    * Bead: km-silvery.cls-instrumentation-primitive
    */
-  beginCLSCapture(classifier?: import("@silvery/ag/cls-recorder").ReasonClassifier): void
+  beginCLSCapture(classifier?: ReasonClassifier): void
 
   /**
    * End the active CLS capture and return the aggregated report. When
@@ -406,6 +400,19 @@ export interface AppOptions {
   /** Captured frames array (internal) */
   frames?: string[]
 
+  /**
+   * Optional ClsMonitor instance. When provided, the App's
+   * `beginCLSCapture` / `endCLSCapture` / `cancelCLSCapture` methods
+   * delegate to it. The host harness is responsible for instantiating
+   * the monitor AND calling `clsMonitor.onCommit(...)` on every render
+   * commit so the monitor's session-shift buffer stays in sync with
+   * the rendered tree (Option C consolidation: cls-monitor is the
+   * single source of truth for layout-shift detection).
+   *
+   * Bead: @km/silvery/cls-instrumentation-primitive (Phase 9/11).
+   */
+  clsMonitor?: ClsMonitor
+
   /** Terminal dimensions */
   columns: number
   rows: number
@@ -456,6 +463,7 @@ export function buildApp(options: AppOptions): App {
     resize: resizeFn,
     focusManager: fm,
     waitForLayoutStable: waitForLayoutStableFn,
+    clsMonitor,
   } = options
 
   // Create auto-refreshing locator factory
@@ -828,38 +836,42 @@ export function buildApp(options: AppOptions): App {
       return waitForLayoutStableFn(opts)
     },
 
-    // CLS capture is process-wide: a single active recorder is registered
-    // with the cls-active module-level slot so the pipeline hook
-    // (layout-phase.ts → getActiveCLSRecorder) picks it up without
-    // threading state through every layout call. The methods below
-    // bracket begin/end; the recorder lifecycle lives inside this closure.
-    // Bead: km-silvery.cls-instrumentation-primitive
+    // CLS capture delegates to the harness-provided ClsMonitor (Option C
+    // consolidation 2026-05-13). The host harness (renderer.ts /
+    // create-app.tsx) owns the monitor's lifecycle AND calls
+    // `clsMonitor.onCommit(...)` on every render commit so its session-
+    // shift buffer stays in sync with the rendered tree. Reading
+    // `screenRect` (post-scroll, sticky-aware) — the only domain that
+    // catches user-visible flicker (scroll-induced + sticky shifts).
+    //
+    // The boxRect-domain path (cls-recorder + cls-active +
+    // layout-phase.ts hook) is deleted in Phase 9b.
+    //
+    // Bead: @km/silvery/cls-instrumentation-primitive (Phase 9/11).
     beginCLSCapture(classifier?: ReasonClassifier): void {
-      const recorder = createCLSRecorder()
-      recorder.beginCapture(classifier)
-      setActiveCLSRecorder(recorder)
-    },
-    endCLSCapture(): CLSReport {
-      const recorder = getActiveCLSRecorder()
-      if (recorder === null) {
+      if (!clsMonitor) {
         throw new Error(
-          "endCLSCapture: no active capture. Call beginCLSCapture() first.",
+          "beginCLSCapture: no ClsMonitor was provided to buildApp(). The render harness must instantiate `createClsMonitor()` and pass it via AppOptions.clsMonitor for CLS capture to work.",
         )
       }
-      const report = recorder.endCapture()
-      clearActiveCLSRecorder()
-      // STRICT gate: when SILVERY_STRICT=cls (or tier 2+) is enabled,
-      // throw on any unexpected shifts. Off by default — most tests
-      // assert on `report.unexpectedShifts` explicitly.
-      assertNoUnexpectedShifts(report)
-      return report
+      clsMonitor.beginCapture(classifier)
+    },
+    endCLSCapture(): CLSReport {
+      if (!clsMonitor) {
+        throw new Error(
+          "endCLSCapture: no ClsMonitor was provided to buildApp().",
+        )
+      }
+      // endCapture() applies SILVERY_STRICT=cls internally — throws
+      // UnexpectedLayoutShiftError when tier 2 strict is active and the
+      // window saw any "unexpected" shifts.
+      return clsMonitor.endCapture()
     },
     cancelCLSCapture(): void {
-      const recorder = getActiveCLSRecorder()
-      if (recorder !== null) {
-        recorder.cancelCapture()
-        clearActiveCLSRecorder()
-      }
+      // Idempotent — safe to call even when no monitor is provided
+      // (cleanup paths shouldn't fail loud when the App was built
+      // without a monitor).
+      clsMonitor?.cancelCapture()
     },
 
     clear,
