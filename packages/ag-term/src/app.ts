@@ -844,10 +844,7 @@ export function buildApp(options: AppOptions): App {
     // `screenRect` (post-scroll, sticky-aware) — the only domain that
     // catches user-visible flicker (scroll-induced + sticky shifts).
     //
-    // The boxRect-domain path (cls-recorder + cls-active +
-    // layout-phase.ts hook) is deleted in Phase 9b.
-    //
-    // Bead: @km/silvery/cls-instrumentation-primitive (Phase 9/11).
+    // Bead: @km/silvery/cls-instrumentation-primitive.
     beginCLSCapture(classifier?: ReasonClassifier): void {
       if (!clsMonitor) {
         throw new Error(

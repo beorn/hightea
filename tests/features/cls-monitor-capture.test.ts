@@ -1,15 +1,14 @@
 /**
  * ClsMonitor capture API — unit tests for Phase 8 of CLS consolidation.
  *
- * These exercise the new `beginCapture` / `endCapture` / `cancelCapture`
+ * These exercise the `beginCapture` / `endCapture` / `cancelCapture`
  * methods directly via `createClsMonitor()`. The methods are the Option C
- * consolidation surface that replaces the boxRect-based test-capture
- * primitive (cls-recorder + cls-active + layout-phase hook, slated for
- * deletion in Phase 9).
+ * consolidation surface; the old boxRect-based test-capture primitive
+ * (cls-recorder + cls-active + layout-phase hook) was deleted in Phase 9.
  *
- * Integration tests through createRenderer → App.beginCLSCapture move in
- * Phase 10/11 once app.ts is re-wired. These unit tests cover the state
- * machine + onCommit capture path in isolation.
+ * Integration tests through createRenderer → App.beginCLSCapture live in
+ * cls-integration.test.tsx and cls-screenrect-domain.test.tsx. These unit
+ * tests cover the state machine + onCommit capture path in isolation.
  *
  * Bead: @km/silvery/cls-instrumentation-primitive (REOPENED 2026-05-13)
  */

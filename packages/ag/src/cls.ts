@@ -5,10 +5,11 @@
  * rendering at a different rect in successive frames during a single
  * user-action window. Score = sum(area × distance) over all shifts.
  *
- * This module is pure: it defines the data shape + diff math. The pipeline
- * hook (cls-recorder) calls these helpers per frame; the strict-mode check
- * (pipeline/strict-cls) consumes the CLSReport. The termless capture API
- * (ag-term/app) drives begin/end of the capture window.
+ * This module is pure: it defines the data shape + diff math. The runtime
+ * ClsMonitor (ag-term/runtime/cls-monitor) calls these helpers per render
+ * commit; the strict-mode check (ag-term/strict-cls) consumes the CLSReport.
+ * The termless capture API (ag-term/app) drives begin/end of the capture
+ * window via ClsMonitor.
  *
  * Bead: km-silvery.cls-instrumentation-primitive
  */
