@@ -41,7 +41,7 @@ import type { RenderBuffer } from "../render-adapter"
 // Re-export components and hooks for convenience
 export { Box, type BoxProps } from "@silvery/ag-react/components/Box"
 export { Text, type TextProps } from "@silvery/ag-react/components/Text"
-export { useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRectDangerously, useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 
 // Re-export adapter utilities

@@ -85,7 +85,7 @@ export {
   type TextInputHandle,
 } from "@silvery/ag-react/ui/components/TextInput"
 export { Spinner, type SpinnerProps } from "@silvery/ag-react/ui/components/Spinner"
-export { useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
+export { useBoxRectDangerously, useBoxRect, useScrollRect } from "@silvery/ag-react/hooks/useLayout"
 export { useApp } from "@silvery/ag-react/hooks/useApp"
 export {
   useInput,

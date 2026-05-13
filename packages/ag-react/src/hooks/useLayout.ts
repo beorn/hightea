@@ -166,6 +166,10 @@ function useReactiveRect(
 // ============================================================================
 
 /**
+ * **DANGEROUS — measurement read on the render path.** Prefer a declarative
+ * primitive (`<Box fitWidth>`, `useResponsiveBoxProps`, `useResponsiveValue`,
+ * `useOnBoxRectCommitted`) before reaching for this hook.
+ *
  * Returns the inner content dimensions for the current component's nearest
  * Box, as of the most recent committed layout. Width and height reflect
  * the space available for children (border-box minus padding and border),
@@ -173,20 +177,82 @@ function useReactiveRect(
  *
  * ```tsx
  * function Header() {
- *   const { width } = useBoxRect()
+ *   const { width } = useBoxRectDangerously()
  *   return <Text>{'='.repeat(Math.max(0, width))}</Text>
  * }
  * ```
  *
  * On first render returns `{ x: 0, y: 0, width: 0, height: 0 }`. After the
  * first commit boundary, automatically re-renders with the measured
- * dimensions.
+ * dimensions. This **first-paint zero-rect transition** is the social cost
+ * the rename announces — components that branch layout on this hook see a
+ * flush-left / collapsed first paint, then re-flow when the real rect
+ * commits one event-loop tick later. Visible jank under streaming / dynamic
+ * mount / SIGWINCH burst.
+ *
+ * Use only when:
+ * - You need a measurement read in JS control flow (animation, autoscroll
+ *   thresholds, hit-testing) that **doesn't drive layout-affecting props**.
+ * - No declarative primitive covers the case.
  *
  * Deferred semantics — see this file's docstring for the contract and the
  * one-frame-late behavior.
+ *
+ * Bead: `@km/silvery/responsive-layout-architecture-reframe` (Phase A.1
+ * lands this rename; the full Phase A migrates each consumer to a
+ * declarative primitive or, where genuinely needed, to a Suspense-friendly
+ * `Promise<Rect>` form coordinated via `RectReadBarrier`).
+ */
+export function useBoxRectDangerously(): Rect {
+  return useReactiveRect((committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")
+}
+
+/**
+ * @deprecated Renamed to `useBoxRectDangerously`. The original name read as
+ * "the normal hook for getting your rect" — exactly the framing the Phase
+ * A.1 rename is intended to break. App authors should reach for declarative
+ * primitives first; this alias remains for one release cycle and logs a
+ * dev-time warning per call site. Will be removed in the next major.
+ *
+ * Bead: `@km/silvery/responsive-layout-architecture-reframe`.
  */
 export function useBoxRect(): Rect {
+  // Deprecation warning fires once per call site in development. Skipped in
+  // production (won't ship) AND test (vitest's fail-on-console policy would
+  // trip on every test that exercises the legacy alias — including the very
+  // tests that verify backward-compat). Silvery's own internal call sites
+  // are migrated to `useBoxRectDangerously` as part of Phase A.1, so test
+  // suites don't see the warning either way.
+  if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test") {
+    warnUseBoxRectDeprecation()
+  }
   return useReactiveRect((committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")
+}
+
+const useBoxRectWarnedCallSites = new Set<string>()
+
+function warnUseBoxRectDeprecation(): void {
+  // Dedupe per-call-site so the warning fires once per source location, not
+  // once per render. The first stack frame outside this file is the consumer.
+  const stack = new Error().stack ?? ""
+  const lines = stack.split("\n")
+  let consumerFrame = ""
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i] ?? ""
+    if (!line.includes("useLayout.ts") && line.trim().startsWith("at ")) {
+      consumerFrame = line.trim()
+      break
+    }
+  }
+  const key = consumerFrame || "<unknown>"
+  if (useBoxRectWarnedCallSites.has(key)) return
+  useBoxRectWarnedCallSites.add(key)
+  // eslint-disable-next-line no-console
+  console.warn(
+    `[silvery] useBoxRect() is deprecated — rename to useBoxRectDangerously(), or migrate to a declarative primitive ` +
+      `(<Box fitWidth>, useResponsiveBoxProps, useResponsiveValue, useOnBoxRectCommitted). ` +
+      `See @km/silvery/responsive-layout-architecture-reframe. Call site: ${key}`,
+  )
 }
 
 // ============================================================================

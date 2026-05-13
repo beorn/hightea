@@ -380,20 +380,33 @@ export type { SixelImageData } from "./ui/image/index"
 // =============================================================================
 
 /**
- * Layout hooks - the main feature of silvery over ink.
+ * Layout hooks — measurement reads on the render path.
+ *
+ * `useBoxRectDangerously` is the canonical name. The `Dangerously` suffix is
+ * the social cost (CSS precedent: `dangerouslySetInnerHTML`) — every call
+ * site is a "did I really need a measurement here?" pause. Prefer declarative
+ * primitives (`<Box fitWidth>`, `useResponsiveBoxProps`, `useResponsiveValue`,
+ * `useOnBoxRectCommitted`) for layout decisions; reach for this hook only
+ * when JS control flow legitimately needs a measured rect that does NOT
+ * drive layout-affecting props back into the React tree.
+ *
+ * `useBoxRect` (no suffix) is kept as a deprecated alias for one release
+ * cycle. It logs a dev-mode `console.warn` per call site so consumers see
+ * the deprecation without spam. Will be removed in the next major.
+ *
+ * Bead: `@km/silvery/responsive-layout-architecture-reframe` (Phase A.1).
  *
  * @example
  * ```tsx
- * import { useBoxRect, Box, Text } from '@silvery/ag-react';
+ * import { useBoxRectDangerously, Box, Text } from '@silvery/ag-react';
  *
  * function ResponsiveCard() {
- *   // Components know their size - no width prop threading needed
- *   const { width, height } = useBoxRect();
+ *   const { width, height } = useBoxRectDangerously();
  *   return <Text>{`Size: ${width}x${height}`}</Text>;
  * }
  * ```
  */
-export { useBoxRect, useScrollRect, useScreenRect } from "./hooks/useLayout"
+export { useBoxRectDangerously, useBoxRect, useScrollRect, useScreenRect } from "./hooks/useLayout"
 
 /**
  * In-flight rect hooks — escape hatches for silvery framework internals
