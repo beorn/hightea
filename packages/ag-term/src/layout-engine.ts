@@ -108,6 +108,39 @@ export interface LayoutConstants {
 }
 
 // ============================================================================
+// Engine Capabilities (Phase A0.0.5 of @km/silvery/responsive-layout-architecture-reframe)
+// ============================================================================
+
+/**
+ * Declares which engine-native primitives a `LayoutEngine` supports.
+ *
+ * silvery is engine-pluggable — `flexily` (pure JS) and `yoga` (WASM) ship as peer
+ * adapters. The responsive-layout reframe (Phase A0.1+) adds engine-native container
+ * queries, fitWidth, size containment, cq* units, and CSS math functions. These
+ * primitives can only be implemented in `flexily` (yoga's WASM boundary doesn't expose
+ * inter-pass child-style mutation).
+ *
+ * Each adapter declares which capabilities it supports. Consumers (`<Box fitWidth>`,
+ * `<Box containerQueries>`, etc.) gate on capability presence via `requireCapability()`
+ * — under yoga, those primitives THROW at first paint with a one-line fix instruction
+ * (switch via `SILVERY_ENGINE=flexily`).
+ */
+export interface EngineCapabilities {
+  /** Container queries: `<Box containerQueries={...}>` + `containerType` / `containerName` */
+  readonly containerQueries: boolean
+  /** Size containment: `<Box containSize>` */
+  readonly containSize: boolean
+  /** Container-query units in style values: `cqi`, `cqmin`, `cqb`, `cqmax` */
+  readonly containerQueryUnits: boolean
+  /** fitWidth Box prop: `<Box fitWidth={[80, 120, "100cqi"]}>` */
+  readonly fitWidth: boolean
+  /** CSS math functions in style values: `min()`, `max()`, `clamp()` */
+  readonly styleMathFunctions: boolean
+  /** Inter-pass child-style mutation hook (underlying mechanism for CQ + fitWidth) */
+  readonly childStyleMutation: boolean
+}
+
+// ============================================================================
 // Layout Engine Interface
 // ============================================================================
 
@@ -124,6 +157,9 @@ export interface LayoutEngine {
 
   /** Engine name for debugging */
   readonly name: string
+
+  /** Which engine-native primitives this adapter supports (Phase A0.0.5+). */
+  readonly capabilities: EngineCapabilities
 }
 
 // ============================================================================
@@ -166,6 +202,29 @@ export function isLayoutEngineInitialized(): boolean {
  */
 export function getConstants(): LayoutConstants {
   return getLayoutEngine().constants
+}
+
+/**
+ * Runtime guard: throws if the active layout engine doesn't advertise the named capability.
+ *
+ * Used by Phase A0.1+ primitives (`<Box fitWidth>`, `<Box containerQueries>`, cq* units,
+ * style math functions) at their first-paint resolution path. Under `yoga` (or pre-A0.1
+ * flexily), the throw happens at first paint with a one-line fix instruction in the error
+ * message. No silent fallback — silent fallback under yoga would look like a fresh render
+ * bug and cost hours of debugging.
+ *
+ * @param name     The capability key being checked (e.g. `"fitWidth"`, `"containerQueries"`).
+ * @param consumer A human-readable label for the call site, e.g. `"<Box fitWidth>"` or
+ *                 `"cqi unit in 'padding'"`. Surfaces in the error message.
+ */
+export function requireCapability(name: keyof EngineCapabilities, consumer: string): void {
+  const engine = getLayoutEngine()
+  if (!engine.capabilities[name]) {
+    throw new Error(
+      `${consumer} requires layout engine capability "${name}" — current engine "${engine.name}" doesn't support it. ` +
+        `Switch to flexily: set SILVERY_ENGINE=flexily, OR call ensureDefaultLayoutEngine("flexily") before render.`,
+    )
+  }
 }
 
 // ============================================================================

@@ -24,6 +24,7 @@ import type {
   DirectionValue,
   DisplayValue,
   EdgeValue,
+  EngineCapabilities,
   FlexDirectionValue,
   GutterValue,
   JustifyValue,
@@ -34,6 +35,27 @@ import type {
   PositionTypeValue,
   WrapValue,
 } from "../layout-engine"
+
+/**
+ * Capabilities advertised by the yoga adapter.
+ *
+ * **All flags stay `false`.** yoga's WASM boundary doesn't expose the inter-pass
+ * child-style mutation hook that engine-native container queries, fitWidth, and the
+ * cq*-unit / style-math-function primitives require. Consumers that need those
+ * primitives must switch to flexily via `SILVERY_ENGINE=flexily` or
+ * `ensureDefaultLayoutEngine("flexily")`.
+ *
+ * The existing CSS-flexbox surface (Box/Text declarative props, useResponsiveBoxProps,
+ * etc.) remains FULLY SUPPORTED under yoga — only the reframe's new primitives are gated.
+ */
+const YOGA_CAPABILITIES: EngineCapabilities = Object.freeze({
+  containerQueries: false, // yoga has no CQ resolution; flexily-only
+  containSize: false, // yoga has no contain:size; flexily-only
+  containerQueryUnits: false, // yoga has no cq* parser; flexily-only
+  fitWidth: false, // yoga has no fitWidth Box prop; flexily-only
+  styleMathFunctions: false, // yoga has no late-bound math; flexily-only
+  childStyleMutation: false, // yoga's WASM boundary blocks the hook
+})
 
 // ============================================================================
 // Yoga Node Adapter
@@ -354,6 +376,10 @@ export class YogaLayoutEngine implements LayoutEngine {
 
   get name(): string {
     return "yoga"
+  }
+
+  get capabilities(): EngineCapabilities {
+    return YOGA_CAPABILITIES
   }
 }
 

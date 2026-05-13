@@ -61,6 +61,7 @@ import type {
   DirectionValue,
   DisplayValue,
   EdgeValue,
+  EngineCapabilities,
   FlexDirectionValue,
   GutterValue,
   JustifyValue,
@@ -71,6 +72,27 @@ import type {
   PositionTypeValue,
   WrapValue,
 } from "../layout-engine"
+
+/**
+ * Capabilities advertised by the flexily-zero adapter.
+ *
+ * All flags start `false` at A0.0.5 — they flip as A0.1 / A0.2 / A0.3 land the
+ * underlying primitives. The hook substrate at flexily SHA `7f23101` (Phase A0.0
+ * spike) is internal-only and not yet a public capability worth advertising.
+ *
+ * - `containerQueries` / `containSize` / `containerQueryUnits` / `childStyleMutation`
+ *   → flipped to `true` by Phase A0.1 (engine-native CQ resolution)
+ * - `fitWidth`           → flipped by Phase A0.2 (single-pass lane snap)
+ * - `styleMathFunctions` → flipped by Phase A0.3 (late-bound min/max/clamp)
+ */
+const FLEXILY_CAPABILITIES: EngineCapabilities = Object.freeze({
+  containerQueries: false, // → A0.1
+  containSize: false, // → A0.1
+  containerQueryUnits: false, // → A0.1
+  fitWidth: false, // → A0.2
+  styleMathFunctions: false, // → A0.3
+  childStyleMutation: false, // → A0.1 (vendor/flexily 7f23101 substrate is internal-only)
+})
 
 // ============================================================================
 // Flexily Zero Node Adapter
@@ -361,6 +383,10 @@ export class FlexilyZeroLayoutEngine implements LayoutEngine {
 
   get name(): string {
     return "flexily-zero"
+  }
+
+  get capabilities(): EngineCapabilities {
+    return FLEXILY_CAPABILITIES
   }
 }
 
