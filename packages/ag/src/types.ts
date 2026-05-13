@@ -856,6 +856,27 @@ export interface BoxProps
    * it does not yet apply branch styles. Use cqi units directly for now.
    */
   containerQueries?: readonly ContainerQueryBranch[]
+
+  /**
+   * Single-pass fit-content lane snap (A0.2). Replaces `<AutoFit>` entirely.
+   *
+   * Box's inline-size snaps to the smallest lane that fits its children's
+   * max-content. Lane entries accept numbers (treated as cells) or strings
+   * like `"100cqi"` / `"50cqi"` / `"100cqmin"` (parsed at this layer into
+   * the engine's unit form).
+   *
+   * If max-content exceeds every lane, the LAST lane is used — by convention
+   * place lanes in ascending order so this behaves as "biggest lane wins".
+   *
+   * Example (chat content lanes):
+   *   <Box fitWidth={[80, 120, "100cqi"]}>
+   *     {messageBlocks}
+   *   </Box>
+   *
+   * Engine requirement: flexily-only. Under yoga, throws at first paint via
+   * `requireCapability("fitWidth", ...)`.
+   */
+  fitWidth?: readonly (number | string)[]
 }
 
 /**

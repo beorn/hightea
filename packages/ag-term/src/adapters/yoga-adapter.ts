@@ -18,7 +18,7 @@ import type {
   Yoga,
   Node as YogaNode,
 } from "yoga-wasm-web"
-import type { LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
+import type { FitWidthLane, LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
 import type {
   AlignValue,
   DirectionValue,
@@ -264,6 +264,12 @@ class YogaNodeAdapter implements LayoutNode {
   }
   setContainSize(_value: boolean): void {
     // no-op (yoga has no contain:size; capability is false)
+  }
+
+  // Fit-width (A0.2) — yoga has no equivalent primitive. No-op stub; React
+  // layer's requireCapability("fitWidth", ...) catches the user-level use.
+  setFitWidth(_lanes: readonly FitWidthLane[] | undefined): void {
+    // no-op (yoga has no fitWidth; capability is false)
   }
 
   // Aspect Ratio

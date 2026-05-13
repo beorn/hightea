@@ -50,12 +50,14 @@ import {
   POSITION_TYPE_ABSOLUTE,
   POSITION_TYPE_RELATIVE,
   POSITION_TYPE_STATIC,
+  UNIT_CQI,
+  UNIT_CQMIN,
   WRAP_NO_WRAP,
   WRAP_WRAP,
   WRAP_WRAP_REVERSE,
 } from "flexily"
 
-import type { LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
+import type { FitWidthLane, LayoutNode, MeasureFunc, MeasureMode } from "@silvery/ag/layout-types"
 import type {
   AlignValue,
   DirectionValue,
@@ -76,14 +78,14 @@ import type {
 /**
  * Capabilities advertised by the flexily-zero adapter.
  *
- * Four flags flipped at A0.1 (engine-native CQ resolution shipped at vendor/flexily
- * `46141e9`): containerQueries, containSize, containerQueryUnits, childStyleMutation.
+ * Five flags shipped: four at A0.1 (engine-native CQ resolution at vendor/flexily
+ * `46141e9`), one at A0.2 (fitWidth single-pass lane snap at vendor/flexily `4b44bf9`).
  *
  * - `containerQueries`     → A0.1 ✓ — Pass 1 freezeQuerySize + Pass 2 ancestor walk
  * - `containSize`          → A0.1 ✓ — Phase 9 inline-axis shrink-wrap gate
  * - `containerQueryUnits`  → A0.1 ✓ — UNIT_CQI / UNIT_CQMIN parsed and resolved
  * - `childStyleMutation`   → A0.1 ✓ — setContainerQueryStyle hook (A0.0 substrate)
- * - `fitWidth`             → A0.2 (single-pass lane snap)
+ * - `fitWidth`             → A0.2 ✓ — Phase 3 lane-select prefix; AutoFit replacement
  * - `styleMathFunctions`   → A0.3 (late-bound min/max/clamp, contract in
  *   vendor/flexily/docs/two-phase-layout.md)
  */
@@ -91,7 +93,7 @@ const FLEXILY_CAPABILITIES: EngineCapabilities = Object.freeze({
   containerQueries: true, // ✓ A0.1
   containSize: true, // ✓ A0.1
   containerQueryUnits: true, // ✓ A0.1
-  fitWidth: false, // → A0.2
+  fitWidth: true, // ✓ A0.2
   styleMathFunctions: false, // → A0.3
   childStyleMutation: true, // ✓ A0.1
 })
@@ -279,6 +281,23 @@ class FlexilyZeroNodeAdapter implements LayoutNode {
   }
   setContainSize(value: boolean): void {
     this.node.setContainSize(value)
+  }
+
+  // Fit-width (A0.2) — translate FitWidthLane to flexily's { value, unit: UNIT_* }
+  // shape. Lane entries can be plain numbers (treated as UNIT_POINT) or objects
+  // with a "cqi"/"cqmin" unit string.
+  setFitWidth(lanes: readonly FitWidthLane[] | undefined): void {
+    if (lanes === undefined || lanes.length === 0) {
+      this.node.setFitWidth(undefined)
+      return
+    }
+    this.node.setFitWidth(
+      lanes.map((entry) => {
+        if (typeof entry === "number") return entry
+        const unit = entry.unit === "cqi" ? UNIT_CQI : UNIT_CQMIN
+        return { value: entry.value, unit }
+      }),
+    )
   }
 
   // Aspect Ratio

@@ -39,6 +39,20 @@ export type MeasureFunc = (
 ) => { width: number; height: number }
 
 // ============================================================================
+// Fit-Width Lane Type (A0.2)
+// ============================================================================
+
+/**
+ * A fit-width lane entry: either a plain number (cells, treated as CSS points)
+ * or a `{ value, unit }` object for container-query units.
+ *
+ * String values (`"100cqi"`) are parsed at the React seam (`applyBoxProps`)
+ * into this shape before reaching the LayoutNode adapter; the adapter itself
+ * receives only the parsed form.
+ */
+export type FitWidthLane = number | { value: number; unit: "cqi" | "cqmin" }
+
+// ============================================================================
 // Layout Node Interface
 // ============================================================================
 
@@ -118,6 +132,18 @@ export interface LayoutNode {
   setContainerType(containerType: number): void
   /** CSS contain: size. True = block intrinsic propagation on the inline axis. */
   setContainSize(value: boolean): void
+
+  /**
+   * Fit-width lanes (A0.2). Single-pass lane snap; consumes children's
+   * max-content and picks the smallest lane that fits (else last). Each
+   * entry is either a plain number (cells) or a `{ value, unit }` object
+   * for cqi/cqmin entries. Pass `undefined` to disable.
+   *
+   * Engine requirement: this maps to flexily's `setFitWidth` directly.
+   * Adapters without the capability MUST implement as a no-op; the user-facing
+   * throw fires at the React layer via `requireCapability("fitWidth", ...)`.
+   */
+  setFitWidth(lanes: readonly FitWidthLane[] | undefined): void
 
   // Layout calculation
   calculateLayout(width: number, height: number, direction?: number): void

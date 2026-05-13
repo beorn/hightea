@@ -562,6 +562,27 @@ export function applyTextFlexItemProps(
 }
 
 /**
+ * Parse a `fitWidth` entry from user-facing form (number | string) to the
+ * engine's FitWidthLane shape (number | { value, unit: "cqi" | "cqmin" }).
+ *
+ * Accepted strings: `"100cqi"`, `"50cqmin"` — decimal and integer values both
+ * fine. Numbers pass through unchanged. Invalid strings throw with a clear
+ * pointer to the bug — the layout engine consumes only the parsed form, so
+ * parse-fail at the React seam is the right place.
+ */
+function parseFitWidthEntry(entry: number | string): number | { value: number; unit: "cqi" | "cqmin" } {
+  if (typeof entry === "number") return entry
+  const cqiMatch = entry.match(/^(\d+(?:\.\d+)?)cqi$/)
+  if (cqiMatch) return { value: Number.parseFloat(cqiMatch[1]!), unit: "cqi" }
+  const cqminMatch = entry.match(/^(\d+(?:\.\d+)?)cqmin$/)
+  if (cqminMatch) return { value: Number.parseFloat(cqminMatch[1]!), unit: "cqmin" }
+  throw new Error(
+    `<Box fitWidth>: invalid lane entry ${JSON.stringify(entry)}. ` +
+      `Expected a number (cells) or a string like "100cqi" / "50cqmin".`,
+  )
+}
+
+/**
  * Apply BoxProps to a layout node.
  * This maps Ink/Silvery props to the layout engine API.
  */
@@ -828,6 +849,17 @@ export function applyBoxProps(layoutNode: LayoutNode, props: BoxProps, oldProps?
   // yoga get the same one-line-fix error shape as the other CQ primitives.
   if (props.containerQueries !== undefined) {
     requireCapability("containerQueries", "<Box containerQueries>")
+  }
+
+  // fitWidth (A0.2). Parse string entries like "100cqi" / "50cqmin" into the
+  // engine's FitWidthLane shape. Plain numbers pass through. Invalid strings
+  // throw with a clear message — silvery's prop layer is the authoritative
+  // place to do this validation (the layout engine just consumes the parsed form).
+  if (props.fitWidth !== undefined) {
+    requireCapability("fitWidth", "<Box fitWidth>")
+    layoutNode.setFitWidth(props.fitWidth.map(parseFitWidthEntry))
+  } else if (wasRemoved("fitWidth")) {
+    layoutNode.setFitWidth(undefined)
   }
 
   // Border (affects layout - 1 cell per border side in terminal mode).

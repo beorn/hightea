@@ -53,7 +53,7 @@ const ALL_TRUE: EngineCapabilities = Object.freeze({
 })
 
 describe("[A0.0.5] Layout engine capability model", () => {
-  test("flexily-zero adapter declares A0.1-shipped capabilities true, A0.2/A0.3 still false", () => {
+  test("flexily-zero adapter declares A0.1+A0.2 capabilities true, A0.3 still false", () => {
     const engine = createFlexilyZeroEngine()
 
     expect(engine.capabilities).toBeDefined()
@@ -62,8 +62,8 @@ describe("[A0.0.5] Layout engine capability model", () => {
     expect(engine.capabilities.containSize).toBe(true)
     expect(engine.capabilities.containerQueryUnits).toBe(true)
     expect(engine.capabilities.childStyleMutation).toBe(true)
-    // → A0.2 (fitWidth single-pass lane snap)
-    expect(engine.capabilities.fitWidth).toBe(false)
+    // ✓ A0.2 shipped — single-pass lane snap (AutoFit replacement)
+    expect(engine.capabilities.fitWidth).toBe(true)
     // → A0.3 (math functions, late-bound per the contract doc)
     expect(engine.capabilities.styleMathFunctions).toBe(false)
   })
