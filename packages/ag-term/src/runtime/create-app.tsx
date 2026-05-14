@@ -106,9 +106,8 @@ import {
   updateKeyboardModifiers,
   findSelectionBoundaries,
   selectionHitTest,
-  hitTest,
   refreshHoverPath,
-  resolveUserSelect,
+  resolveSelectionAnchorFromPoint,
   createClickCountState,
   checkClickCount,
   type SelectionBoundary,
@@ -1608,11 +1607,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // `selectionState.selecting` is true only while dragging.
   //
   // Threshold: selection activates on the first move to a different cell
-  // than the anchor. Same-cell jitter (mouse reports at same (x,y)) stays
-  // in `armed` and ends as a plain click on mouseUp.
+  // than the original pointer-down cell. Same-cell jitter (mouse reports
+  // at same (x,y)) stays in `armed` and ends as a plain click on mouseUp.
+  // The selection anchor can differ from the pointer-down cell when a click
+  // lands in padding around text and snaps to the nearest selectable cell.
   let pendingSelectionDown: {
     col: number
     row: number
+    downCol: number
+    downRow: number
     boundaries: SelectionBoundary[]
     forceBufferSelection: boolean
     /** Click-count this mousedown belongs to (1, 2, or 3).
@@ -3051,65 +3054,38 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
               paintFrame()
             }
           }
-          // Resolve contain boundary from the node under the cursor.
-          // If the click lands inside a `userSelect="contain"` subtree, the
-          // selection range is clamped to that ancestor's scrollRect so drags
-          // can't leak into adjacent siblings. selectionHitTest uses the
-          // selection-aware walk (respects userSelect="none" subtrees) rather
-          // than pointer hit test.
           const agRoot = getContainerRoot(container)
-          // Two hit tests run here:
-          //   1. `hitTest` — pointer-event z-ordered hit (absolute
-          //      children sit on top of in-flow siblings). Used to
-          //      detect "did the click land inside a userSelect=none
-          //      overlay?" — the overlay should block selection from
-          //      reaching whatever in-flow content is behind it.
-          //   2. `selectionHitTest` — selection-aware DFS (skips
-          //      userSelect=none subtrees but doesn't z-order, so an
-          //      absolute non-selectable overlay does NOT block
-          //      in-flow text behind it on its own). Used to find the
-          //      contain boundary for the selection scope.
-          //
-          // The pointer-target gate is what fixes "click on scrollbar /
-          // floating button still creates a selection" — the
-          // selectionHitTest alone descends behind the absolute overlay
-          // and finds in-flow text to anchor the drag on.
-          const pointerTarget = agRoot ? hitTest(agRoot, mouseData.x, mouseData.y) : null
-          const pointerBlocksSelection =
-            pointerTarget !== null && resolveUserSelect(pointerTarget) === "none"
-          const hit =
-            !pointerBlocksSelection && agRoot
-              ? selectionHitTest(agRoot, mouseData.x, mouseData.y)
-              : null
-          // No selectable hit target — the click landed in a
-          // `userSelect="none"` subtree (scrollbar, toolbar buttons,
-          // etc.). Don't arm a selection drag: a subsequent mousemove
-          // would otherwise start a drag from this anchor and steal
-          // the gesture from the component's own onMouseDown/move
-          // handlers (the click-and-drag scrollbar is the canonical
-          // case — its move handlers fire alongside the selection
-          // drag, and the selection paint overlays the scroll UX).
-          const forceBufferSelection = mouseData.shift === true
-          if (hit === null && !forceBufferSelection) {
+          const resolvedAnchor = resolveSelectionAnchorFromPoint({
+            root: agRoot,
+            buffer: currentBuffer?._buffer ?? null,
+            x: mouseData.x,
+            y: mouseData.y,
+            forceBufferSelection: mouseData.shift === true,
+          })
+          // No selectable hit target — the click landed in a `userSelect="none"`
+          // subtree (scrollbar, toolbar buttons, etc.) or text-free layout space.
+          // Don't arm a selection drag: a subsequent mousemove would otherwise
+          // steal the gesture from the component's own handlers.
+          if (resolvedAnchor === null) {
             pendingSelectionDown = null
           } else {
-            const boundaries = hit ? findSelectionBoundaries(hit) : []
-            const anchorCell = selectionCellFromPointer(mouseData.x, mouseData.y)
             // Resolve click-count for THIS mousedown (1=fresh, 2=double-
             // click, 3=triple-click). Used by the up branch to decide
             // whether to dispatch startWord / startLine, and by the
             // move branch to pick the drag granularity.
             const clickCount = checkClickCount(
               selectionClickCount,
-              anchorCell.col,
-              anchorCell.row,
+              resolvedAnchor.cell.col,
+              resolvedAnchor.cell.row,
               mouseData.button,
             )
             pendingSelectionDown = {
-              col: anchorCell.col,
-              row: anchorCell.row,
-              boundaries,
-              forceBufferSelection,
+              col: resolvedAnchor.cell.col,
+              row: resolvedAnchor.cell.row,
+              downCol: resolvedAnchor.downCell.col,
+              downRow: resolvedAnchor.downCell.row,
+              boundaries: resolvedAnchor.boundaries,
+              forceBufferSelection: resolvedAnchor.forceBufferSelection,
               clickCount,
             }
           }
@@ -3119,10 +3095,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
           if (pendingSelectionDown) {
             const pointerCell = selectionCellFromPointer(mouseData.x, mouseData.y)
             // armed → dragging (first move past threshold starts the drag).
-            // Threshold: different cell than anchor. Same-cell jitter stays
-            // in armed and ends as a plain click.
-            const dx = pointerCell.col - pendingSelectionDown.col
-            const dy = pointerCell.row - pendingSelectionDown.row
+            // Threshold: different cell than the original pointer-down
+            // location. The anchor can be a snapped text cell, so using it
+            // for thresholding would turn same-cell padding jitter into a
+            // bogus drag.
+            const dx = pointerCell.col - pendingSelectionDown.downCol
+            const dy = pointerCell.row - pendingSelectionDown.downRow
             if (dx !== 0 || dy !== 0) {
               const anchor = pendingSelectionDown
               pendingSelectionDown = null

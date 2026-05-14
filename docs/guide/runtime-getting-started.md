@@ -240,6 +240,8 @@ function App() {
 await run(<App />)
 ```
 
+Mouse drag text selection follows web-style caret-from-point behavior: a drag can start in padding or whitespace inside a text-containing box, and Silvery snaps the selection anchor to the nearest rendered text cell.
+
 To opt out of specific features:
 
 ```typescript
