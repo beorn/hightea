@@ -63,7 +63,7 @@ function QuitableTree({
 describe("TreeView: rendering", () => {
   test("renders collapsed tree with branch indicators", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    await run(<QuitableTree />, term)
+    using _handle = await run(<QuitableTree />, term)
 
     // Top-level items visible, collapsed branches show ">"
     expect(term.screen).toContainText("> Documents")
@@ -75,7 +75,7 @@ describe("TreeView: rendering", () => {
 
   test("renders expanded tree with indentation", async () => {
     using term = createTermless({ cols: 40, rows: 15 })
-    await run(<QuitableTree defaultExpanded />, term)
+    using _handle = await run(<QuitableTree defaultExpanded />, term)
 
     // All nodes visible
     expect(term.screen).toContainText("v Documents")
@@ -90,7 +90,7 @@ describe("TreeView: rendering", () => {
 
   test("empty tree shows 'No items'", async () => {
     using term = createTermless({ cols: 40, rows: 5 })
-    await run(<QuitableTree data={[]} />, term)
+    using _handle = await run(<QuitableTree data={[]} />, term)
 
     expect(term.screen).toContainText("No items")
   })
@@ -103,7 +103,7 @@ describe("TreeView: rendering", () => {
 describe("TreeView: navigation", () => {
   test("j/k moves cursor between top-level items", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Cursor starts on first item — "Documents" should be highlighted (inverse)
     // Move down to config.json
@@ -118,7 +118,7 @@ describe("TreeView: navigation", () => {
 
   test("arrow keys work for navigation", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     await handle.press("ArrowDown")
     await handle.press("ArrowDown")
@@ -135,7 +135,7 @@ describe("TreeView: navigation", () => {
 describe("TreeView: expand/collapse", () => {
   test("Enter toggles expansion on a branch node", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Cursor on "Documents" — press Enter to expand
     await handle.press("Enter")
@@ -150,7 +150,7 @@ describe("TreeView: expand/collapse", () => {
 
   test("Right arrow expands collapsed node", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Cursor on "Documents" — Right to expand
     await handle.press("ArrowRight")
@@ -164,7 +164,7 @@ describe("TreeView: expand/collapse", () => {
 
   test("Left arrow collapses expanded node", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Expand first
     await handle.press("Enter")
@@ -178,7 +178,7 @@ describe("TreeView: expand/collapse", () => {
 
   test("Enter on leaf node does nothing", async () => {
     using term = createTermless({ cols: 40, rows: 10 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Move to "config.json" (leaf)
     await handle.press("j")
@@ -190,7 +190,7 @@ describe("TreeView: expand/collapse", () => {
 
   test("nested expand/collapse works", async () => {
     using term = createTermless({ cols: 40, rows: 15 })
-    const handle = await run(<QuitableTree />, term)
+    using handle = await run(<QuitableTree />, term)
 
     // Expand Documents
     await handle.press("Enter")
@@ -228,7 +228,7 @@ describe("TreeView: controlled expansion", () => {
     }
 
     using term = createTermless({ cols: 40, rows: 10 })
-    await run(<ControlledTree />, term)
+    using _handle = await run(<ControlledTree />, term)
 
     expect(term.screen).toContainText("v Documents")
     expect(term.screen).toContainText("README.md")

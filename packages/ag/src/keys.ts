@@ -1024,7 +1024,11 @@ export function parseKeypress(s: string | Buffer): ParsedKeypress {
       return key
     } else {
       let parts = META_KEY_CODE_RE.exec(input)
-      if (parts) {
+      if (input === "\x1b[") {
+        // Ink compatibility: when a pending ESC[ prefix is flushed as
+        // literal input, surface it as "[" rather than Alt+[.
+        key.name = "["
+      } else if (parts) {
         key.meta = true
         key.shift = /^[A-Z]$/.test(parts[1] ?? "")
       } else {
