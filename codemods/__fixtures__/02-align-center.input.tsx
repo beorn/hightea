@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fixture 02 — align="center" literal → alignSelf="center".
  */

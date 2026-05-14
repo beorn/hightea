@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fixture 01 — default align (no prop). AutoFit defaults to align="start"
  * → alignSelf="flex-start" must be emitted to preserve behavior.

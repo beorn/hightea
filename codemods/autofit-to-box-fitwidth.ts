@@ -264,7 +264,7 @@ function readAttrExpressionText(attr: import("ts-morph").JsxAttribute): string |
   }
   // String literal — strip quotes.
   if (initializer.getKind() === SyntaxKind.StringLiteral) {
-    return JSON.stringify(initializer.getLiteralValue())
+    return JSON.stringify(initializer.asKindOrThrow(SyntaxKind.StringLiteral).getLiteralValue())
   }
   return initializer.getText()
 }

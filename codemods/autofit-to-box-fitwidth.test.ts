@@ -59,6 +59,7 @@ describe("autofit-to-box-fitwidth codemod", () => {
     workdir = mkdtempSync(join(tmpdir(), "autofit-codemod-"))
     const target = join(workdir, "input.tsx")
     const fixture = listFixturePairs()[0]
+    if (!fixture) throw new Error("expected at least one fixture pair")
     copyFileSync(fixture.input, target)
 
     const originalText = readFileSync(target, "utf8")

@@ -100,7 +100,7 @@ describe("aggregateReport", () => {
     const report = aggregateReport(shifts)
     expect(report.cumulativeScore).toBe(53)
     expect(report.unexpectedShifts).toHaveLength(1)
-    expect(report.unexpectedShifts[0].blockId).toBe("A")
+    expect(report.unexpectedShifts[0]?.blockId).toBe("A")
   })
 
   test("unexpectedShifts holds only reflowReason=unexpected", () => {

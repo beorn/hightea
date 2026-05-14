@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Fixture 03 — align="stretch" literal → DROP alignSelf entirely.
  * AutoFit's "stretch" was a ceiling-bypass; fitWidth fills available slack
