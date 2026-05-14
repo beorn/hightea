@@ -57,7 +57,7 @@ describe("ListView flex-mode scrollbar", () => {
     )
 
     // First-paint flash: 200 items overflow 20 rows → scrollbar visible
-    // immediately. Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    // immediately. Bead: @km/code/trackpad-scrolling-no-scrollbar.
     expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
     // Wheel-scroll down once — flash re-fires; scrollbar remains visible.

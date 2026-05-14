@@ -133,7 +133,7 @@ describe("ListView imperative scroll API", () => {
   })
 
   test("burst scrollBy(-1) calls without re-render compose — each call sees its own previous write", () => {
-    // Regression for @km/silvercode/transcript-scroll-broken: under
+    // Regression for @km/code/transcript-scroll-broken: under
     // `follow="end"`, App-level Shift+Up bursts dispatch many scrollBy(-1)
     // calls within a single React tick. If `scrollBy` seeds from the
     // React-state `physics.scrollFloat`, every call in the burst reads the

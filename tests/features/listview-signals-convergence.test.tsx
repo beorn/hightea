@@ -190,7 +190,7 @@ describe("ListView signals refactor — convergence", () => {
   })
 
   test("auto-flash scrollbar appears on first paint when content overflows (height-independent)", () => {
-    // Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    // Bead: @km/code/trackpad-scrolling-no-scrollbar.
     // `prevItemCountRef` initialises to 0 (NOT `activeItems.length`) so a
     // ListView that mounts with items already present (resumed chat, server-
     // rendered list, etc.) sees the 0→N transition as "items grew" and
@@ -228,7 +228,7 @@ describe("ListView signals refactor — convergence", () => {
   })
 
   test("silvercode shape — items appear AFTER first render, scrollbar visible without input", async () => {
-    // Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+    // Bead: @km/code/trackpad-scrolling-no-scrollbar.
     //
     // The exact silvercode resumed-session shape: ListView mounts initially
     // with zero items (Welcome screen path), then the controller's projected

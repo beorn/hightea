@@ -2176,7 +2176,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
             // the list, the previously-hovered row scrolls away, but
             // its hover-bg remains painted on the new row that took its
             // place. Idempotent when nothing changed.
-            // Bead: @km/silvercode/sticky-hover-residue.
+            // Bead: @km/code/sticky-hover-residue.
             refreshHoverPath(mouseEventState, container.root)
             // CLS instrumentation — post-commit layout-shift detection.
             // Gated by `DEBUG=silvery:cls`; cheap when disabled (single

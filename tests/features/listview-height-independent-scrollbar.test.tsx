@@ -116,7 +116,7 @@ describe("ListView height-independent — scrollbar with multi-line items", () =
     // First-paint flash: 6 multi-line items overflow the 20-row viewport,
     // so the scrollbar appears immediately on mount (auto-flash on the
     // 0→6 item transition). Bead:
-    // @km/silvercode/trackpad-scrolling-no-scrollbar.
+    // @km/code/trackpad-scrolling-no-scrollbar.
     expect(findThumbCell(app, COLS, ROWS)).not.toBeNull()
 
     // Wheel-scroll once — content overflows (48 rows in 20-row viewport),

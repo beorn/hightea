@@ -276,7 +276,7 @@ export interface ListViewProps<T> {
    * Default `"auto"` for compatibility. Streaming-content callers (chat
    * transcripts) should pass `"always"`.
    *
-   * Bead: @km/silvercode/trackpad-scrolling-no-scrollbar.
+   * Bead: @km/code/trackpad-scrolling-no-scrollbar.
    */
   scrollbarVisibility?: "auto" | "always" | "hidden"
 
@@ -912,7 +912,7 @@ function ListViewInner<T>(
         // path because the height-convergence chain takes 3+ commits
         // but the renderer caps at 2). Wheel events silently no-op
         // until the chain settles. Bead:
-        // @km/silvercode/trackpad-wheel-not-scrolling.
+        // @km/code/trackpad-wheel-not-scrolling.
         wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
         return
       }
@@ -2152,7 +2152,7 @@ function ListViewInner<T>(
   // items on first paint" as the steady state — the scrollbar never
   // flashed and `scrollbarVisibility="auto"` consumers would have to wheel
   // or click before the chrome appeared. Bead:
-  // @km/silvercode/trackpad-scrolling-no-scrollbar.
+  // @km/code/trackpad-scrolling-no-scrollbar.
   //
   // Callers that load an already-overflowed transcript during startup can set
   // `flashScrollbarOnItemCountGrow={false}` to keep the mounted track quiet

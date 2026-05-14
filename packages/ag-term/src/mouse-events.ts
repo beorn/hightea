@@ -1081,7 +1081,7 @@ function clearHoverPath(state: MouseEventProcessorState, parsed: ParsedMouse): v
  * Idempotent — when nothing changed, no events fire and `state.hoverPath`
  * stays identity-equal. Safe to call every render commit.
  *
- * Bead: @km/silvercode/sticky-hover-residue.
+ * Bead: @km/code/sticky-hover-residue.
  */
 export function refreshHoverPath(state: MouseEventProcessorState, root: AgNode): void {
   if (state.lastPointer === null) return

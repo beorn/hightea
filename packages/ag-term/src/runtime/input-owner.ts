@@ -393,7 +393,7 @@ export function createInputOwner(
         // Action-specific debug — silvery:input-owner only logs the
         // less-frequent wheel and click actions to avoid drowning move
         // streams. Use `silvery:input-owner` namespace for live capture.
-        // Bead: @km/silvercode/trackpad-wheel-not-scrolling.
+        // Bead: @km/code/trackpad-wheel-not-scrolling.
         if (mouse.action === "wheel" || mouse.action === "down" || mouse.action === "up") {
           log?.debug?.(
             `parsed mouse: action=${mouse.action} button=${mouse.button} x=${mouse.x} y=${mouse.y} delta=${mouse.delta ?? 0} bytes=${JSON.stringify(raw)}`,
