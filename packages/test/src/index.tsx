@@ -302,6 +302,137 @@ export interface TermlessTrackpadFlickResult {
   groups: readonly TermlessTrackpadFlickGroup[]
 }
 
+export interface TermlessTrackpadFlickDebugLogOptions {
+  /** Default: "pixel" when SGR-Pixels cell size can be inferred, otherwise "cell". */
+  coordinateMode?: TermlessMouseCoordinateMode
+  /** Override inferred cell size for SGR-Pixels logs. */
+  cellSize?: TermlessMouseCellSize
+  /** Override profile x. Defaults to first parsed wheel event x. */
+  x?: number
+  /** Override profile y. Defaults to first parsed wheel event y. */
+  y?: number
+}
+
+interface ParsedDebugWheelEvent {
+  time: number
+  x: number
+  y: number
+  delta: number
+  button?: number
+  sgrX?: number
+  sgrY?: number
+}
+
+export function parseTermlessTrackpadFlickProfileFromDebugLog(
+  logText: string,
+  options: TermlessTrackpadFlickDebugLogOptions = {},
+): TermlessTrackpadFlickProfile {
+  const events: ParsedDebugWheelEvent[] = []
+  for (const line of logText.split(/\r?\n/)) {
+    if (!line.startsWith("{")) continue
+    let record: unknown
+    try {
+      record = JSON.parse(line)
+    } catch {
+      continue
+    }
+    if (typeof record !== "object" || record === null) continue
+    const obj = record as { time?: unknown; name?: unknown; msg?: unknown }
+    if (obj.name !== "silvery:input-owner" || typeof obj.msg !== "string") continue
+    if (!obj.msg.startsWith("parsed mouse: action=wheel")) continue
+    const parsed = parseDebugWheelMessage(obj.msg, obj.time)
+    if (parsed !== null) events.push(parsed)
+  }
+
+  if (events.length === 0) {
+    throw new Error("No silvery input-owner wheel events found in debug log")
+  }
+
+  const first = events[0]!
+  const cellSize = options.cellSize ?? inferDebugWheelCellSize(first)
+  const coordinateMode = options.coordinateMode ?? (cellSize === undefined ? "cell" : "pixel")
+  return {
+    x: options.x ?? first.x,
+    y: options.y ?? first.y,
+    direction: first.delta < 0 ? "up" : "down",
+    coordinateMode,
+    ...(cellSize === undefined ? {} : { cellSize }),
+    packets: eventsToTrackpadPackets(events),
+  }
+}
+
+function parseDebugWheelMessage(msg: string, time: unknown): ParsedDebugWheelEvent | null {
+  if (typeof time !== "string") return null
+  const timestamp = Date.parse(time)
+  if (!Number.isFinite(timestamp)) return null
+
+  const coords = msg.match(/\bx=([-0-9.]+)\s+y=([-0-9.]+)\s+delta=([-0-9.]+)/)
+  if (coords === null) return null
+  const x = Number(coords[1])
+  const y = Number(coords[2])
+  const delta = Number(coords[3])
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(delta)) return null
+
+  const escape = String.fromCharCode(27)
+  const sgr = msg.match(new RegExp(`${escape}\\[<(\\d+);(\\d+);(\\d+)[Mm]`))
+  return {
+    time: timestamp,
+    x,
+    y,
+    delta,
+    ...(sgr === null
+      ? {}
+      : {
+          button: Number(sgr[1]),
+          sgrX: Number(sgr[2]),
+          sgrY: Number(sgr[3]),
+        }),
+  }
+}
+
+function inferDebugWheelCellSize(event: ParsedDebugWheelEvent): TermlessMouseCellSize | undefined {
+  if (event.sgrX === undefined || event.sgrY === undefined || event.x <= 0 || event.y <= 0) {
+    return undefined
+  }
+  const width = (event.sgrX - 1) / event.x
+  const height = (event.sgrY - 1) / event.y
+  if (!Number.isFinite(width) || !Number.isFinite(height)) return undefined
+  if (width <= 1 || height <= 1) return undefined
+  return {
+    width: Math.round(width * 1000) / 1000,
+    height: Math.round(height * 1000) / 1000,
+  }
+}
+
+function eventsToTrackpadPackets(
+  events: readonly ParsedDebugWheelEvent[],
+): TermlessTrackpadFlickPacket[] {
+  const firstTime = events[0]!.time
+  const packets: TermlessTrackpadFlickPacket[] = []
+  for (const event of events) {
+    const atMs = Math.max(0, Math.round(event.time - firstTime))
+    const last = packets[packets.length - 1]
+    if (
+      last !== undefined &&
+      last.atMs === atMs &&
+      last.delta === event.delta &&
+      last.button === event.button &&
+      last.x === undefined &&
+      last.y === undefined
+    ) {
+      last.count = (last.count ?? 1) + 1
+      continue
+    }
+    packets.push({
+      atMs,
+      count: 1,
+      delta: event.delta,
+      ...(event.button === undefined ? {} : { button: event.button }),
+    })
+  }
+  return packets
+}
+
 export interface TermlessTrackpadFlickOptions {
   /** Called after each timed stdin chunk is delivered and the event loop yields once. */
   afterGroup?: (group: TermlessTrackpadFlickGroup) => void | Promise<void>

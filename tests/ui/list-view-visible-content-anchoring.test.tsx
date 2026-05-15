@@ -297,6 +297,35 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(480)
   })
 
+  test("active upward scroll accepts tiny opposite measurement corrections", () => {
+    // This is the live transcript tail-jitter shape: while an upward
+    // trackpad flick is still active, measuring a newly mounted row can move
+    // the preserved anchor a few rows down in row-space. Rejecting that
+    // correction keeps the row counter monotonic, but lets the visible top
+    // item jump forward/backward. Small corrections preserve the screen
+    // anchor; large opposite corrections remain blocked as likely input
+    // reversal or stale-anchor drift.
+    expect(
+      resolveDirectionalMaintainedTopRow({
+        row: 4523,
+        currentTopRow: 4520,
+        activeScrollDirection: "up",
+        toleranceRows: 0.5,
+        maxOppositeActiveCorrectionRows: 4,
+      }),
+    ).toBe(4523)
+
+    expect(
+      resolveDirectionalMaintainedTopRow({
+        row: 4530,
+        currentTopRow: 4520,
+        activeScrollDirection: "up",
+        toleranceRows: 0.5,
+        maxOppositeActiveCorrectionRows: 4,
+      }),
+    ).toBeNull()
+  })
+
   test("active wheel clamps same-direction measurement jumps to the frame budget", () => {
     // Reproduces the 2026-05-15 silvercode log shape: while the user was
     // actively scrolling up, newly mounted row measurements moved the
@@ -345,14 +374,17 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(4584)
   })
 
-  test("active wheel freezes the unmeasured-row fallback average", () => {
+  test("wheel-driven viewport freezes the unmeasured-row fallback average until ownership resets", () => {
     // A single new measurement can move the live average, which otherwise
     // multiplies across every unmeasured transcript row and shifts the scroll
-    // extent during the gesture. Active wheel uses the gesture-start average;
-    // idle renders keep following the live average.
+    // extent during the gesture. The fallback stays pinned for the whole
+    // wheel-driven read position, including the idle handoff after the final
+    // wheel packet; otherwise the viewport rebases by hundreds of rows when
+    // the gesture timer expires.
     expect(
       resolveActiveScrollMeasuredHeightFallback({
         wheelGestureActive: true,
+        wheelDriven: true,
         snapshotAvgMeasuredHeight: 4.75,
         liveAvgMeasuredHeight: 5.25,
       }),
@@ -361,6 +393,16 @@ describe("ListView maintainVisibleContentPosition", () => {
     expect(
       resolveActiveScrollMeasuredHeightFallback({
         wheelGestureActive: false,
+        wheelDriven: true,
+        snapshotAvgMeasuredHeight: 4.75,
+        liveAvgMeasuredHeight: 5.25,
+      }),
+    ).toBe(4.75)
+
+    expect(
+      resolveActiveScrollMeasuredHeightFallback({
+        wheelGestureActive: false,
+        wheelDriven: false,
         snapshotAvgMeasuredHeight: 4.75,
         liveAvgMeasuredHeight: 5.25,
       }),
@@ -369,6 +411,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     expect(
       resolveActiveScrollMeasuredHeightFallback({
         wheelGestureActive: true,
+        wheelDriven: true,
         snapshotAvgMeasuredHeight: undefined,
         liveAvgMeasuredHeight: 5.25,
       }),

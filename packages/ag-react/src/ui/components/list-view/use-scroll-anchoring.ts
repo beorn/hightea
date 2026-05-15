@@ -11,6 +11,7 @@ export interface ScrollAnchoringOptions {
   followOwnsViewport: boolean
   activeScrollDirection?: "up" | "down" | null
   maxActiveCorrectionRows?: number
+  maxOppositeActiveCorrectionRows?: number
   onApplyTopRow: (row: number) => void
   toleranceRows?: number
 }
@@ -68,14 +69,16 @@ export function resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight: n
 
 export function resolveActiveScrollMeasuredHeightFallback({
   wheelGestureActive,
+  wheelDriven,
   snapshotAvgMeasuredHeight,
   liveAvgMeasuredHeight,
 }: {
   wheelGestureActive: boolean
+  wheelDriven?: boolean
   snapshotAvgMeasuredHeight: number | undefined
   liveAvgMeasuredHeight: number | undefined
 }): number | undefined {
-  if (wheelGestureActive && snapshotAvgMeasuredHeight !== undefined)
+  if ((wheelGestureActive || wheelDriven === true) && snapshotAvgMeasuredHeight !== undefined)
     return snapshotAvgMeasuredHeight
   return liveAvgMeasuredHeight
 }
@@ -90,6 +93,7 @@ export function useScrollAnchoring({
   followOwnsViewport,
   activeScrollDirection = null,
   maxActiveCorrectionRows,
+  maxOppositeActiveCorrectionRows,
   onApplyTopRow,
   toleranceRows = DEFAULT_TOLERANCE_ROWS,
 }: ScrollAnchoringOptions): ScrollAnchoringController {
@@ -114,6 +118,7 @@ export function useScrollAnchoring({
     currentTopRow,
     activeScrollDirection,
     maxActiveCorrectionRows,
+    maxOppositeActiveCorrectionRows,
     toleranceRows,
   })
 
@@ -159,17 +164,35 @@ export function resolveDirectionalMaintainedTopRow({
   currentTopRow,
   activeScrollDirection,
   maxActiveCorrectionRows,
+  maxOppositeActiveCorrectionRows,
   toleranceRows,
 }: {
   row: number | null
   currentTopRow: number
   activeScrollDirection: "up" | "down" | null
   maxActiveCorrectionRows?: number
+  maxOppositeActiveCorrectionRows?: number
   toleranceRows: number
 }): number | null {
   if (row === null || activeScrollDirection === null) return row
-  if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) return null
-  if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) return null
+  if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) {
+    if (
+      maxOppositeActiveCorrectionRows !== undefined &&
+      row <= currentTopRow + maxOppositeActiveCorrectionRows
+    ) {
+      return row
+    }
+    return null
+  }
+  if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) {
+    if (
+      maxOppositeActiveCorrectionRows !== undefined &&
+      row >= currentTopRow - maxOppositeActiveCorrectionRows
+    ) {
+      return row
+    }
+    return null
+  }
   if (
     maxActiveCorrectionRows !== undefined &&
     Math.abs(row - currentTopRow) > maxActiveCorrectionRows

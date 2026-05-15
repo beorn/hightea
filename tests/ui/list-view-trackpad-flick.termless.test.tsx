@@ -8,7 +8,11 @@
 
 import React, { act } from "react"
 import { describe, expect, test } from "vitest"
-import { createTermless, type TermlessTrackpadFlickProfile } from "@silvery/test"
+import {
+  createTermless,
+  parseTermlessTrackpadFlickProfileFromDebugLog,
+  type TermlessTrackpadFlickProfile,
+} from "@silvery/test"
 import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
 import { Box, ListView, Text } from "../../src/index"
 import type { ListViewHandle } from "../../packages/ag-react/src/ui/components/ListView"
@@ -68,6 +72,18 @@ function makeVariableRows(count: number): RowItem[] {
   }))
 }
 
+function makeIdleHandoffRows(count: number): RowItem[] {
+  return Array.from({ length: count }, (_, index) => ({
+    id: `handoff-row-${index}`,
+    label: `Line ${String(index).padStart(4, "0")}`,
+    // Match the live failure shape: the initially visible tail is short,
+    // then the upward flick measures a much taller region. The measured
+    // average rises during the gesture; the viewport must not rebase when
+    // the wheel gesture idles.
+    height: index >= count - 90 ? 2 : index >= count - 620 ? 8 : 3,
+  }))
+}
+
 function FlickList({
   items,
   listRef,
@@ -84,6 +100,7 @@ function FlickList({
         getKey={(item) => item.id}
         follow="end"
         virtualization="index"
+        enableInputCadenceDetection
         viewportBottomInset={5}
         scrollbarVisibility="always"
         renderItem={(item) => (
@@ -109,7 +126,58 @@ function newestVisibleLine(text: string): number | null {
   return numbers.length === 0 ? null : Math.max(...numbers)
 }
 
+function oldestVisibleLine(text: string): number | null {
+  const numbers = visibleLineNumbers(text)
+  return numbers.length === 0 ? null : Math.min(...numbers)
+}
+
+function upwardReversals(samples: readonly { label: string; oldest: number | null }[]): string[] {
+  const reversals: string[] = []
+  let prev: { label: string; oldest: number } | null = null
+  for (const sample of samples) {
+    if (sample.oldest === null) continue
+    if (prev !== null && sample.oldest > prev.oldest + 1) {
+      reversals.push(`${prev.label}:${prev.oldest} -> ${sample.label}:${sample.oldest}`)
+    }
+    prev = { label: sample.label, oldest: sample.oldest }
+  }
+  return reversals
+}
+
 describe("ListView trackpad flick replay through termless", () => {
+  test("parses timestamped wheel packets from silvery debug logs", () => {
+    const log = [
+      {
+        time: "2026-05-15T18:02:19.865Z",
+        name: "silvery:input-owner",
+        msg: 'parsed mouse: action=wheel button=0 x=166.57142857142858 y=71 delta=-1 bytes="\u001b[<64;2333;1847M"',
+      },
+      {
+        time: "2026-05-15T18:02:19.865Z",
+        name: "silvery:input-owner",
+        msg: 'parsed mouse: action=wheel button=0 x=166.57142857142858 y=71 delta=-1 bytes="\u001b[<64;2333;1847M"',
+      },
+      {
+        time: "2026-05-15T18:02:19.900Z",
+        name: "silvery:input-owner",
+        msg: 'parsed mouse: action=wheel button=0 x=166.57142857142858 y=71 delta=1 bytes="\u001b[<67;2333;1847M"',
+      },
+    ]
+      .map((record) => JSON.stringify(record))
+      .join("\n")
+
+    const profile = parseTermlessTrackpadFlickProfileFromDebugLog(log)
+
+    expect(profile.coordinateMode).toBe("pixel")
+    expect(profile.cellSize).toEqual({ width: 14, height: 26 })
+    expect(profile.x).toBeCloseTo(166.57142857142858)
+    expect(profile.y).toBe(71)
+    expect(profile.packets).toEqual([
+      { atMs: 0, count: 2, delta: -1, button: 64 },
+      { atMs: 35, count: 1, delta: 1, button: 67 },
+    ])
+  })
+
   test("does not add a large idle-handoff jump after a captured upward flick", async () => {
     using term = createTermless({ cols: 302, rows: 117 })
     const listRef = React.createRef<ListViewHandle>()
@@ -160,6 +228,94 @@ describe("ListView trackpad flick replay through termless", () => {
           .map((sample) => `${sample.label}@${sample.eventCount}:${sample.newest}`)
           .join(", "),
       ).toBeLessThanOrEqual(8)
+    } finally {
+      handle.unmount()
+    }
+  }, 20_000)
+
+  test("keeps row position stable when measured average changes during idle handoff", async () => {
+    using term = createTermless({ cols: 302, rows: 117 })
+    const listRef = React.createRef<ListViewHandle>()
+    const items = makeIdleHandoffRows(1265)
+    const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+      mouse: true,
+    })
+    try {
+      await settle(120)
+      act(() => {
+        listRef.current?.scrollToBottom()
+      })
+      await settle(120)
+
+      const samples: { label: string; newest: number | null; eventCount: number }[] = [
+        { label: "initial", newest: newestVisibleLine(term.screen.getText()), eventCount: 0 },
+      ]
+      const result = await term.mouse.trackpadFlick(USER_LOG_SINGLE_UP_FLICK_PACKETS, {
+        afterGroup(group) {
+          samples.push({
+            label: `packet-${group.atMs}`,
+            newest: newestVisibleLine(term.screen.getText()),
+            eventCount: group.eventCount,
+          })
+        },
+      })
+      await settle(1000)
+      samples.push({
+        label: "settled",
+        newest: newestVisibleLine(term.screen.getText()),
+        eventCount: result.eventCount,
+      })
+
+      const beforeSettled = samples[samples.length - 2]!
+      const settled = samples.at(-1)!
+      const handoffJump =
+        beforeSettled.newest === null || settled.newest === null
+          ? 0
+          : Math.abs(settled.newest - beforeSettled.newest)
+      expect(
+        handoffJump,
+        samples
+          .slice(-8)
+          .map((sample) => `${sample.label}@${sample.eventCount}:${sample.newest}`)
+          .join(", "),
+      ).toBeLessThanOrEqual(8)
+    } finally {
+      handle.unmount()
+    }
+  }, 20_000)
+
+  test("does not reverse the top visible line during a captured upward flick tail", async () => {
+    using term = createTermless({ cols: 302, rows: 117 })
+    const listRef = React.createRef<ListViewHandle>()
+    const items = makeVariableRows(1265)
+    const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+      mouse: true,
+    })
+    try {
+      await settle(120)
+      act(() => {
+        listRef.current?.scrollToBottom()
+      })
+      await settle(120)
+
+      const samples: { label: string; oldest: number | null }[] = [
+        { label: "initial", oldest: oldestVisibleLine(term.screen.getText()) },
+      ]
+      await term.mouse.trackpadFlick(USER_LOG_SINGLE_UP_FLICK_PACKETS, {
+        afterGroup(group) {
+          samples.push({
+            label: `packet-${group.atMs}`,
+            oldest: oldestVisibleLine(term.screen.getText()),
+          })
+        },
+      })
+      await settle(1000)
+      samples.push({ label: "settled", oldest: oldestVisibleLine(term.screen.getText()) })
+
+      expect(
+        upwardReversals(samples),
+        samples.map((sample) => `${sample.label}:${sample.oldest}`).join(", "),
+      ).toEqual([])
     } finally {
       handle.unmount()
     }

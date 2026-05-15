@@ -81,6 +81,12 @@ const KINETIC_STOP_DISTANCE = 1.5
 const KINETIC_FRAME_MS = 16
 /** Wait this long with no wheel events before entering momentum phase. */
 const RELEASE_TIMEOUT_MS = 60
+/** Maximum continuous trackpad rows drained before the next paint.
+ * Terminal backends can deliver high-resolution trackpad motion as a burst
+ * of same-timestamp SGR wheel packets. Applying the entire burst in one
+ * React commit reads as a jump; draining it over a few frame ticks preserves
+ * distance while restoring smooth visual cadence. */
+const SMOOTH_WHEEL_MAX_ROWS_PER_FRAME = 4
 /** Scrollbar auto-hide delay after the last scroll activity. */
 export const SCROLLBAR_FADE_AFTER_MS = 800
 /** Default duration for animated scrollTo — calibrated for "feels deliberate
@@ -107,6 +113,11 @@ const CADENCE_DISCRETE_GAP_MS = 50
  * (trackpad). Between this and DISCRETE_GAP_MS we keep the prior mode — a
  * hysteresis band that prevents flapping. */
 const CADENCE_CONTINUOUS_GAP_MS = 30
+/** Once a stream is classified as continuous, preserve that classification
+ * through the inertial tail. Trackpads naturally emit wider-spaced packets
+ * near the end of a flick; reclassifying that tail as discrete mouse-wheel
+ * input turns a decelerating tail into visible 3-row jumps. */
+const CADENCE_CONTEXT_EXPIRY_MS = 500
 /** Step multiplier applied to mouse-wheel-mode samples — each click moves
  * this many rows instead of 1. Matches typical OS mouse-wheel mappings (3-5
  * lines per notch). */
@@ -187,10 +198,20 @@ export interface UseKineticScrollOptions {
    */
   enableInputCadenceDetection?: boolean
   /**
+   * Smooth same-timestamp continuous wheel packet bursts by draining at most
+   * a small row budget per frame. Intended for terminal/browser trackpads
+   * whose native input source already emits inertial wheel packets; discrete
+   * mouse-wheel clicks still apply immediately.
+   *
+   * Default `false` for compatibility. ListView enables this because its
+   * transcript/log use case values visual cadence over immediate row jumps.
+   */
+  smoothWheelPackets?: boolean
+  /**
    * Fired any time the scroll position changes (wheel-driven or momentum).
    * Receives both the integer rendered offset and the float (sub-row) value.
    */
-  onScroll?: (offset: number, float: number) => void
+  onScroll?: (offset: number, float: number, meta?: { direction: -1 | 1 }) => void
 }
 
 export interface UseKineticScrollResult {
@@ -263,6 +284,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     enableMomentum = true,
     enableElasticEdges = false,
     enableInputCadenceDetection = false,
+    smoothWheelPackets = false,
     onEdgeReached,
     onScroll,
   } = options
@@ -278,6 +300,9 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   // Rolling event buffer — { time, applied rows }.
   const wheelBufferRef = useRef<Array<{ t: number; rows: number }>>([])
   const wheelGestureFilterRef = useRef(createWheelGestureFilter())
+  const smoothWheelRowsRef = useRef(0)
+  const smoothWheelFrameRowsRef = useRef(0)
+  const smoothWheelDrainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Active animation state (mutex — only one runs at a time, all share
   // `loopRef`). Three flavors:
   //   - "momentum"  velocity-driven exponential coast after a wheel release
@@ -325,7 +350,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   onScrollRef.current = onScroll
 
   const updatePosition = useCallback(
-    (float: number) => {
+    (float: number, meta?: { direction: -1 | 1 }) => {
       scrollFloatRef.current = float
       setScrollFloatState((prev) => (Math.abs(prev - float) < 0.001 ? prev : float))
       const maxS = readMaxScroll()
@@ -339,7 +364,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const clampedFloat = Math.max(0, Number.isFinite(maxS) ? Math.min(maxS, float) : float)
       const rendered = Math.round(clampedFloat)
       setScrollOffsetState((prev) => (prev === rendered ? prev : rendered))
-      onScrollRef.current?.(rendered, float)
+      onScrollRef.current?.(rendered, float, meta)
     },
     [readMaxScroll],
   )
@@ -371,13 +396,100 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
 
+  const clearSmoothWheelDrain = useCallback(() => {
+    if (smoothWheelDrainTimerRef.current !== null) {
+      clearTimeout(smoothWheelDrainTimerRef.current)
+      smoothWheelDrainTimerRef.current = null
+    }
+  }, [])
+
+  const applyWheelRows = useCallback(
+    (rows: number, isDiscrete: boolean): number => {
+      if (rows === 0) return 0
+      const prev = scrollFloatRef.current
+      const maxS = readMaxScroll()
+      const rawNext = prev + rows
+      let nextFloat = prev
+      const allowElastic = enableElasticEdges && !isDiscrete
+      if (rawNext < 0) {
+        if (allowElastic) {
+          const overshootPrev = Math.max(0, -prev)
+          const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
+          const resisted = (rawNext - prev) / resistance
+          nextFloat = Math.max(-ELASTIC_BUDGET_ROWS, prev + resisted)
+        } else {
+          nextFloat = 0
+        }
+      } else if (Number.isFinite(maxS) && rawNext > maxS) {
+        if (allowElastic) {
+          const overshootPrev = Math.max(0, prev - maxS)
+          const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
+          const resisted = (rawNext - prev) / resistance
+          nextFloat = Math.min(maxS + ELASTIC_BUDGET_ROWS, prev + resisted)
+        } else {
+          nextFloat = maxS
+        }
+      } else {
+        nextFloat = rawNext
+      }
+
+      const appliedRows = nextFloat - prev
+      const dir = Math.sign(rows)
+      if (dir > 0 && Number.isFinite(maxS) && nextFloat >= maxS)
+        onEdgeReachedRef.current?.("bottom")
+      else if (dir < 0 && nextFloat <= 0) onEdgeReachedRef.current?.("top")
+
+      if (appliedRows !== 0) {
+        updatePosition(nextFloat, { direction: appliedRows < 0 ? -1 : 1 })
+      }
+      return appliedRows
+    },
+    [enableElasticEdges, readMaxScroll, updatePosition],
+  )
+
+  const drainSmoothWheelRows = useCallback(() => {
+    smoothWheelDrainTimerRef.current = null
+    smoothWheelFrameRowsRef.current = 0
+    const pending = smoothWheelRowsRef.current
+    if (Math.abs(pending) < 0.001) {
+      smoothWheelRowsRef.current = 0
+      return
+    }
+
+    const rows =
+      Math.abs(pending) <= SMOOTH_WHEEL_MAX_ROWS_PER_FRAME
+        ? pending
+        : Math.sign(pending) * SMOOTH_WHEEL_MAX_ROWS_PER_FRAME
+    smoothWheelRowsRef.current = pending - rows
+    smoothWheelFrameRowsRef.current = Math.abs(rows)
+
+    applyWheelRows(rows, false)
+    scheduleScrollbarHide()
+
+    if (Math.abs(smoothWheelRowsRef.current) >= 0.001) {
+      smoothWheelDrainTimerRef.current = setTimeout(drainSmoothWheelRows, KINETIC_FRAME_MS)
+    }
+  }, [applyWheelRows, scheduleScrollbarHide])
+
+  const scheduleSmoothWheelDrain = useCallback(() => {
+    if (smoothWheelDrainTimerRef.current !== null) return
+    smoothWheelDrainTimerRef.current = setTimeout(drainSmoothWheelRows, KINETIC_FRAME_MS)
+  }, [drainSmoothWheelRows])
+
+  const cancelSmoothWheelDrain = useCallback(() => {
+    clearSmoothWheelDrain()
+    smoothWheelRowsRef.current = 0
+    smoothWheelFrameRowsRef.current = 0
+  }, [clearSmoothWheelDrain])
+
   useEffect(
     () => () => {
       stopKinetic()
       clearReleaseTimer()
+      clearSmoothWheelDrain()
       if (hideTimerRef.current !== null) clearTimeout(hideTimerRef.current)
     },
-    [stopKinetic, clearReleaseTimer],
+    [stopKinetic, clearReleaseTimer, clearSmoothWheelDrain],
   )
 
   const animationStep = useCallback((): boolean => {
@@ -548,10 +660,17 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         if (last > 0) {
           const interval = now - last
           const absD = Math.abs(deltaY)
-          if (interval >= CADENCE_DISCRETE_GAP_MS && absD <= 1) {
-            cadenceModeRef.current = "discrete"
-          } else if (interval <= CADENCE_CONTINUOUS_GAP_MS || absD > 1) {
+          if (interval > CADENCE_CONTEXT_EXPIRY_MS) {
+            cadenceModeRef.current = "unknown"
+          }
+          if (interval <= CADENCE_CONTINUOUS_GAP_MS || absD > 1) {
             cadenceModeRef.current = "continuous"
+          } else if (
+            cadenceModeRef.current !== "continuous" &&
+            interval >= CADENCE_DISCRETE_GAP_MS &&
+            absD <= 1
+          ) {
+            cadenceModeRef.current = "discrete"
           }
           // else: ambiguous gap, keep current mode (hysteresis)
         }
@@ -561,57 +680,51 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       while (buf.length > 0 && now - buf[0]!.t > WHEEL_VELOCITY_WINDOW_MS) buf.shift()
       const samples = wheelGestureFilterRef.current.process({ t: now, deltaY })
       if (samples.length === 0) return
-      const maxS = readMaxScroll()
       const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
       const stepRows = isDiscrete
         ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
         : WHEEL_STEP_ROWS * wheelMultiplier
-      let nextFloat = scrollFloatRef.current
+
+      const shouldSmooth =
+        smoothWheelPackets && enableInputCadenceDetection && !isDiscrete && !enableMomentum
+      if (shouldSmooth) {
+        let pendingRows = 0
+        for (const sample of samples) {
+          const sampleDir = Math.sign(sample.deltaY) || 0
+          if (sampleDir !== 0) pendingRows += sampleDir * stepRows
+        }
+        if (pendingRows === 0) return
+        if (
+          smoothWheelRowsRef.current !== 0 &&
+          Math.sign(smoothWheelRowsRef.current) !== Math.sign(pendingRows)
+        ) {
+          smoothWheelRowsRef.current = 0
+          smoothWheelFrameRowsRef.current = 0
+        }
+        smoothWheelRowsRef.current += pendingRows
+        const frameBudget = Math.max(
+          0,
+          SMOOTH_WHEEL_MAX_ROWS_PER_FRAME - smoothWheelFrameRowsRef.current,
+        )
+        if (frameBudget > 0) {
+          const pending = smoothWheelRowsRef.current
+          const rows = Math.abs(pending) <= frameBudget ? pending : Math.sign(pending) * frameBudget
+          smoothWheelRowsRef.current = pending - rows
+          smoothWheelFrameRowsRef.current += Math.abs(rows)
+          applyWheelRows(rows, false)
+        }
+        setIsScrolling(true)
+        scheduleScrollbarHide()
+        scheduleSmoothWheelDrain()
+        return
+      }
+
       for (const sample of samples) {
         const sampleDir = Math.sign(sample.deltaY) || 0
         if (sampleDir === 0) continue
-        const prev = nextFloat
-        const rawNext = prev + sampleDir * stepRows
-        // Edge clamping. Three cases:
-        //   - past lower bound (rawNext < 0)
-        //   - past upper bound (rawNext > maxS)
-        //   - inside bounds — pass through.
-        // Discrete (mouse wheel) mode never overshoots — clicks are
-        // expected to land on a row, not bounce. Elastic only applies in
-        // continuous mode.
-        const allowElastic = enableElasticEdges && !isDiscrete
-        if (rawNext < 0) {
-          if (allowElastic) {
-            const overshootPrev = Math.max(0, -prev)
-            const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
-            const resisted = (rawNext - prev) / resistance
-            nextFloat = Math.max(-ELASTIC_BUDGET_ROWS, prev + resisted)
-          } else {
-            nextFloat = 0
-          }
-        } else if (Number.isFinite(maxS) && rawNext > maxS) {
-          if (allowElastic) {
-            const overshootPrev = Math.max(0, prev - maxS)
-            const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
-            const resisted = (rawNext - prev) / resistance
-            nextFloat = Math.min(maxS + ELASTIC_BUDGET_ROWS, prev + resisted)
-          } else {
-            nextFloat = maxS
-          }
-        } else {
-          nextFloat = rawNext
-        }
-        const appliedRows = nextFloat - prev
-        // Edge-reached fires whenever a sample lands AT or PAST a bound —
-        // including the cursor-pinned-to-edge case where the seeded float
-        // already starts at the bound. Tests assert the indicator flashes
-        // on every wheel into the wall, not just first contact.
-        if (sampleDir > 0 && Number.isFinite(maxS) && nextFloat >= maxS)
-          onEdgeReachedRef.current?.("bottom")
-        else if (sampleDir < 0 && nextFloat <= 0) onEdgeReachedRef.current?.("top")
+        const appliedRows = applyWheelRows(sampleDir * stepRows, isDiscrete)
         if (appliedRows !== 0) buf.push({ t: sample.t, rows: appliedRows })
       }
-      updatePosition(nextFloat)
       setIsScrolling(true)
       scheduleScrollbarHide()
       // Discrete-cadence (mouse-wheel) inputs don't get a momentum coast —
@@ -630,15 +743,16 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     },
     [
       clearReleaseTimer,
-      enableElasticEdges,
+      applyWheelRows,
       enableInputCadenceDetection,
       enableMomentum,
       enableSameDirCompounding,
       maxVelocity,
       scheduleRelease,
       scheduleScrollbarHide,
+      scheduleSmoothWheelDrain,
+      smoothWheelPackets,
       stopKinetic,
-      updatePosition,
       wheelMultiplier,
     ],
   )
@@ -647,6 +761,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     (offset: number) => {
       stopKinetic()
       clearReleaseTimer()
+      cancelSmoothWheelDrain()
       wheelBufferRef.current = []
       wheelGestureFilterRef.current.reset()
       pendingBoostVelocityRef.current = 0
@@ -654,7 +769,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const clamped = Math.max(0, Number.isFinite(maxS) ? Math.min(maxS, offset) : offset)
       updatePosition(clamped)
     },
-    [clearReleaseTimer, stopKinetic, updatePosition],
+    [cancelSmoothWheelDrain, clearReleaseTimer, stopKinetic, updatePosition],
   )
 
   // Same as setScrollOffset but documented to accept fractional values.
@@ -676,13 +791,14 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const reset = useCallback(() => {
     stopKinetic()
     clearReleaseTimer()
+    cancelSmoothWheelDrain()
     wheelBufferRef.current = []
     wheelGestureFilterRef.current.reset()
     pendingBoostVelocityRef.current = 0
     needsSeedRef.current = true
     cadenceModeRef.current = "unknown"
     lastWheelTimeRef.current = 0
-  }, [clearReleaseTimer, stopKinetic])
+  }, [cancelSmoothWheelDrain, clearReleaseTimer, stopKinetic])
 
   const flashScrollbar = useCallback(() => {
     setIsScrolling(true)
@@ -696,6 +812,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       // ease-out from current to target.
       stopKinetic()
       clearReleaseTimer()
+      cancelSmoothWheelDrain()
       wheelBufferRef.current = []
       wheelGestureFilterRef.current.reset()
       pendingBoostVelocityRef.current = 0
@@ -721,7 +838,14 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       }
       startAnimationLoop()
     },
-    [clearReleaseTimer, readMaxScroll, startAnimationLoop, stopKinetic, updatePosition],
+    [
+      cancelSmoothWheelDrain,
+      clearReleaseTimer,
+      readMaxScroll,
+      startAnimationLoop,
+      stopKinetic,
+      updatePosition,
+    ],
   )
 
   const getScrollFloat = useCallback(() => scrollFloatRef.current, [])

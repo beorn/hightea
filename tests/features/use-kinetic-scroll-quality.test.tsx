@@ -190,7 +190,7 @@ describe("useKineticScroll — input cadence detection", () => {
     r(
       <TestHarness
         apiRef={apiRef}
-        options={{ maxScroll: 1000, enableInputCadenceDetection: true }}
+        options={{ maxScroll: 1000, enableInputCadenceDetection: true, enableMomentum: false }}
       />,
     )
     await settle()
@@ -216,7 +216,7 @@ describe("useKineticScroll — input cadence detection", () => {
     r(
       <TestHarness
         apiRef={apiRef}
-        options={{ maxScroll: 1000, enableInputCadenceDetection: true }}
+        options={{ maxScroll: 1000, enableInputCadenceDetection: true, enableMomentum: false }}
       />,
     )
     await settle()
@@ -230,6 +230,65 @@ describe("useKineticScroll — input cadence detection", () => {
       6,
       5,
     )
+  })
+
+  test("continuous cadence keeps inertial tail from becoming discrete jumps", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{ maxScroll: 1000, enableInputCadenceDetection: true, enableMomentum: false }}
+      />,
+    )
+    await settle()
+
+    // First establish a continuous trackpad stream, then let the inertial
+    // tail spread out beyond the mouse-wheel discrete threshold. The tail
+    // is still part of the same gesture and must stay one row per packet.
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(10)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(10)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(80)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(80)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(20)
+
+    expect(apiRef.current!.scrollFloat, "continuous tail stays continuous").toBe(5)
+  })
+
+  test("smoothWheelPackets drains same-turn trackpad bursts over frame budget", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          smoothWheelPackets: true,
+        }}
+      />,
+    )
+    await settle()
+
+    // Real terminal trackpad traces can batch 13-16 same-timestamp SGR
+    // wheel packets. The old path applied all of them before the next
+    // paint, producing a visible row jump. Smooth packet mode preserves
+    // total distance but caps the first paint to the frame budget.
+    for (let i = 0; i < 16; i++) {
+      apiRef.current!.onWheel({ deltaY: 1 })
+    }
+
+    await settle(5)
+    expect(apiRef.current!.scrollFloat, "first paint is capped").toBeLessThanOrEqual(4)
+
+    await settle(90)
+    expect(apiRef.current!.scrollFloat, "burst eventually drains in full").toBe(16)
   })
 
   test("cadence detection disabled by default — old behaviour preserved", async () => {

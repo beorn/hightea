@@ -504,7 +504,9 @@ export interface ListViewProps<T> {
    * by inter-event cadence. When a stream looks like discrete mouse-wheel
    * clicks (≥50ms gaps + |deltaY|≤1), each event jumps multiple rows
    * with no momentum coast. Trackpad streams keep smooth physics.
-   * Default `false` — opt in after profiling on real mouse hardware.
+   * Default `false` — opt in for real interactive surfaces after profiling
+   * the input backend. When enabled, same-timestamp continuous packet bursts
+   * are frame-paced so trackpad flicks do not jump by an entire packet.
    */
   enableInputCadenceDetection?: boolean
 }
@@ -811,7 +813,13 @@ function ListViewInner<T>(
   const activeWheelAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
 
   const markWheelGestureActive = useCallback(() => {
-    if (!wheelGestureActiveRef.current) {
+    if (
+      !wheelGestureActiveRef.current &&
+      (!isWheelDrivenRef.current ||
+        followActiveRef.current ||
+        pendingFollowSnapRef.current ||
+        activeWheelAvgMeasuredHeightRef.current === undefined)
+    ) {
       activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
     }
     wheelGestureActiveRef.current = true
@@ -821,7 +829,6 @@ function ListViewInner<T>(
     wheelGestureActiveTimerRef.current = setTimeout(() => {
       wheelGestureActiveRef.current = false
       activeScrollDirectionRef.current = null
-      activeWheelAvgMeasuredHeightRef.current = undefined
       wheelGestureActiveTimerRef.current = null
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
@@ -849,6 +856,7 @@ function ListViewInner<T>(
     enableMomentum: false,
     enableElasticEdges,
     enableInputCadenceDetection,
+    smoothWheelPackets: enableInputCadenceDetection,
     getInitialFloat: () => {
       // Cursor pinned to an endpoint? Seed straight to that edge so the
       // overscroll indicator fires immediately and rowsAboveViewport's
@@ -861,12 +869,19 @@ function ListViewInner<T>(
       return Math.max(0, Math.min(maxRow, rowsAboveViewportRef.current))
     },
     onEdgeReached: flashEdgeBump,
-    onScroll: (offset) => {
+    onScroll: (offset, _float, meta) => {
       // Mirror the hook's offset into render state, but ONLY once
       // wheel-driving has flipped the sentinel — anchoring's
       // nudgeScrollFloat must NOT pretend to be a fresh user wheel.
       if (!isWheelDrivenRef.current) return
-      if (committingWheelScrollRef.current && pendingWheelScrollDirectionRef.current !== null) {
+      const scrolledDirection =
+        meta?.direction === -1 ? "up" : meta?.direction === 1 ? "down" : null
+      if (scrolledDirection !== null) {
+        activeScrollDirectionRef.current = scrolledDirection
+      } else if (
+        committingWheelScrollRef.current &&
+        pendingWheelScrollDirectionRef.current !== null
+      ) {
         activeScrollDirectionRef.current = pendingWheelScrollDirectionRef.current
       }
       setScrollRow((prev) => (prev === offset ? prev : offset))
@@ -909,6 +924,7 @@ function ListViewInner<T>(
       setCursorSilently(next)
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = false
+      activeWheelAvgMeasuredHeightRef.current = undefined
       setScrollRow(null)
       physics.reset()
     },
@@ -969,6 +985,8 @@ function ListViewInner<T>(
       const target = clampedFrac * maxRow
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = true
+      activeWheelAvgMeasuredHeightRef.current =
+        clampedFrac >= 1 - 1 / Math.max(1, maxRow) ? undefined : liveAvgMeasuredHeightRef.current
       physics.setScrollFloat(target)
       setScrollRow(Math.round(target))
       // At the end? Re-arm follow="end" so streaming appends stay visible.
@@ -1394,8 +1412,11 @@ function ListViewInner<T>(
   // the original estimate.
   const liveAvgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportSize?.w)
   liveAvgMeasuredHeightRef.current = liveAvgMeasuredHeight
+  const wheelDrivenMeasuredHeightSnapshotActive =
+    isWheelDrivenRef.current && !followActiveRef.current && !pendingFollowSnapRef.current
   const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
     wheelGestureActive: wheelGestureActiveRef.current,
+    wheelDriven: wheelDrivenMeasuredHeightSnapshotActive,
     snapshotAvgMeasuredHeight: activeWheelAvgMeasuredHeightRef.current,
     liveAvgMeasuredHeight,
   })
@@ -1477,6 +1498,10 @@ function ListViewInner<T>(
     wheelGestureActiveRef.current && activeScrollDirectionRef.current !== null
       ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
+  const oppositeActiveAnchorCorrectionBudgetRows =
+    activeAnchorCorrectionBudgetRows !== undefined
+      ? Math.min(4, activeAnchorCorrectionBudgetRows)
+      : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
@@ -1493,6 +1518,7 @@ function ListViewInner<T>(
     followOwnsViewport: false,
     activeScrollDirection: wheelGestureActiveRef.current ? activeScrollDirectionRef.current : null,
     maxActiveCorrectionRows: activeAnchorCorrectionBudgetRows,
+    maxOppositeActiveCorrectionRows: oppositeActiveAnchorCorrectionBudgetRows,
     onApplyTopRow: applyAnchoredTopRow,
   })
   const followDisengagedThisRender =
@@ -1982,6 +2008,9 @@ function ListViewInner<T>(
         const next = Math.max(0, Math.min(maxRow, seed + rows))
         if (next === seed) return
         scrollAnchoring.suppressOnce()
+        if (!isWheelDrivenRef.current || activeWheelAvgMeasuredHeightRef.current === undefined) {
+          activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
+        }
         isWheelDrivenRef.current = true
         if (scrollBehavior === "smooth") physics.animateToFloat(next)
         else physics.setScrollFloat(next)
@@ -1995,6 +2024,7 @@ function ListViewInner<T>(
       scrollToTop() {
         scrollAnchoring.suppressOnce()
         isWheelDrivenRef.current = true
+        activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
         if (scrollBehavior === "smooth") physics.animateToFloat(0)
         else physics.setScrollFloat(0)
         setScrollRow(0)
@@ -2005,6 +2035,7 @@ function ListViewInner<T>(
         const maxRow = maxScrollRowRef.current
         scrollAnchoring.suppressOnce()
         isWheelDrivenRef.current = true
+        activeWheelAvgMeasuredHeightRef.current = undefined
         if (scrollBehavior === "smooth") physics.animateToFloat(maxRow)
         else physics.setScrollFloat(maxRow)
         setScrollRow(maxRow)
@@ -2347,6 +2378,7 @@ function ListViewInner<T>(
     if (shouldSnap) {
       const targetRow = Math.round(maxRow)
       isWheelDrivenRef.current = true
+      activeWheelAvgMeasuredHeightRef.current = undefined
       physics.setScrollFloat(targetRow)
       setScrollRow(targetRow)
       pendingFollowSnapRef.current = false
