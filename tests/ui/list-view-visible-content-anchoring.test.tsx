@@ -129,6 +129,31 @@ function renderUnderestimatedFlexList(
   )
 }
 
+function renderFollowEndFlexList(
+  items: Item[],
+  ref: React.RefObject<ListViewHandle | null>,
+  extra?: Partial<ListViewProps<Item>>,
+): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexGrow={1} minHeight={0}>
+      <ListView<Item>
+        ref={ref}
+        items={items}
+        estimateHeight={(index) => items[index]?.height ?? 1}
+        getKey={(item) => item.id}
+        follow="end"
+        virtualization="index"
+        renderItem={(item) => (
+          <Box height={item.height} flexShrink={0}>
+            <Text>{item.title}</Text>
+          </Box>
+        )}
+        {...extra}
+      />
+    </Box>
+  )
+}
+
 function visibleLines(text: string): string[] {
   return stripAnsi(text)
     .split("\n")
@@ -545,5 +570,33 @@ describe("ListView maintainVisibleContentPosition", () => {
     app.rerender(renderFlexMeasuredList(shrunk, listRef))
 
     expect(visibleItemId(visibleLines(app.text)[0] ?? "")).toBe(before)
+  })
+
+  test("active upward wheel does not rearm follow=end when row measurements shrink", async () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 12 })
+    const tall = makeItems(90).map((item) => ({ ...item, height: 6 }))
+    const atBottomChanges: boolean[] = []
+    const render = (items: Item[]) =>
+      renderFollowEndFlexList(items, listRef, {
+        onAtBottomChange: (value) => atBottomChanges.push(value),
+      })
+    const app = r(render(tall))
+
+    act(() => {
+      listRef.current!.scrollToBottom()
+    })
+    app.rerender(render(tall))
+    await app.wheel(5, 5, -1)
+
+    expect(atBottomChanges.at(-1), "wheel-up must disengage follow=end").toBe(false)
+    atBottomChanges.length = 0
+
+    const shrunk = tall.map((item, index) => (index < 70 ? { ...item, height: 1 } : item))
+    app.rerender(render(shrunk))
+    expect(
+      atBottomChanges,
+      "measurement shrink during an active upward wheel must not rearm follow=end",
+    ).not.toContain(true)
   })
 })

@@ -922,7 +922,10 @@ function ListViewInner<T>(
         return
       }
       const wheelDirection = event.deltaY < 0 ? "up" : "down"
-      if (wheelDirection === "up") followActiveRef.current = false
+      if (wheelDirection === "up") {
+        followActiveRef.current = false
+        pendingFollowSnapRef.current = false
+      }
       isWheelDrivenRef.current = true
       markWheelGestureActive()
       scrollAnchoring.suppressOnce()
@@ -2296,11 +2299,16 @@ function ListViewInner<T>(
       maxRow > prevMaxRow &&
       scrollRow >= prevMaxRow - 0.5 &&
       rowsChanged
+    const activeUpwardScrollAwayFromEnd =
+      wheelGestureActiveRef.current &&
+      activeScrollDirectionRef.current === "up" &&
+      scrollRow !== null
     const shouldSnap =
       resolvedFollow === "end" &&
       viewportReady &&
       maxRow > 0 &&
       !userScrolledAway &&
+      !activeUpwardScrollAwayFromEnd &&
       (pendingSnap ||
         ((grew ||
           rowsShrank ||
@@ -2352,8 +2360,16 @@ function ListViewInner<T>(
     // `false` transition before the snap-driven recommit fires `true`,
     // doubling the callback emission rate. Bead:
     // `km-silvery.listview-followpolicy-split`.
-    const atBottom = shouldSnap || shouldTrackActiveBottom ? true : computedAtEnd
-    followActiveRef.current = resolvedFollow === "end" && (followActiveRef.current || atBottom)
+    const atBottom =
+      shouldSnap || shouldTrackActiveBottom
+        ? true
+        : activeUpwardScrollAwayFromEnd
+          ? false
+          : computedAtEnd
+    followActiveRef.current =
+      resolvedFollow === "end" &&
+      !activeUpwardScrollAwayFromEnd &&
+      (followActiveRef.current || atBottom)
 
     // Edge-triggered transition callback. Fires on the initial commit
     // unconditionally (sentinel `null`) and on every subsequent change.
