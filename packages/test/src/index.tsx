@@ -243,6 +243,70 @@ export interface TermlessMouseOptions extends TermlessMouseModifiers {
 /** Pixel-coordinate pair, 0-indexed. */
 export type TermlessPoint = [x: number, y: number]
 
+export type TermlessMouseCoordinateMode = "auto" | "cell" | "pixel"
+export type TermlessWheelDirection = "up" | "down"
+
+export interface TermlessMouseCellSize {
+  width: number
+  height: number
+}
+
+export interface TermlessTrackpadFlickPacket {
+  /** Relative delivery time from gesture start. Packets with the same value are one stdin chunk. */
+  atMs: number
+  /** Number of identical wheel reports in this packet. Preferred spelling for new tests. */
+  count?: number
+  /** Compatibility alias for older gesture fixtures. */
+  events?: number
+  /** Wheel delta sign; negative = up, positive = down. Also supplies count when count/events are omitted. */
+  delta?: number
+  /** Exact SGR wheel button byte for terminal captures: 64 up, 65 down, 66 left, 67 right. */
+  button?: number
+  /** Direction override for this packet. */
+  direction?: TermlessWheelDirection
+  /** Cell coordinate override for this packet. */
+  x?: number
+  /** Cell coordinate override for this packet. */
+  y?: number
+}
+
+export interface TermlessTrackpadFlickProfile {
+  /** Cell coordinate under the pointer. Pixel mode converts this through cellSize. */
+  x: number
+  /** Cell coordinate under the pointer. Pixel mode converts this through cellSize. */
+  y: number
+  direction?: TermlessWheelDirection
+  /**
+   * Coordinate mode for encoded SGR reports.
+   * - auto: mirror the app's negotiated SGR/SGR-Pixels mode
+   * - cell: force SGR cell coordinates
+   * - pixel: force SGR-Pixels coordinates using cellSize
+   */
+  coordinateMode?: TermlessMouseCoordinateMode
+  cellSize?: TermlessMouseCellSize
+  settleMs?: number
+  packets: readonly TermlessTrackpadFlickPacket[]
+}
+
+export interface TermlessTrackpadFlickGroup {
+  index: number
+  atMs: number
+  packetCount: number
+  eventCount: number
+  deltaSum: number
+}
+
+export interface TermlessTrackpadFlickResult {
+  eventCount: number
+  durationMs: number
+  groups: readonly TermlessTrackpadFlickGroup[]
+}
+
+export interface TermlessTrackpadFlickOptions {
+  /** Called after each timed stdin chunk is delivered and the event loop yields once. */
+  afterGroup?: (group: TermlessTrackpadFlickGroup) => void | Promise<void>
+}
+
 export interface TermlessMouse {
   /** Fire a mousedown (press only — no release). */
   down(x: number, y: number, options?: TermlessMouseOptions): Promise<void>
@@ -272,6 +336,14 @@ export interface TermlessMouse {
   }): Promise<void>
   /** Fire a mouse wheel event at (x,y). Positive delta = scroll down. */
   wheel(x: number, y: number, delta: number): Promise<void>
+  /**
+   * Replay a real trackpad-style wheel gesture: timestamped packet groups,
+   * optional SGR-Pixels coordinates, and many wheel reports in one stdin chunk.
+   */
+  trackpadFlick(
+    profile: TermlessTrackpadFlickProfile,
+    options?: TermlessTrackpadFlickOptions,
+  ): Promise<TermlessTrackpadFlickResult>
 }
 
 /** OSC 52 clipboard capture — every clipboard write during the Term's life. */
@@ -570,18 +642,69 @@ export function createTermless(
     return false
   }
 
-  function encodeCoord(cellX: number, cellY: number): { sgrX: number; sgrY: number } {
-    if (isPixelMode()) {
+  function encodeCoord(
+    cellX: number,
+    cellY: number,
+    options?: {
+      coordinateMode?: TermlessMouseCoordinateMode
+      cellSize?: TermlessMouseCellSize
+    },
+  ): { sgrX: number; sgrY: number } {
+    const coordinateMode = options?.coordinateMode ?? "auto"
+    const pixelMode = coordinateMode === "pixel" || (coordinateMode === "auto" && isPixelMode())
+    if (pixelMode) {
       // Top-left of cell — silvery's parser computes cellX = rawX / cellW
       // as a float; downstream hit-testing floors to land on a cell. Using
       // (cellX * W, cellY * H) maps cleanly to exactly cell (cellX, cellY)
       // without fractional ambiguity at the boundary.
-      const pixelX = cellX * PIXEL_CELL_W
-      const pixelY = cellY * PIXEL_CELL_H
+      const cellSize = options?.cellSize ?? { width: PIXEL_CELL_W, height: PIXEL_CELL_H }
+      const pixelX = cellX * cellSize.width
+      const pixelY = cellY * cellSize.height
       // SGR coordinates are 1-indexed at the wire.
-      return { sgrX: pixelX + 1, sgrY: pixelY + 1 }
+      return { sgrX: Math.round(pixelX) + 1, sgrY: Math.round(pixelY) + 1 }
     }
     return { sgrX: cellX + 1, sgrY: cellY + 1 }
+  }
+
+  function packetEventCount(packet: TermlessTrackpadFlickPacket): number {
+    const count = packet.count ?? packet.events ?? Math.abs(packet.delta ?? 1)
+    return Math.max(0, Math.floor(count))
+  }
+
+  function packetDelta(
+    packet: TermlessTrackpadFlickPacket,
+    profile: TermlessTrackpadFlickProfile,
+  ): number {
+    if (packet.delta !== undefined) return packet.delta
+    const direction = packet.direction ?? profile.direction ?? "up"
+    return direction === "up" ? -1 : 1
+  }
+
+  function packetButton(
+    packet: TermlessTrackpadFlickPacket,
+    profile: TermlessTrackpadFlickProfile,
+  ): number {
+    if (packet.button !== undefined) return packet.button
+    return packetDelta(packet, profile) < 0 ? 64 : 65
+  }
+
+  function groupTrackpadPackets(
+    packets: readonly TermlessTrackpadFlickPacket[],
+  ): { atMs: number; packets: TermlessTrackpadFlickPacket[] }[] {
+    const sorted = packets
+      .map((packet, order) => ({ packet, order }))
+      .sort((a, b) => a.packet.atMs - b.packet.atMs || a.order - b.order)
+    const groups: { atMs: number; packets: TermlessTrackpadFlickPacket[] }[] = []
+    for (const { packet } of sorted) {
+      const atMs = Math.max(0, Math.round(packet.atMs))
+      const last = groups[groups.length - 1]
+      if (last && last.atMs === atMs) {
+        last.packets.push(packet)
+      } else {
+        groups.push({ atMs, packets: [packet] })
+      }
+    }
+    return groups
   }
 
   const mouse: TermlessMouse = {
@@ -629,10 +752,63 @@ export function createTermless(
       const raw = delta < 0 ? 64 : 65
       const count = Math.abs(delta) || 1
       const { sgrX, sgrY } = encodeCoord(x, y)
-      for (let i = 0; i < count; i++) {
-        sendInput(`\x1b[<${raw};${sgrX};${sgrY}M`)
-      }
+      sendInput(Array.from({ length: count }, () => `\x1b[<${raw};${sgrX};${sgrY}M`).join(""))
       await Promise.resolve()
+    },
+    async trackpadFlick(profile, options) {
+      const groups = groupTrackpadPackets(profile.packets)
+      const deliveredGroups: TermlessTrackpadFlickGroup[] = []
+      let lastAtMs = 0
+      let eventCount = 0
+
+      for (let index = 0; index < groups.length; index++) {
+        const group = groups[index]!
+        const waitMs = Math.max(0, group.atMs - lastAtMs)
+        if (waitMs > 0) await sleep(waitMs)
+        lastAtMs = group.atMs
+
+        let chunk = ""
+        let deltaSum = 0
+        let groupEventCount = 0
+        for (const packet of group.packets) {
+          const count = packetEventCount(packet)
+          if (count === 0) continue
+          const delta = packetDelta(packet, profile)
+          const button = packetButton(packet, profile)
+          const { sgrX, sgrY } = encodeCoord(packet.x ?? profile.x, packet.y ?? profile.y, {
+            coordinateMode: profile.coordinateMode,
+            cellSize: profile.cellSize,
+          })
+          chunk += Array.from({ length: count }, () => `\x1b[<${button};${sgrX};${sgrY}M`).join("")
+          deltaSum += delta * count
+          groupEventCount += count
+        }
+        if (chunk.length === 0) continue
+
+        sendInput(chunk)
+        eventCount += groupEventCount
+        await Promise.resolve()
+
+        const deliveredGroup: TermlessTrackpadFlickGroup = {
+          index,
+          atMs: group.atMs,
+          packetCount: group.packets.length,
+          eventCount,
+          deltaSum,
+        }
+        deliveredGroups.push(deliveredGroup)
+        await options?.afterGroup?.(deliveredGroup)
+      }
+
+      if (profile.settleMs !== undefined && profile.settleMs > 0) {
+        await sleep(profile.settleMs)
+      }
+
+      return {
+        eventCount,
+        durationMs: lastAtMs,
+        groups: deliveredGroups,
+      }
     },
   }
 
