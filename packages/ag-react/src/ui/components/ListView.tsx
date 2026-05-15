@@ -809,7 +809,7 @@ function ListViewInner<T>(
   const markWheelGestureActive = useCallback(() => {
     wheelGestureActiveRef.current = true
     if (wheelGestureActiveTimerRef.current !== null)
-      clearTimeout(wheelGestureActiveTimerRef.current)
+      {clearTimeout(wheelGestureActiveTimerRef.current)}
     wheelGestureActiveTimerRef.current = setTimeout(() => {
       wheelGestureActiveRef.current = false
       activeScrollDirectionRef.current = null
@@ -820,7 +820,7 @@ function ListViewInner<T>(
   useEffect(
     () => () => {
       if (wheelGestureActiveTimerRef.current !== null)
-        clearTimeout(wheelGestureActiveTimerRef.current)
+        {clearTimeout(wheelGestureActiveTimerRef.current)}
     },
     [],
   )
@@ -1457,10 +1457,17 @@ function ListViewInner<T>(
     maintainVisibleContentPosition,
     followOwnsViewport: followPinnedTopRow !== null,
   })
+  const activeAnchorCorrectionBudgetRows =
+    wheelGestureActiveRef.current && activeScrollDirectionRef.current !== null
+      ? Math.max(1, contentViewportHeight * 2)
+      : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
-    // reversing the user's scroll direction.
+    // reversing the user's scroll direction. Same-direction measurement
+    // corrections are still capped to a viewport-relative frame budget:
+    // anchoring should not become an extra high-speed scroll authority
+    // during active wheel input.
     enabled: anchoringEnabled,
     model: heightModel,
     keyAtIndex: keyForActiveIndex,
@@ -1469,6 +1476,7 @@ function ListViewInner<T>(
     maxTopRow: scrollableRows,
     followOwnsViewport: false,
     activeScrollDirection: wheelGestureActiveRef.current ? activeScrollDirectionRef.current : null,
+    maxActiveCorrectionRows: activeAnchorCorrectionBudgetRows,
     onApplyTopRow: applyAnchoredTopRow,
   })
   const followDisengagedThisRender =
@@ -2547,6 +2555,7 @@ function ListViewInner<T>(
       anchoringEnabled ? 1 : 0,
       wheelGestureActiveRef.current ? 1 : 0,
       activeScrollDirectionRef.current ?? "null",
+      activeAnchorCorrectionBudgetRows ?? "null",
       scrollAnchoring.maintainedTopRow ?? "null",
       isScrolling ? 1 : 0,
       scrollableRows,
@@ -2591,6 +2600,7 @@ function ListViewInner<T>(
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
       activeScrollDirection: activeScrollDirectionRef.current,
+      activeAnchorCorrectionBudgetRows,
       maintainedTopRow: scrollAnchoring.maintainedTopRow,
       kineticScrolling: isScrolling,
       virtualizerRowsAboveViewport,
@@ -2630,6 +2640,7 @@ function ListViewInner<T>(
     anchoringEnabled,
     layoutOwnsRowBaseline,
     isScrolling,
+    activeAnchorCorrectionBudgetRows,
     outerViewportSize,
     viewportInsetRows,
     contentViewportHeight,

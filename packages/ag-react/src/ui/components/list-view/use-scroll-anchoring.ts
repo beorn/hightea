@@ -10,6 +10,7 @@ export interface ScrollAnchoringOptions {
   maxTopRow: number
   followOwnsViewport: boolean
   activeScrollDirection?: "up" | "down" | null
+  maxActiveCorrectionRows?: number
   onApplyTopRow: (row: number) => void
   toleranceRows?: number
 }
@@ -70,6 +71,7 @@ export function useScrollAnchoring({
   maxTopRow,
   followOwnsViewport,
   activeScrollDirection = null,
+  maxActiveCorrectionRows,
   onApplyTopRow,
   toleranceRows = DEFAULT_TOLERANCE_ROWS,
 }: ScrollAnchoringOptions): ScrollAnchoringController {
@@ -93,6 +95,7 @@ export function useScrollAnchoring({
     row: rawMaintainedTopRow,
     currentTopRow,
     activeScrollDirection,
+    maxActiveCorrectionRows,
     toleranceRows,
   })
 
@@ -137,16 +140,24 @@ export function resolveDirectionalMaintainedTopRow({
   row,
   currentTopRow,
   activeScrollDirection,
+  maxActiveCorrectionRows,
   toleranceRows,
 }: {
   row: number | null
   currentTopRow: number
   activeScrollDirection: "up" | "down" | null
+  maxActiveCorrectionRows?: number
   toleranceRows: number
 }): number | null {
   if (row === null || activeScrollDirection === null) return row
   if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) return null
   if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) return null
+  if (
+    maxActiveCorrectionRows !== undefined &&
+    Math.abs(row - currentTopRow) > maxActiveCorrectionRows
+  ) {
+    return currentTopRow + Math.sign(row - currentTopRow) * maxActiveCorrectionRows
+  }
   return row
 }
 

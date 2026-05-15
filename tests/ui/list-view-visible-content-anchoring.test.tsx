@@ -295,6 +295,34 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(480)
   })
 
+  test("active wheel clamps same-direction measurement jumps to the frame budget", () => {
+    // Reproduces the 2026-05-15 silvercode log shape: while the user was
+    // actively scrolling up, newly mounted row measurements moved the
+    // maintained top row 650 rows upward with zero wheel events in that
+    // interval. Measurement can preserve anchors, but it must be capped so
+    // it does not become an extra scroll authority larger than the current
+    // frame budget.
+    expect(
+      resolveDirectionalMaintainedTopRow({
+        row: 3962,
+        currentTopRow: 4612,
+        activeScrollDirection: "up",
+        toleranceRows: 0.5,
+        maxActiveCorrectionRows: 60,
+      }),
+    ).toBe(4552)
+
+    expect(
+      resolveDirectionalMaintainedTopRow({
+        row: 4580,
+        currentTopRow: 4612,
+        activeScrollDirection: "up",
+        toleranceRows: 0.5,
+        maxActiveCorrectionRows: 60,
+      }),
+    ).toBe(4580)
+  })
+
   test("active downward scroll does not accept opposite-direction anchor correction", () => {
     expect(
       resolveDirectionalMaintainedTopRow({
