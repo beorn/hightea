@@ -61,6 +61,8 @@ import { renderStringSync } from "../../render-string"
 import { createHeightModel, type HeightModel } from "./list-view/height-model"
 import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
 import {
+  resolveActiveAnchorCorrectionBudgetRows,
+  resolveActiveScrollMeasuredHeightFallback,
   resolveRowsAboveViewport,
   shouldApplyVisibleContentAnchoring,
   useScrollAnchoring,
@@ -805,22 +807,30 @@ function ListViewInner<T>(
   const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const liveAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
+  const activeWheelAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
 
   const markWheelGestureActive = useCallback(() => {
+    if (!wheelGestureActiveRef.current) {
+      activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
+    }
     wheelGestureActiveRef.current = true
-    if (wheelGestureActiveTimerRef.current !== null)
-      {clearTimeout(wheelGestureActiveTimerRef.current)}
+    if (wheelGestureActiveTimerRef.current !== null) {
+      clearTimeout(wheelGestureActiveTimerRef.current)
+    }
     wheelGestureActiveTimerRef.current = setTimeout(() => {
       wheelGestureActiveRef.current = false
       activeScrollDirectionRef.current = null
+      activeWheelAvgMeasuredHeightRef.current = undefined
       wheelGestureActiveTimerRef.current = null
     }, SCROLLBAR_FADE_AFTER_MS)
   }, [])
 
   useEffect(
     () => () => {
-      if (wheelGestureActiveTimerRef.current !== null)
-        {clearTimeout(wheelGestureActiveTimerRef.current)}
+      if (wheelGestureActiveTimerRef.current !== null) {
+        clearTimeout(wheelGestureActiveTimerRef.current)
+      }
     },
     [],
   )
@@ -1382,7 +1392,13 @@ function ListViewInner<T>(
   // original estimate diverges from actual heights). When no
   // measurements have arrived yet, this is undefined and we fall back to
   // the original estimate.
-  const avgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportSize?.w)
+  const liveAvgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportSize?.w)
+  liveAvgMeasuredHeightRef.current = liveAvgMeasuredHeight
+  const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
+    wheelGestureActive: wheelGestureActiveRef.current,
+    snapshotAvgMeasuredHeight: activeWheelAvgMeasuredHeightRef.current,
+    liveAvgMeasuredHeight,
+  })
 
   // Build the effective-height estimator. This mirrors the per-item
   // resolution that `sumHeights` performs internally: measured cache
@@ -1459,13 +1475,13 @@ function ListViewInner<T>(
   })
   const activeAnchorCorrectionBudgetRows =
     wheelGestureActiveRef.current && activeScrollDirectionRef.current !== null
-      ? Math.max(1, contentViewportHeight * 2)
+      ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
     // reversing the user's scroll direction. Same-direction measurement
-    // corrections are still capped to a viewport-relative frame budget:
+    // corrections are still capped to a frame-sized row budget:
     // anchoring should not become an extra high-speed scroll authority
     // during active wheel input.
     enabled: anchoringEnabled,

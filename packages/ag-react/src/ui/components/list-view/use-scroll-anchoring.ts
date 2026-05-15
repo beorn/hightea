@@ -62,6 +62,24 @@ export function shouldApplyVisibleContentAnchoring({
 const DEFAULT_TOLERANCE_ROWS = 0.5
 const END_ANCHOR_KEY = "__end__"
 
+export function resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight: number): number {
+  return Math.max(1, Math.ceil(contentViewportHeight / 4))
+}
+
+export function resolveActiveScrollMeasuredHeightFallback({
+  wheelGestureActive,
+  snapshotAvgMeasuredHeight,
+  liveAvgMeasuredHeight,
+}: {
+  wheelGestureActive: boolean
+  snapshotAvgMeasuredHeight: number | undefined
+  liveAvgMeasuredHeight: number | undefined
+}): number | undefined {
+  if (wheelGestureActive && snapshotAvgMeasuredHeight !== undefined)
+    return snapshotAvgMeasuredHeight
+  return liveAvgMeasuredHeight
+}
+
 export function useScrollAnchoring({
   enabled,
   model,

@@ -20,6 +20,8 @@ import {
   captureViewportAnchor,
   resolveRowsAboveViewport,
   resolveDirectionalMaintainedTopRow,
+  resolveActiveAnchorCorrectionBudgetRows,
+  resolveActiveScrollMeasuredHeightFallback,
   shouldApplyVisibleContentAnchoring,
   resolveViewportAnchor,
 } from "../../packages/ag-react/src/ui/components/list-view/use-scroll-anchoring"
@@ -321,6 +323,56 @@ describe("ListView maintainVisibleContentPosition", () => {
         maxActiveCorrectionRows: 60,
       }),
     ).toBe(4580)
+  })
+
+  test("active wheel anchor correction budget is frame-sized, not viewport-sized", () => {
+    // Latest silvercode trace hit the active-wheel anchor cap with no wheel
+    // input in that render interval: viewport=112 rows, correction=-224 rows.
+    // A cap larger than the viewport turns measurement reflow into an extra
+    // high-speed scroll source, which users see as a frozen frame followed by
+    // a skip.
+    const budget = resolveActiveAnchorCorrectionBudgetRows(112)
+    expect(budget).toBe(28)
+
+    expect(
+      resolveDirectionalMaintainedTopRow({
+        row: 3962,
+        currentTopRow: 4612,
+        activeScrollDirection: "up",
+        toleranceRows: 0.5,
+        maxActiveCorrectionRows: budget,
+      }),
+    ).toBe(4584)
+  })
+
+  test("active wheel freezes the unmeasured-row fallback average", () => {
+    // A single new measurement can move the live average, which otherwise
+    // multiplies across every unmeasured transcript row and shifts the scroll
+    // extent during the gesture. Active wheel uses the gesture-start average;
+    // idle renders keep following the live average.
+    expect(
+      resolveActiveScrollMeasuredHeightFallback({
+        wheelGestureActive: true,
+        snapshotAvgMeasuredHeight: 4.75,
+        liveAvgMeasuredHeight: 5.25,
+      }),
+    ).toBe(4.75)
+
+    expect(
+      resolveActiveScrollMeasuredHeightFallback({
+        wheelGestureActive: false,
+        snapshotAvgMeasuredHeight: 4.75,
+        liveAvgMeasuredHeight: 5.25,
+      }),
+    ).toBe(5.25)
+
+    expect(
+      resolveActiveScrollMeasuredHeightFallback({
+        wheelGestureActive: true,
+        snapshotAvgMeasuredHeight: undefined,
+        liveAvgMeasuredHeight: 5.25,
+      }),
+    ).toBe(5.25)
   })
 
   test("active downward scroll does not accept opposite-direction anchor correction", () => {
