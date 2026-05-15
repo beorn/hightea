@@ -245,6 +245,24 @@ describe("ListView trackpad flick replay through termless", () => {
     ])
   })
 
+  test("parses JSON-escaped SGR-Pixels bytes from loggily debug logs", () => {
+    const log = [
+      {
+        time: "2026-05-15T22:09:05.207Z",
+        name: "silvery:input-owner",
+        msg: 'parsed mouse: action=wheel button=0 x=108 y=62.69230769230769 delta=-1 bytes="\\u001b[<64;1513;1631M"',
+      },
+    ]
+      .map((record) => JSON.stringify(record))
+      .join("\n")
+
+    const profile = parseTermlessTrackpadFlickProfileFromDebugLog(log)
+
+    expect(profile.coordinateMode).toBe("pixel")
+    expect(profile.cellSize).toEqual({ width: 14, height: 26 })
+    expect(profile.packets).toEqual([{ atMs: 0, count: 1, delta: -1, button: 64 }])
+  })
+
   test("does not add a large idle-handoff jump after a captured upward flick", async () => {
     using term = createTermless({ cols: 302, rows: 117 })
     const listRef = React.createRef<ListViewHandle>()

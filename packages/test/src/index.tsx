@@ -373,8 +373,9 @@ function parseDebugWheelMessage(msg: string, time: unknown): ParsedDebugWheelEve
   const delta = Number(coords[3])
   if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(delta)) return null
 
-  const escape = String.fromCharCode(27)
-  const sgr = msg.match(new RegExp(`${escape}\\[<(\\d+);(\\d+);(\\d+)[Mm]`))
+  const escapedSgr = msg.match(/\\u001b\[<(\d+);(\d+);(\d+)[Mm]/)
+  const sgr =
+    escapedSgr ?? msg.match(new RegExp(`${String.fromCharCode(27)}\\[<(\\d+);(\\d+);(\\d+)[Mm]`))
   return {
     time: timestamp,
     x,
