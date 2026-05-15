@@ -10,15 +10,18 @@
  * over `run()`.
  *
  * Coverage:
- *  1. `mouse: true` (default on TTY) writes the SGR enable sequence at startup
- *     and the disable sequence on unmount.
- *  2. `mouse: false` writes neither enable nor disable.
- *  3. Non-TTY stdout falls back to disabled even when `mouse: true` is passed
+ *  1. Omitted `mouse` does not write the SGR enable sequence. `render()` does
+ *     not currently wire Silvery's buffer-level text selection/copy path, so
+ *     default mouse capture would steal native terminal selection.
+ *  2. Explicit `mouse: true` writes the SGR enable sequence at startup and the
+ *     disable sequence on unmount.
+ *  3. `mouse: false` writes neither enable nor disable.
+ *  4. Non-TTY stdout falls back to disabled even when `mouse: true` is passed
  *     (so piped renders don't emit garbage bytes).
- *  4. Disable-before-raw-mode-off ordering on unmount — mirrors create-app's
+ *  5. Disable-before-raw-mode-off ordering on unmount — mirrors create-app's
  *     cleanup so any in-flight mouse bytes get routed through our protocol
  *     disable rather than spilling to the shell prompt.
- *  5. Mouse handlers on `<Box>` become live when mouse is enabled — verified
+ *  6. Mouse handlers on `<Box>` become live when mouse is enabled — verified
  *     by the live-terminal suite under `tests/features/inline-mouse-default.test.tsx`
  *     (exercises the same protocol via `run()`, whose enable/disable path is
  *     the reference implementation we mirror here).
@@ -153,13 +156,30 @@ const settle = (ms = 30) => new Promise<void>((r) => setTimeout(r, ms))
 // ============================================================================
 
 describe("render() mouse wiring", () => {
-  test("default (mouse: true on TTY) writes SGR mouse enable sequence", async () => {
+  test("default omitted mouse does not write the SGR mouse enable sequence", async () => {
     const stdout = createMockStdout()
     const stdin = createMockStdin()
     const instance = await render(
       <Text>hello</Text>,
       { stdout: stdout.stream, stdin: stdin.stream },
       { alternateScreen: false },
+    )
+    await settle()
+
+    expect(stdout.output).not.toContain(MOUSE_ENABLE)
+
+    instance.unmount()
+    await settle()
+    expect(stdout.output).not.toContain(MOUSE_DISABLE)
+  })
+
+  test("explicit mouse: true writes SGR mouse enable sequence", async () => {
+    const stdout = createMockStdout()
+    const stdin = createMockStdin()
+    const instance = await render(
+      <Text>hello</Text>,
+      { stdout: stdout.stream, stdin: stdin.stream },
+      { alternateScreen: false, mouse: true },
     )
     await settle()
 
@@ -206,7 +226,7 @@ describe("render() mouse wiring", () => {
     const instance = await render(
       <Text>hello</Text>,
       { stdout: stdout.stream, stdin: stdin.stream },
-      { alternateScreen: false },
+      { alternateScreen: false, mouse: true },
     )
     await settle()
 
@@ -247,6 +267,7 @@ describe("render() mouse wiring", () => {
       { stdout: stdout.stream, stdin: stdin.stream },
       // Fullscreen (default alternateScreen) so we get the leave-alt sequence
       // on unmount to anchor the ordering assertion.
+      { mouse: true },
     )
     await settle()
 
@@ -282,7 +303,7 @@ describe("render() mouse wiring", () => {
     const instance = await render(
       <App />,
       { stdout: stdout.stream, stdin: stdin.stream },
-      { alternateScreen: false },
+      { alternateScreen: false, mouse: true },
     )
     await settle()
 

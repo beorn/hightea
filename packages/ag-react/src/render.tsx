@@ -54,12 +54,7 @@ import {
   disableMouse,
   resetWindowTitle,
 } from "@silvery/ag-term/output"
-import {
-  parseMouseSequence,
-  isMouseSequence,
-  type ParseMouseOptions,
-  type ParsedMouse,
-} from "@silvery/ag-term/mouse"
+import { parseMouseSequence, isMouseSequence, type ParseMouseOptions } from "@silvery/ag-term/mouse"
 import {
   createMouseEventProcessor,
   processMouseEvent,
@@ -156,10 +151,11 @@ export interface RenderOptions {
    * `onMouseDown` / `onMouseUp` / `onMouseMove` handlers on `Box`, `Text`, and
    * any component that takes mouse handler props.
    *
-   * Mirrors `run()` — default `true`. Set `false` to opt out (for apps that
-   * want native terminal text selection, or for non-interactive renders).
+   * Default `false` for `render()` so low-level/static-style consumers keep
+   * native terminal text selection. Pass `true` to opt in to mouse event
+   * dispatch when the app supplies its own interaction model.
    *
-   * Default: `true` (when stdout is a TTY). `false` in non-TTY environments.
+   * Default: `false`. Mouse tracking is also disabled in non-TTY environments.
    */
   mouse?: boolean | ParseMouseOptions
 }
@@ -608,10 +604,9 @@ class SilveryInstance {
     this.alternateScreen = options.alternateScreen
     this.mode = options.mode
     this.nonTTYMode = options.nonTTYMode
-    // Mouse defaults to `true` on TTY, `false` off-TTY. Explicit `false`
-    // always wins. Tracking SGR modes on a non-TTY stdout writes
+    // Mouse is opt-in for render(). Tracking SGR modes on a non-TTY stdout writes
     // uninterpretable bytes into whatever the stream is (piped logs, test
-    // capture) so we guard on `isTTY` for the default.
+    // capture) so we guard on `isTTY` even when a caller opts in.
     this.mouseParseOptions = typeof options.mouse === "object" ? options.mouse : undefined
     this.mouseEnabled =
       (options.mouse === true || this.mouseParseOptions != null) && this.stdout.isTTY
@@ -1038,20 +1033,21 @@ class SilveryInstance {
  * });
  * ```
  *
- * @example Opt out of SGR mouse tracking (restore native terminal selection)
+ * @example Opt in to SGR mouse tracking
  * ```tsx
- * // mouse defaults to true when stdout is a TTY — pass false to restore
- * // native copy/paste and terminal-level scrolling.
- * await render(<App />, term, { mouse: false });
+ * // render() keeps native terminal selection by default. Pass true when this
+ * // low-level mount should receive wheel / click / drag / hover events.
+ * await render(<App />, term, { mouse: true });
  * ```
  *
  * @param element - React element to render
  * @param termOrDef - Term instance, TermDef config, or omitted for static mode
  * @param options - Additional render options (merged with TermDef if provided).
- *   Notable flags: `mouse` (default `true` on TTY) enables SGR mouse 1003+1006,
- *   or 1003+1006+1016 when pixel parse options are provided, and wires wheel /
+ *   Notable flags: `mouse` (default `false`) enables SGR mouse 1003+1006, or
+ *   1003+1006+1016 when pixel parse options are provided, and wires wheel /
  *   click / drag / enter / leave events through the component tree's `onWheel`
- *   / `onClick` / `onMouse*` handlers.
+ *   / `onClick` / `onMouse*` handlers. Use `run()` / `createApp().run()` for
+ *   interactive terminal apps that also need Silvery's selection/copy runtime.
  * @returns RenderHandle - thenable for Instance, or use .run() for fluent API
  *
  * @example
@@ -1157,9 +1153,9 @@ async function renderImpl(
     alternateScreen: options.alternateScreen ?? mode === "fullscreen",
     mode,
     nonTTYMode: options.nonTTYMode ?? ("auto" as NonTTYMode),
-    // Mouse defaults to true (matches run()). SilveryInstance guards on
-    // `stdout.isTTY` before actually writing mouse-enable sequences.
-    mouse: options.mouse ?? true,
+    // render() is the low-level mount API and does not wire the selection/copy
+    // runtime that run() provides, so mouse capture is explicit opt-in.
+    mouse: options.mouse ?? false,
   }
 
   // Get or create instance for this stdout
