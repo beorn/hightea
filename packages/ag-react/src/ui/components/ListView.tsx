@@ -801,6 +801,8 @@ function ListViewInner<T>(
   // `moveTo` when the cursor takes over.
   const isWheelDrivenRef = useRef(false)
   const activeScrollDirectionRef = useRef<"up" | "down" | null>(null)
+  const pendingWheelScrollDirectionRef = useRef<"up" | "down" | null>(null)
+  const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -854,6 +856,9 @@ function ListViewInner<T>(
       // wheel-driving has flipped the sentinel — anchoring's
       // nudgeScrollFloat must NOT pretend to be a fresh user wheel.
       if (!isWheelDrivenRef.current) return
+      if (committingWheelScrollRef.current && pendingWheelScrollDirectionRef.current !== null) {
+        activeScrollDirectionRef.current = pendingWheelScrollDirectionRef.current
+      }
       setScrollRow((prev) => (prev === offset ? prev : offset))
     },
   })
@@ -916,12 +921,19 @@ function ListViewInner<T>(
         wheelLog.debug?.(`handleWheel dropped: maxRow=${maxRow} deltaY=${event.deltaY}`)
         return
       }
-      if (event.deltaY < 0) followActiveRef.current = false
-      activeScrollDirectionRef.current = event.deltaY < 0 ? "up" : "down"
+      const wheelDirection = event.deltaY < 0 ? "up" : "down"
+      if (wheelDirection === "up") followActiveRef.current = false
       isWheelDrivenRef.current = true
       markWheelGestureActive()
       scrollAnchoring.suppressOnce()
-      physics.onWheel(event)
+      pendingWheelScrollDirectionRef.current = wheelDirection
+      committingWheelScrollRef.current = true
+      try {
+        physics.onWheel(event)
+      } finally {
+        committingWheelScrollRef.current = false
+        pendingWheelScrollDirectionRef.current = null
+      }
     },
     [markWheelGestureActive, physics],
   )
@@ -2518,6 +2530,8 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline ? 1 : 0,
       anchoringEnabled ? 1 : 0,
       wheelGestureActiveRef.current ? 1 : 0,
+      activeScrollDirectionRef.current ?? "null",
+      scrollAnchoring.maintainedTopRow ?? "null",
       isScrolling ? 1 : 0,
       scrollableRows,
       trackHeight,
@@ -2560,6 +2574,8 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline,
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
+      activeScrollDirection: activeScrollDirectionRef.current,
+      maintainedTopRow: scrollAnchoring.maintainedTopRow,
       kineticScrolling: isScrolling,
       virtualizerRowsAboveViewport,
       scrollRow,
@@ -2607,6 +2623,7 @@ function ListViewInner<T>(
     resolvedFollow,
     resolvedVirtualization,
     rowsAboveViewport,
+    scrollAnchoring.maintainedTopRow,
     scrollOffset,
     scrollRow,
     scrollableRows,

@@ -107,6 +107,28 @@ function renderFlexMeasuredList(
   )
 }
 
+function renderUnderestimatedFlexList(
+  items: Item[],
+  ref: React.RefObject<ListViewHandle | null>,
+): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexGrow={1} minHeight={0}>
+      <ListView<Item>
+        ref={ref}
+        items={items}
+        estimateHeight={1}
+        getKey={(item) => item.id}
+        virtualization="index"
+        renderItem={(item) => (
+          <Box height={item.height} flexShrink={0}>
+            <Text>{item.title}</Text>
+          </Box>
+        )}
+      />
+    </Box>
+  )
+}
+
 function visibleLines(text: string): string[] {
   return stripAnsi(text)
     .split("\n")
@@ -115,6 +137,11 @@ function visibleLines(text: string): string[] {
 
 function visibleItemId(line: string): string {
   return line.match(/Item \d+/)?.[0] ?? ""
+}
+
+function visibleItemNumber(line: string): number {
+  const match = visibleItemId(line).match(/\d+/)
+  return match ? Number(match[0]) : Number.NaN
 }
 
 describe("ListView maintainVisibleContentPosition", () => {
@@ -449,6 +476,55 @@ describe("ListView maintainVisibleContentPosition", () => {
     app.rerender(renderFlexMeasuredList(expanded, listRef))
 
     expect(visibleItemId(visibleLines(app.text)[0] ?? "")).toBe(before)
+  })
+
+  test("lone opposite wheel bounce cannot authorize an opposite anchor correction", async () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const r = createRenderer({ cols: 40, rows: 12 })
+    const initial = makeItems(1000)
+    const app = r(renderUnderestimatedFlexList(initial, listRef))
+
+    act(() => {
+      listRef.current!.scrollToBottom()
+    })
+    app.rerender(renderUnderestimatedFlexList(initial, listRef))
+
+    for (let i = 0; i < 6; i++) {
+      await app.wheel(5, 5, -1)
+    }
+    const beforeBounce = visibleItemNumber(visibleLines(app.text)[0] ?? "")
+    expect(Number.isFinite(beforeBounce), `missing top item before bounce:\n${app.text}`).toBe(true)
+
+    // A single opposite sample is filtered by useKineticScroll's
+    // WheelGestureFilter, but ListView's anchor-direction state used to
+    // consume the raw sample and mark the active gesture as "down".
+    await app.wheel(5, 5, 1)
+    const afterBounce = visibleItemNumber(visibleLines(app.text)[0] ?? "")
+    expect(
+      afterBounce,
+      "the filtered bounce itself must not move the viewport down",
+    ).toBeLessThanOrEqual(beforeBounce)
+
+    const firstRemeasure = initial.map((item, index) =>
+      index >= afterBounce - 5 && index <= afterBounce - 3 ? { ...item, height: 4 } : item,
+    )
+    app.rerender(renderUnderestimatedFlexList(firstRemeasure, listRef))
+    const afterFirstRemeasure = visibleItemNumber(visibleLines(app.text)[0] ?? "")
+    expect(
+      afterFirstRemeasure,
+      "first measurement churn must not reverse the upward gesture",
+    ).toBeLessThanOrEqual(afterBounce)
+
+    const secondRemeasure = initial.map((item, index) =>
+      index >= afterBounce - 10 && index <= afterBounce - 5 ? { ...item, height: 4 } : item,
+    )
+    app.rerender(renderUnderestimatedFlexList(secondRemeasure, listRef))
+
+    const afterRemeasure = visibleItemNumber(visibleLines(app.text)[0] ?? "")
+    expect(
+      afterRemeasure,
+      `active upward gesture reversed after row measurements changed. before=${beforeBounce} afterBounce=${afterBounce} afterFirst=${afterFirstRemeasure} afterRemeasure=${afterRemeasure}`,
+    ).toBeLessThanOrEqual(afterFirstRemeasure)
   })
 
   test("preserves visible anchor during active wheel when measured row model shrinks", async () => {
