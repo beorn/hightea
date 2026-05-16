@@ -888,7 +888,6 @@ function ListViewInner<T>(
         wheelGestureActiveRef.current = false
         rerenderOnWheelGestureIdle()
       }
-      activeScrollDirectionRef.current = null
       wheelGestureActiveTimerRef.current = null
     }
     wheelGestureActiveTimerRef.current = setTimeout(checkForIdle, SCROLLBAR_FADE_AFTER_MS)
@@ -987,6 +986,7 @@ function ListViewInner<T>(
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = false
       activeWheelAvgMeasuredHeightRef.current = undefined
+      activeScrollDirectionRef.current = null
       setScrollRow(null)
       physics.reset()
     },
@@ -1482,8 +1482,13 @@ function ListViewInner<T>(
   liveAvgMeasuredHeightRef.current = liveAvgMeasuredHeight
   const wheelDrivenMeasuredHeightSnapshotActive =
     isWheelDrivenRef.current && !followActiveRef.current && !pendingFollowSnapRef.current
+  const wheelScrollStabilizing =
+    wheelGestureActiveRef.current ||
+    (wheelDrivenMeasuredHeightSnapshotActive &&
+      scrollRow !== null &&
+      activeScrollDirectionRef.current !== null)
   const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
-    wheelGestureActive: wheelGestureActiveRef.current,
+    wheelGestureActive: wheelScrollStabilizing,
     wheelDriven: wheelDrivenMeasuredHeightSnapshotActive,
     snapshotAvgMeasuredHeight: activeWheelAvgMeasuredHeightRef.current,
     liveAvgMeasuredHeight,
@@ -1524,7 +1529,7 @@ function ListViewInner<T>(
   const viewportWidthForHeightModel = viewportSize?.w ?? null
   const previousHeightModelConfig = heightModelConfigRef.current
   const freezeHeightModelForWheel = shouldFreezeHeightModelForWheel({
-    wheelGestureActive: wheelGestureActiveRef.current,
+    wheelGestureActive: wheelScrollStabilizing,
     itemCount: activeItems.length,
     currentItemCount: heightModel.itemCount,
     gap,
@@ -1612,10 +1617,10 @@ function ListViewInner<T>(
   const anchoringEnabled = shouldApplyVisibleContentAnchoring({
     maintainVisibleContentPosition,
     followOwnsViewport: followPinnedTopRow !== null,
-    wheelGestureActive: wheelGestureActiveRef.current,
+    wheelGestureActive: wheelScrollStabilizing,
   })
   const activeAnchorCorrectionBudgetRows =
-    wheelGestureActiveRef.current && activeScrollDirectionRef.current !== null
+    wheelScrollStabilizing && activeScrollDirectionRef.current !== null
       ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
   const oppositeActiveAnchorCorrectionBudgetRows =
@@ -1634,7 +1639,7 @@ function ListViewInner<T>(
     currentTopRow: baseTopRow,
     maxTopRow: scrollableRows,
     followOwnsViewport: false,
-    activeScrollDirection: wheelGestureActiveRef.current ? activeScrollDirectionRef.current : null,
+    activeScrollDirection: wheelScrollStabilizing ? activeScrollDirectionRef.current : null,
     maxActiveCorrectionRows: activeAnchorCorrectionBudgetRows,
     maxOppositeActiveCorrectionRows: oppositeActiveAnchorCorrectionBudgetRows,
     modelVersion: heightModelVersion,
@@ -1871,7 +1876,7 @@ function ListViewInner<T>(
 
   if (
     resolvedVirtualization === "index" &&
-    wheelGestureActiveRef.current &&
+    wheelScrollStabilizing &&
     activeScrollDirectionRef.current !== null &&
     indexWindowPrevRef.current.endIndex > indexWindowPrevRef.current.startIndex
   ) {
@@ -1974,7 +1979,7 @@ function ListViewInner<T>(
   let indexLeadingSpacerCarryRows = 0
   if (
     usingIndexWindow &&
-    wheelGestureActiveRef.current &&
+    wheelScrollStabilizing &&
     activeScrollDirectionRef.current !== null &&
     renderScrollRow !== null &&
     indexWindowPrevRef.current.renderScrollRow !== null
@@ -2842,6 +2847,7 @@ function ListViewInner<T>(
       anchoringEnabled ? 1 : 0,
       wheelGestureActiveRef.current ? 1 : 0,
       freezeHeightModelForWheel ? 1 : 0,
+      wheelScrollStabilizing ? 1 : 0,
       activeScrollDirectionRef.current ?? "null",
       activeAnchorCorrectionBudgetRows ?? "null",
       oppositeActiveAnchorCorrectionBudgetRows ?? "null",
@@ -2895,6 +2901,7 @@ function ListViewInner<T>(
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
       heightModelFrozenForWheel: freezeHeightModelForWheel,
+      wheelScrollStabilizing,
       activeScrollDirection: activeScrollDirectionRef.current,
       activeAnchorCorrectionBudgetRows,
       oppositeActiveAnchorCorrectionBudgetRows,
@@ -2972,6 +2979,7 @@ function ListViewInner<T>(
     totalRowsStable,
     trackHeight,
     viewportSize,
+    wheelScrollStabilizing,
     visibleItems.length,
     virtualizerRowsAboveViewport,
     width,

@@ -81,12 +81,16 @@ const KINETIC_STOP_DISTANCE = 1.5
 const KINETIC_FRAME_MS = 16
 /** Wait this long with no wheel events before entering momentum phase. */
 const RELEASE_TIMEOUT_MS = 60
-/** Maximum continuous trackpad rows drained before the next paint.
+/** Minimum continuous trackpad rows drained before the next paint.
  * Terminal backends can deliver high-resolution trackpad motion as a burst
  * of same-timestamp SGR wheel packets. Applying the entire burst in one
- * React commit reads as a jump; draining it over a few frame ticks preserves
- * distance while restoring smooth visual cadence. */
-const SMOOTH_WHEEL_MAX_ROWS_PER_FRAME = 4
+ * React commit reads as a jump; draining too slowly creates synthetic
+ * momentum after the OS trackpad stream has already emitted its inertial
+ * tail. Keep a gentle floor for small bursts and adapt upward so large
+ * bursts clear within a few frames. */
+const SMOOTH_WHEEL_MIN_ROWS_PER_FRAME = 4
+const SMOOTH_WHEEL_MAX_ROWS_PER_FRAME = 6
+const SMOOTH_WHEEL_TARGET_DRAIN_FRAMES = 3
 /** Scrollbar auto-hide delay after the last scroll activity. */
 export const SCROLLBAR_FADE_AFTER_MS = 800
 /** Default duration for animated scrollTo — calibrated for "feels deliberate
@@ -301,8 +305,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const wheelBufferRef = useRef<Array<{ t: number; rows: number }>>([])
   const wheelGestureFilterRef = useRef(createWheelGestureFilter())
   const smoothWheelRowsRef = useRef(0)
-  const smoothWheelFrameRowsRef = useRef(0)
-  const smoothWheelFrameStartedAtRef = useRef(0)
   const smoothWheelDrainTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Active animation state (mutex — only one runs at a time, all share
   // `loopRef`). Three flavors:
@@ -404,14 +406,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     }
   }, [])
 
-  const refreshSmoothWheelFrameBudget = useCallback((now: number) => {
-    const frameStartedAt = smoothWheelFrameStartedAtRef.current
-    if (frameStartedAt === 0 || now - frameStartedAt >= KINETIC_FRAME_MS) {
-      smoothWheelFrameStartedAtRef.current = now
-      smoothWheelFrameRowsRef.current = 0
-    }
-  }, [])
-
   const applyWheelRows = useCallback(
     (rows: number, isDiscrete: boolean): number => {
       if (rows === 0) return 0
@@ -444,9 +438,11 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
 
       const appliedRows = nextFloat - prev
       const dir = Math.sign(rows)
-      if (dir > 0 && Number.isFinite(maxS) && nextFloat >= maxS)
+      if (dir > 0 && Number.isFinite(maxS) && nextFloat >= maxS) {
         onEdgeReachedRef.current?.("bottom")
-      else if (dir < 0 && nextFloat <= 0) onEdgeReachedRef.current?.("top")
+      } else if (dir < 0 && nextFloat <= 0) {
+        onEdgeReachedRef.current?.("top")
+      }
 
       if (appliedRows !== 0) {
         updatePosition(nextFloat, { direction: appliedRows < 0 ? -1 : 1 })
@@ -456,22 +452,31 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     [enableElasticEdges, readMaxScroll, updatePosition],
   )
 
+  const smoothWheelFrameRows = useCallback((pending: number, frameBudget?: number): number => {
+    const absPending = Math.abs(pending)
+    if (absPending < 0.001) return 0
+    const adaptiveRows = Math.ceil(absPending / SMOOTH_WHEEL_TARGET_DRAIN_FRAMES)
+    const rowsThisFrame = Math.min(
+      absPending,
+      Math.max(
+        SMOOTH_WHEEL_MIN_ROWS_PER_FRAME,
+        Math.min(SMOOTH_WHEEL_MAX_ROWS_PER_FRAME, adaptiveRows),
+      ),
+      frameBudget ?? Number.POSITIVE_INFINITY,
+    )
+    return Math.sign(pending) * rowsThisFrame
+  }, [])
+
   const drainSmoothWheelRows = useCallback(() => {
     smoothWheelDrainTimerRef.current = null
-    smoothWheelFrameStartedAtRef.current = performance.now()
-    smoothWheelFrameRowsRef.current = 0
     const pending = smoothWheelRowsRef.current
     if (Math.abs(pending) < 0.001) {
       smoothWheelRowsRef.current = 0
       return
     }
 
-    const rows =
-      Math.abs(pending) <= SMOOTH_WHEEL_MAX_ROWS_PER_FRAME
-        ? pending
-        : Math.sign(pending) * SMOOTH_WHEEL_MAX_ROWS_PER_FRAME
+    const rows = smoothWheelFrameRows(pending)
     smoothWheelRowsRef.current = pending - rows
-    smoothWheelFrameRowsRef.current = Math.abs(rows)
 
     applyWheelRows(rows, false)
     scheduleScrollbarHide()
@@ -479,18 +484,19 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     if (Math.abs(smoothWheelRowsRef.current) >= 0.001) {
       smoothWheelDrainTimerRef.current = setTimeout(drainSmoothWheelRows, KINETIC_FRAME_MS)
     }
-  }, [applyWheelRows, scheduleScrollbarHide])
+  }, [applyWheelRows, scheduleScrollbarHide, smoothWheelFrameRows])
 
-  const scheduleSmoothWheelDrain = useCallback(() => {
-    if (smoothWheelDrainTimerRef.current !== null) return
-    smoothWheelDrainTimerRef.current = setTimeout(drainSmoothWheelRows, KINETIC_FRAME_MS)
-  }, [drainSmoothWheelRows])
+  const scheduleSmoothWheelDrain = useCallback(
+    (delayMs = KINETIC_FRAME_MS) => {
+      if (smoothWheelDrainTimerRef.current !== null) return
+      smoothWheelDrainTimerRef.current = setTimeout(drainSmoothWheelRows, delayMs)
+    },
+    [drainSmoothWheelRows],
+  )
 
   const cancelSmoothWheelDrain = useCallback(() => {
     clearSmoothWheelDrain()
     smoothWheelRowsRef.current = 0
-    smoothWheelFrameRowsRef.current = 0
-    smoothWheelFrameStartedAtRef.current = 0
   }, [clearSmoothWheelDrain])
 
   useEffect(
@@ -636,7 +642,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       // stop it. Same direction → carryover (additive). Opposite → zero.
       if (enableSameDirCompounding) {
         const m = animRef.current
-        if (m !== null && m.kind === "momentum") {
+        if (m?.kind === "momentum") {
           const tau = KINETIC_TIME_CONSTANT_MS
           const t = performance.now() - m.startTime
           const decay = Math.exp(-t / tau)
@@ -710,25 +716,11 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           Math.sign(smoothWheelRowsRef.current) !== Math.sign(pendingRows)
         ) {
           smoothWheelRowsRef.current = 0
-          smoothWheelFrameRowsRef.current = 0
-          smoothWheelFrameStartedAtRef.current = now
         }
         smoothWheelRowsRef.current += pendingRows
-        refreshSmoothWheelFrameBudget(now)
-        const frameBudget = Math.max(
-          0,
-          SMOOTH_WHEEL_MAX_ROWS_PER_FRAME - smoothWheelFrameRowsRef.current,
-        )
-        if (frameBudget > 0) {
-          const pending = smoothWheelRowsRef.current
-          const rows = Math.abs(pending) <= frameBudget ? pending : Math.sign(pending) * frameBudget
-          smoothWheelRowsRef.current = pending - rows
-          smoothWheelFrameRowsRef.current += Math.abs(rows)
-          applyWheelRows(rows, false)
-        }
         setIsScrolling(true)
         scheduleScrollbarHide()
-        scheduleSmoothWheelDrain()
+        scheduleSmoothWheelDrain(0)
         return
       }
 
@@ -761,7 +753,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       enableMomentum,
       enableSameDirCompounding,
       maxVelocity,
-      refreshSmoothWheelFrameBudget,
       scheduleRelease,
       scheduleScrollbarHide,
       scheduleSmoothWheelDrain,
