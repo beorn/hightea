@@ -65,6 +65,7 @@ import {
 } from "./list-view/height-model"
 import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
 import {
+  resolveActiveLeadingSpacer,
   resolveActiveScrollWindow,
   resolveListViewBoxScrollTo,
   resolveListViewRenderScrollRow,
@@ -112,6 +113,46 @@ function rectToSize(rect: Rect | null): { w: number; h: number } | null {
   const h = rect.height > 0 ? Math.round(rect.height) : 0
   if (w === 0 && h === 0) return null
   return { w, h }
+}
+
+function firstIndexAtOrAfterRow(model: HeightModel, row: number): number | null {
+  if (model.itemCount <= 0) return null
+  const target = Math.max(0, row)
+  let lo = 0
+  let hi = model.itemCount - 1
+  let best = model.itemCount - 1
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2)
+    if (toPhysicalRows(model.rowOfIndex(mid)) >= target) {
+      best = mid
+      hi = mid - 1
+    } else {
+      lo = mid + 1
+    }
+  }
+  return best
+}
+
+function lastIndexAtOrBeforeRow(model: HeightModel, row: number): number | null {
+  if (model.itemCount <= 0) return null
+  const target = Math.max(0, row)
+  let lo = 0
+  let hi = model.itemCount - 1
+  let best = 0
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2)
+    if (toPhysicalRows(model.rowOfIndex(mid)) <= target) {
+      best = mid
+      lo = mid + 1
+    } else {
+      hi = mid - 1
+    }
+  }
+  return best
+}
+
+function toPhysicalRows(rows: number): number {
+  return Math.max(0, Math.round(rows))
 }
 
 // =============================================================================
@@ -1513,7 +1554,9 @@ function ListViewInner<T>(
   const virtualizerRowsAboveViewport = heightModel.rowOfIndex(scrollOffset)
   const layoutOwnsRowBaseline =
     resolvedVirtualization === "index" &&
-    (scrollRow !== null || isWheelDrivenRef.current || pendingFollowSnapRef.current)
+    scrollRow === null &&
+    !isWheelDrivenRef.current &&
+    !pendingFollowSnapRef.current
   const rowsAboveViewport = resolveRowsAboveViewport({
     virtualization: resolvedVirtualization,
     layoutScrollOffset: innerScrollState?.offset,
@@ -1639,7 +1682,16 @@ function ListViewInner<T>(
     endIndex: number
     hasLeadingSpacer: boolean
     hasInterstitial: boolean
-  }>({ startIndex: 0, endIndex: 0, hasLeadingSpacer: false, hasInterstitial: false })
+    leadingHeight: number
+    renderScrollRow: number | null
+  }>({
+    startIndex: 0,
+    endIndex: 0,
+    hasLeadingSpacer: false,
+    hasInterstitial: false,
+    leadingHeight: 0,
+    renderScrollRow: null,
+  })
 
   const cursorAnchor = Math.max(0, Math.min(activeItems.length - 1, scrollOffset))
 
@@ -1823,6 +1875,29 @@ function ListViewInner<T>(
     activeScrollDirectionRef.current !== null &&
     indexWindowPrevRef.current.endIndex > indexWindowPrevRef.current.startIndex
   ) {
+    const candidateLeadingHeight = toPhysicalRows(heightModel.rowOfIndex(indexWindowStart))
+    const visibleTopToleranceRows = 0.01
+    let visibleTopClampedStartIndex: number | undefined
+    const previousRenderScrollRow = indexWindowPrevRef.current.renderScrollRow
+    const previousLeadingHeight = indexWindowPrevRef.current.leadingHeight
+    if (renderScrollRow !== null && previousRenderScrollRow !== null) {
+      const previousVisibleTopRow = previousRenderScrollRow - previousLeadingHeight
+      if (activeScrollDirectionRef.current === "up") {
+        const maxVisibleTopRow = previousVisibleTopRow + visibleTopToleranceRows
+        const minLeadingHeight = Math.max(0, renderScrollRow - maxVisibleTopRow)
+        const firstNonReversingStart = firstIndexAtOrAfterRow(heightModel, minLeadingHeight)
+        const lastNonBlankStart = lastIndexAtOrBeforeRow(heightModel, renderScrollRow)
+        visibleTopClampedStartIndex =
+          firstNonReversingStart !== null && lastNonBlankStart !== null
+            ? Math.min(firstNonReversingStart, lastNonBlankStart)
+            : (firstNonReversingStart ?? lastNonBlankStart ?? undefined)
+      } else {
+        const minVisibleTopRow = previousVisibleTopRow - visibleTopToleranceRows
+        const maxLeadingHeight = Math.max(0, renderScrollRow - minVisibleTopRow)
+        visibleTopClampedStartIndex =
+          lastIndexAtOrBeforeRow(heightModel, maxLeadingHeight) ?? undefined
+      }
+    }
     const monotonicWindow = resolveActiveScrollWindow({
       startIndex: indexWindowStart,
       endIndex: indexWindowEnd,
@@ -1831,10 +1906,37 @@ function ListViewInner<T>(
       anchorFirstIndex: viewportAnchorFirst,
       anchorLastIndex: viewportAnchorLast,
       activeScrollDirection: activeScrollDirectionRef.current,
+      renderScrollRow,
+      previousRenderScrollRow,
+      leadingHeight: candidateLeadingHeight,
+      previousLeadingHeight,
+      visibleTopClampedStartIndex,
+      visibleTopToleranceRows,
     })
     indexWindowStart = monotonicWindow.startIndex
     indexWindowEnd = monotonicWindow.endIndex
     activeScrollWindowClamped = monotonicWindow.clamped
+
+    if (renderScrollRow !== null) {
+      const lastNonBlankStart = lastIndexAtOrBeforeRow(heightModel, renderScrollRow)
+      if (lastNonBlankStart !== null && indexWindowStart > lastNonBlankStart) {
+        const forcedLeadingHeight = toPhysicalRows(heightModel.rowOfIndex(lastNonBlankStart))
+        const previousVisibleTopRow =
+          previousRenderScrollRow === null || previousLeadingHeight === null
+            ? null
+            : previousRenderScrollRow - previousLeadingHeight
+        const forcedVisibleTopRow = renderScrollRow - forcedLeadingHeight
+        const forcedWindowMovesOpposite =
+          activeScrollDirectionRef.current === "up" &&
+          previousVisibleTopRow !== null &&
+          forcedVisibleTopRow > previousVisibleTopRow + visibleTopToleranceRows
+        if (!forcedWindowMovesOpposite) {
+          indexWindowStart = lastNonBlankStart
+          indexWindowEnd = Math.max(indexWindowEnd, lastNonBlankStart + 1)
+          activeScrollWindowClamped = true
+        }
+      }
+    }
   }
 
   // Capture this frame's window structure for next frame's viewport
@@ -1866,13 +1968,40 @@ function ListViewInner<T>(
   //   sumHeights(end, n)   = (totalRows - prefixSum(end) - (n-1)*gap)
   //                          + max(0, n-end-1)*gap
   //                        = (sum of heights[end..n)) + (n-end-1)*gap
-  const indexLeadingSpacer = usingIndexWindow ? heightModel.rowOfIndex(indexWindowStart) : 0
+  let indexLeadingSpacer = usingIndexWindow
+    ? toPhysicalRows(heightModel.rowOfIndex(indexWindowStart))
+    : 0
+  let indexLeadingSpacerCarryRows = 0
+  if (
+    usingIndexWindow &&
+    wheelGestureActiveRef.current &&
+    activeScrollDirectionRef.current !== null &&
+    renderScrollRow !== null &&
+    indexWindowPrevRef.current.renderScrollRow !== null
+  ) {
+    const activeLeadingSpacer = resolveActiveLeadingSpacer({
+      leadingHeight: indexLeadingSpacer,
+      activeScrollDirection: activeScrollDirectionRef.current,
+      renderScrollRow,
+      previousRenderScrollRow: indexWindowPrevRef.current.renderScrollRow,
+      previousLeadingHeight: indexWindowPrevRef.current.leadingHeight,
+      visibleTopToleranceRows: 0.01,
+    })
+    indexLeadingSpacer = activeLeadingSpacer.leadingHeight
+    indexLeadingSpacerCarryRows = activeLeadingSpacer.carryRows
+    if (activeLeadingSpacer.clamped) activeScrollWindowClamped = true
+  }
   // Trailing spacer math is delegated to a pure helper so the
   // (totalRows - prefixSum - totalGapAccount + trailingInternalGaps) algebra
   // is unit-testable. The helper also clamps to >= 0 — Yoga rejects negative
   // height props, and tiny negatives from rounding can otherwise leak in.
   const indexTrailingSpacer = usingIndexWindow
-    ? computeIndexTrailingSpacer(heightModel, indexWindowEnd, activeItems.length, gap)
+    ? Math.max(
+        0,
+        toPhysicalRows(
+          computeIndexTrailingSpacer(heightModel, indexWindowEnd, activeItems.length, gap),
+        ) - indexLeadingSpacerCarryRows,
+      )
     : 0
 
   // Effective values used by the render path. In "measured" mode (pixel),
@@ -1909,6 +2038,8 @@ function ListViewInner<T>(
     endIndex: indexWindowEnd,
     hasLeadingSpacer: effectiveLeadingHeight > 0,
     hasInterstitial: renderSeparator !== undefined || gap > 0,
+    leadingHeight: effectiveLeadingHeight,
+    renderScrollRow,
   }
 
   // ── Surface / search registration ────────────────────────────────

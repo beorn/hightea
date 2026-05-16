@@ -55,12 +55,71 @@ export interface ActiveScrollWindowInput {
   anchorLastIndex?: number
   activeScrollDirection: "up" | "down" | null
   edgeBufferItems?: number
+  renderScrollRow?: number | null
+  previousRenderScrollRow?: number | null
+  leadingHeight?: number | null
+  previousLeadingHeight?: number | null
+  visibleTopClampedStartIndex?: number
+  visibleTopToleranceRows?: number
 }
 
 export interface ActiveScrollWindowResult {
   startIndex: number
   endIndex: number
   clamped: boolean
+}
+
+export interface ActiveLeadingSpacerInput {
+  leadingHeight: number
+  activeScrollDirection: "up" | "down" | null
+  renderScrollRow?: number | null
+  previousRenderScrollRow?: number | null
+  previousLeadingHeight?: number | null
+  visibleTopToleranceRows?: number
+}
+
+export interface ActiveLeadingSpacerResult {
+  leadingHeight: number
+  carryRows: number
+  clamped: boolean
+}
+
+export function resolveActiveLeadingSpacer({
+  leadingHeight,
+  activeScrollDirection,
+  renderScrollRow,
+  previousRenderScrollRow,
+  previousLeadingHeight,
+  visibleTopToleranceRows = 0.5,
+}: ActiveLeadingSpacerInput): ActiveLeadingSpacerResult {
+  if (
+    activeScrollDirection !== "up" ||
+    renderScrollRow == null ||
+    previousRenderScrollRow == null ||
+    previousLeadingHeight == null ||
+    leadingHeight > renderScrollRow
+  ) {
+    return { leadingHeight, carryRows: 0, clamped: false }
+  }
+
+  const previousVisibleTopRow = previousRenderScrollRow - previousLeadingHeight
+  const maxVisibleTopRow = previousVisibleTopRow + visibleTopToleranceRows
+  const minLeadingHeight = renderScrollRow - maxVisibleTopRow
+  const nonReversingLeadingHeight = Math.ceil(minLeadingHeight - 1e-9)
+  const adjustedLeadingHeight = Math.min(
+    renderScrollRow,
+    Math.max(leadingHeight, nonReversingLeadingHeight),
+  )
+
+  if (adjustedLeadingHeight <= leadingHeight) {
+    return { leadingHeight, carryRows: 0, clamped: false }
+  }
+
+  return {
+    leadingHeight: adjustedLeadingHeight,
+    carryRows: adjustedLeadingHeight - leadingHeight,
+    clamped: true,
+  }
 }
 
 export function resolveActiveScrollWindow({
@@ -72,6 +131,12 @@ export function resolveActiveScrollWindow({
   anchorLastIndex,
   activeScrollDirection,
   edgeBufferItems = 4,
+  renderScrollRow,
+  previousRenderScrollRow,
+  leadingHeight,
+  previousLeadingHeight,
+  visibleTopClampedStartIndex,
+  visibleTopToleranceRows = 0.5,
 }: ActiveScrollWindowInput): ActiveScrollWindowResult {
   const previousEnd = previousEndIndex ?? previousStartIndex
   const previousWindowKnown =
@@ -86,6 +151,43 @@ export function resolveActiveScrollWindow({
     previousWindowStillCoversAnchor && anchorFirstIndex > previousStartIndex + edgeBufferItems
   const canKeepPreviousStartForDown =
     previousWindowStillCoversAnchor && anchorLastIndex < previousEnd - edgeBufferItems
+  if (
+    activeScrollDirection !== null &&
+    previousWindowKnown &&
+    renderScrollRow != null &&
+    previousRenderScrollRow != null &&
+    leadingHeight != null &&
+    previousLeadingHeight != null
+  ) {
+    const previousVisibleTopRow = previousRenderScrollRow - previousLeadingHeight
+    const nextVisibleTopRow = renderScrollRow - leadingHeight
+    const visibleTopDelta = nextVisibleTopRow - previousVisibleTopRow
+    const movedOpposite =
+      activeScrollDirection === "up"
+        ? visibleTopDelta > visibleTopToleranceRows
+        : visibleTopDelta < -visibleTopToleranceRows
+    if (movedOpposite) {
+      const previousWindowCanStillPaintContent =
+        activeScrollDirection === "up" ? previousLeadingHeight <= renderScrollRow : true
+      const clampedStart =
+        activeScrollDirection === "up"
+          ? previousWindowCanStillPaintContent
+            ? previousStartIndex
+            : (visibleTopClampedStartIndex ?? previousStartIndex)
+          : canKeepPreviousStartForDown
+            ? previousStartIndex
+            : Math.min(startIndex, visibleTopClampedStartIndex ?? previousStartIndex)
+      const clampedEnd =
+        activeScrollDirection === "up" && clampedStart !== previousStartIndex
+          ? Math.max(endIndex, clampedStart + 1)
+          : Math.max(endIndex, previousEnd, clampedStart + 1)
+      return {
+        startIndex: clampedStart,
+        endIndex: clampedEnd,
+        clamped: true,
+      }
+    }
+  }
 
   if (
     activeScrollDirection === "up" &&

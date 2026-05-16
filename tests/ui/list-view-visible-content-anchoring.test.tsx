@@ -25,7 +25,10 @@ import {
   shouldApplyVisibleContentAnchoring,
   resolveViewportAnchor,
 } from "../../packages/ag-react/src/ui/components/list-view/use-scroll-anchoring"
-import { resolveActiveScrollWindow } from "../../packages/ag-react/src/ui/components/list-view/scroll-authority"
+import {
+  resolveActiveLeadingSpacer,
+  resolveActiveScrollWindow,
+} from "../../packages/ag-react/src/ui/components/list-view/scroll-authority"
 import { createHeightModel } from "../../packages/ag-react/src/ui/components/list-view/height-model"
 
 interface Item {
@@ -427,6 +430,139 @@ describe("ListView maintainVisibleContentPosition", () => {
         activeScrollDirection: "up",
       }),
     ).toEqual({ startIndex: 831, endIndex: 889, clamped: true })
+  })
+
+  test("active upward scroll rejects a window recenter that moves visible content downward", () => {
+    // Live silvercode trace, 2026-05-16: row-space wheel motion moved up
+    // by 4 rows, but the virtual window rebased 861 -> 815. That collapsed
+    // the leading spacer by ~159 rows, so renderRow-leadingHeight moved
+    // DOWN by +155 rows, visibly opposite the flick direction. Since the
+    // previous leading spacer still covers the row-space viewport, keep
+    // that window instead of recentering the index slice.
+    expect(
+      resolveActiveScrollWindow({
+        startIndex: 815,
+        endIndex: 923,
+        previousStartIndex: 861,
+        previousEndIndex: 969,
+        anchorFirstIndex: 819,
+        anchorLastIndex: 846,
+        activeScrollDirection: "up",
+        renderScrollRow: 3003,
+        previousRenderScrollRow: 3007,
+        leadingHeight: 2825.333333333344,
+        previousLeadingHeight: 2984.8000000000106,
+        visibleTopClampedStartIndex: 858,
+      }),
+    ).toEqual({ startIndex: 861, endIndex: 969, clamped: true })
+  })
+
+  test("active upward scroll advances instead of carrying spacer debt into blank space", () => {
+    expect(
+      resolveActiveScrollWindow({
+        startIndex: 787,
+        endIndex: 921,
+        previousStartIndex: 788,
+        previousEndIndex: 921,
+        anchorFirstIndex: 788,
+        anchorLastIndex: 817,
+        activeScrollDirection: "up",
+        renderScrollRow: 2731,
+        previousRenderScrollRow: 2734,
+        leadingHeight: 2725,
+        previousLeadingHeight: 2732,
+        visibleTopClampedStartIndex: 787,
+      }),
+    ).toEqual({ startIndex: 787, endIndex: 921, clamped: true })
+  })
+
+  test("active upward scroll advances when the previous window no longer paints content", () => {
+    expect(
+      resolveActiveScrollWindow({
+        startIndex: 787,
+        endIndex: 921,
+        previousStartIndex: 788,
+        previousEndIndex: 921,
+        anchorFirstIndex: 788,
+        anchorLastIndex: 817,
+        activeScrollDirection: "up",
+        renderScrollRow: 2729,
+        previousRenderScrollRow: 2734,
+        leadingHeight: 2725,
+        previousLeadingHeight: 2732,
+        visibleTopClampedStartIndex: 787,
+      }),
+    ).toEqual({ startIndex: 787, endIndex: 921, clamped: true })
+  })
+
+  test("active upward visible-top clamp does not grow the rendered tail window", () => {
+    // When the window advances upward, preserving the old end accumulates every
+    // item below the viewport into the mounted slice. A long flick trace grew a
+    // 60-row transcript window past 200 mounted rows, creating measurement churn.
+    expect(
+      resolveActiveScrollWindow({
+        startIndex: 708,
+        endIndex: 908,
+        previousStartIndex: 709,
+        previousEndIndex: 921,
+        anchorFirstIndex: 709,
+        anchorLastIndex: 738,
+        activeScrollDirection: "up",
+        renderScrollRow: 2457,
+        previousRenderScrollRow: 2458,
+        leadingHeight: 2454,
+        previousLeadingHeight: 2458,
+        visibleTopClampedStartIndex: 708,
+      }),
+    ).toEqual({ startIndex: 708, endIndex: 908, clamped: true })
+  })
+
+  test("active upward scroll carries intra-item spacer offset instead of reversing visible rows", () => {
+    expect(
+      resolveActiveLeadingSpacer({
+        leadingHeight: 2454,
+        activeScrollDirection: "up",
+        renderScrollRow: 2457,
+        previousRenderScrollRow: 2458,
+        previousLeadingHeight: 2458,
+        visibleTopToleranceRows: 0.01,
+      }),
+    ).toEqual({ leadingHeight: 2457, carryRows: 3, clamped: true })
+  })
+
+  test("active upward spacer carry does not introduce blank top rows", () => {
+    expect(
+      resolveActiveLeadingSpacer({
+        leadingHeight: 2458,
+        activeScrollDirection: "up",
+        renderScrollRow: 2457,
+        previousRenderScrollRow: 2458,
+        previousLeadingHeight: 2458,
+        visibleTopToleranceRows: 0.01,
+      }),
+    ).toEqual({ leadingHeight: 2458, carryRows: 0, clamped: false })
+  })
+
+  test("active upward scroll keeps the buffered window before visible-top clamping", () => {
+    // When the previous window still covers the row-space viewport anchor,
+    // moving the start index upward by even one item can make
+    // renderRow-leadingHeight move opposite the wheel direction. Keep the
+    // buffered window until the anchor reaches its edge.
+    expect(
+      resolveActiveScrollWindow({
+        startIndex: 285,
+        endIndex: 361,
+        previousStartIndex: 286,
+        previousEndIndex: 361,
+        anchorFirstIndex: 335,
+        anchorLastIndex: 355,
+        activeScrollDirection: "up",
+        renderScrollRow: 335,
+        previousRenderScrollRow: 335,
+        leadingHeight: 285,
+        previousLeadingHeight: 286,
+      }),
+    ).toEqual({ startIndex: 286, endIndex: 361, clamped: true })
   })
 
   test("active upward scroll advances the window when the anchor reaches the buffer edge", () => {
