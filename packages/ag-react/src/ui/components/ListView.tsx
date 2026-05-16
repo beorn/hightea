@@ -58,7 +58,11 @@ import { Scrollbar } from "./Scrollbar"
 import type { AgNode, Rect } from "@silvery/ag/types"
 import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
 import { renderStringSync } from "../../render-string"
-import { createHeightModel, type HeightModel } from "./list-view/height-model"
+import {
+  createHeightModel,
+  shouldFreezeHeightModelForWheel,
+  type HeightModel,
+} from "./list-view/height-model"
 import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
 import {
   resolveActiveScrollWindow,
@@ -1414,6 +1418,12 @@ function ListViewInner<T>(
     })
   }
   const heightModel = heightModelRef.current
+  const heightModelConfigRef = useRef<{
+    itemCount: number
+    gap: number
+    viewportWidth: number | null
+    estimateKey: number
+  } | null>(null)
 
   // Average measured height — used as a fallback for unmeasured items
   // when ANY measurements exist (mirrors `sumHeights` semantics; without
@@ -1464,11 +1474,32 @@ function ListViewInner<T>(
   // height math. For n ≤ 200 the cost is negligible; for larger lists
   // the rebuild can be amortised by switching to `setMeasured` deltas
   // tracked across renders, deferred to Phase 3 if profiling shows it.
-  heightModel.update({
+  const viewportWidthForHeightModel = viewportSize?.w ?? null
+  const previousHeightModelConfig = heightModelConfigRef.current
+  const freezeHeightModelForWheel = shouldFreezeHeightModelForWheel({
+    wheelGestureActive: wheelGestureActiveRef.current,
     itemCount: activeItems.length,
+    currentItemCount: heightModel.itemCount,
     gap,
-    estimate: effectiveEstimate,
+    previousGap: previousHeightModelConfig?.gap ?? null,
+    viewportWidth: viewportWidthForHeightModel,
+    previousViewportWidth: previousHeightModelConfig?.viewportWidth ?? null,
+    estimateKey: virtualizerEstimateAsNumber,
+    previousEstimateKey: previousHeightModelConfig?.estimateKey ?? null,
   })
+  if (!freezeHeightModelForWheel) {
+    heightModel.update({
+      itemCount: activeItems.length,
+      gap,
+      estimate: effectiveEstimate,
+    })
+    heightModelConfigRef.current = {
+      itemCount: activeItems.length,
+      gap,
+      viewportWidth: viewportWidthForHeightModel,
+      estimateKey: virtualizerEstimateAsNumber,
+    }
+  }
 
   const innerScrollState = useScrollState(containerNode ?? null)
   const totalRowsMeasured = Math.max(1, heightModel.totalRows())
@@ -1529,6 +1560,7 @@ function ListViewInner<T>(
   const anchoringEnabled = shouldApplyVisibleContentAnchoring({
     maintainVisibleContentPosition,
     followOwnsViewport: followPinnedTopRow !== null,
+    wheelGestureActive: wheelGestureActiveRef.current,
   })
   const activeAnchorCorrectionBudgetRows =
     wheelGestureActiveRef.current && activeScrollDirectionRef.current !== null
@@ -2662,6 +2694,7 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline ? 1 : 0,
       anchoringEnabled ? 1 : 0,
       wheelGestureActiveRef.current ? 1 : 0,
+      freezeHeightModelForWheel ? 1 : 0,
       activeScrollDirectionRef.current ?? "null",
       activeAnchorCorrectionBudgetRows ?? "null",
       oppositeActiveAnchorCorrectionBudgetRows ?? "null",
@@ -2714,6 +2747,7 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline,
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
+      heightModelFrozenForWheel: freezeHeightModelForWheel,
       activeScrollDirection: activeScrollDirectionRef.current,
       activeAnchorCorrectionBudgetRows,
       oppositeActiveAnchorCorrectionBudgetRows,
@@ -2760,6 +2794,7 @@ function ListViewInner<T>(
     measuredHeights.size,
     innerScrollState?.offset,
     anchoringEnabled,
+    freezeHeightModelForWheel,
     layoutOwnsRowBaseline,
     isScrolling,
     activeAnchorCorrectionBudgetRows,

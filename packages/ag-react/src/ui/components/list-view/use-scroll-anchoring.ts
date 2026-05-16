@@ -54,18 +54,21 @@ export function resolveRowsAboveViewport({
 export function shouldApplyVisibleContentAnchoring({
   maintainVisibleContentPosition,
   followOwnsViewport,
+  wheelGestureActive = false,
 }: {
   maintainVisibleContentPosition: boolean
   followOwnsViewport: boolean
+  wheelGestureActive?: boolean
 }): boolean {
-  return maintainVisibleContentPosition && !followOwnsViewport
+  return maintainVisibleContentPosition && !followOwnsViewport && !wheelGestureActive
 }
 
 const DEFAULT_TOLERANCE_ROWS = 0.5
 const END_ANCHOR_KEY = "__end__"
 
 export function resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight: number): number {
-  return Math.max(1, Math.ceil(contentViewportHeight / 4))
+  void contentViewportHeight
+  return 0
 }
 
 export function resolveActiveScrollMeasuredHeightFallback({

@@ -69,6 +69,18 @@ export interface HeightModelOptions {
   gap?: number
 }
 
+export interface HeightModelUpdateFreezeInput {
+  wheelGestureActive: boolean
+  itemCount: number
+  currentItemCount: number
+  gap: number
+  previousGap: number | null
+  viewportWidth: number | null
+  previousViewportWidth: number | null
+  estimateKey: number
+  previousEstimateKey: number | null
+}
+
 interface Internals {
   // Fenwick tree, 1-indexed. tree[0] is sentinel.
   tree: number[]
@@ -106,6 +118,29 @@ function rebuild(self: Internals): void {
     self.effective[i] = h
     fenwickAdd(self.tree, i, h, n)
   }
+}
+
+export function shouldFreezeHeightModelForWheel({
+  wheelGestureActive,
+  itemCount,
+  currentItemCount,
+  gap,
+  previousGap,
+  viewportWidth,
+  previousViewportWidth,
+  estimateKey,
+  previousEstimateKey,
+}: HeightModelUpdateFreezeInput): boolean {
+  return (
+    wheelGestureActive &&
+    itemCount === currentItemCount &&
+    previousGap !== null &&
+    Object.is(gap, previousGap) &&
+    previousViewportWidth !== null &&
+    Object.is(viewportWidth, previousViewportWidth) &&
+    previousEstimateKey !== null &&
+    Object.is(estimateKey, previousEstimateKey)
+  )
 }
 
 export function createHeightModel(opts: HeightModelOptions): HeightModel {

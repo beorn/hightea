@@ -217,6 +217,16 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(true)
   })
 
+  test("visible-content anchoring does not apply during active wheel ownership", () => {
+    expect(
+      shouldApplyVisibleContentAnchoring({
+        maintainVisibleContentPosition: true,
+        followOwnsViewport: false,
+        wheelGestureActive: true,
+      }),
+    ).toBe(false)
+  })
+
   test("visible-content anchoring does not apply while follow owns the viewport", () => {
     expect(
       shouldApplyVisibleContentAnchoring({
@@ -387,7 +397,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     // high-speed scroll source, which users see as a frozen frame followed by
     // a skip.
     const budget = resolveActiveAnchorCorrectionBudgetRows(112)
-    expect(budget).toBe(28)
+    expect(budget).toBe(0)
 
     expect(
       resolveDirectionalMaintainedTopRow({
@@ -397,7 +407,7 @@ describe("ListView maintainVisibleContentPosition", () => {
         toleranceRows: 0.5,
         maxActiveCorrectionRows: budget,
       }),
-    ).toBe(4584)
+    ).toBe(4612)
   })
 
   test("wheel-driven viewport freezes the unmeasured-row fallback average until ownership resets", () => {

@@ -92,7 +92,10 @@ export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./
 // HeightModel — Fenwick-backed predicted-height source.
 // Phase 1 of `km-silvery.listview-heightmodel-unify`: semi-public scaffolding
 // so tests can import it; ListView is rewired in Phase 2 (separate bead).
-export { createHeightModel } from "./ui/components/list-view/height-model"
+export {
+  createHeightModel,
+  shouldFreezeHeightModelForWheel,
+} from "./ui/components/list-view/height-model"
 export type { HeightModel, HeightModelOptions } from "./ui/components/list-view/height-model"
 // Pure index-window helpers — extracted from ListView for unit-testability.
 export {
