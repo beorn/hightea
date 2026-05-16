@@ -59,25 +59,33 @@ afterEach(() => {
   resetStrictCache()
 })
 
-function withClsLogging<T>(run: (events: LogEvent[]) => T): T {
+function withClsLogging<T>(
+  run: (events: LogEvent[]) => T,
+  {
+    debugFilter = ["silvery:cls"],
+    writers = ["silvery:cls"],
+  }: { debugFilter?: string[]; writers?: string[] } = {},
+): T {
   const prevInstrument = process.env.SILVERY_INSTRUMENT
   const prevDebugFilter = getDebugFilter()
   const prevLogLevel: LogLevel = getLogLevel()
   const events: LogEvent[] = []
   process.env.SILVERY_INSTRUMENT = "cls"
-  setDebugFilter(["silvery:cls"])
+  setDebugFilter(debugFilter)
   setLogLevel("debug")
   setSuppressConsole(true)
-  const unsubscribe = addWriter(
-    { ns: "silvery:cls", level: "debug" },
-    (_formatted: string, _level: string, _namespace: string, event: Event) => {
-      if (event.kind === "log") events.push(event)
-    },
+  const unsubscribes = writers.map((ns) =>
+    addWriter(
+      { ns, level: "debug" },
+      (_formatted: string, _level: string, _namespace: string, event: Event) => {
+        if (event.kind === "log") events.push(event)
+      },
+    ),
   )
   try {
     return run(events)
   } finally {
-    unsubscribe()
+    for (const unsubscribe of unsubscribes) unsubscribe()
     if (prevInstrument === undefined) delete process.env.SILVERY_INSTRUMENT
     else process.env.SILVERY_INSTRUMENT = prevInstrument
     setDebugFilter(prevDebugFilter)
@@ -339,7 +347,7 @@ describe("ClsMonitor capture API (Phase 8 Option C consolidation)", () => {
 })
 
 describe("ClsMonitor production diagnostics (layout-shift instrumentation bead)", () => {
-  test("DEBUG-gated shift log includes path, rects, and per-path dt", () => {
+  test("DEBUG-gated summary log counts shifts without per-node firehose", () => {
     withClsLogging((events) => {
       const m = createClsMonitor()
       primeMonitor(m)
@@ -359,14 +367,46 @@ describe("ClsMonitor production diagnostics (layout-shift instrumentation bead)"
       })
       m.onCommit(root, 80, 24, false)
 
-      const shift = events.find((event) => event.message === "shift")
-      expect(shift?.props).toMatchObject({
-        prev: { x: 0, y: 0, width: 10, height: 1 },
-        next: { x: 3, y: 0, width: 10, height: 1 },
+      const shiftCount = events.find((event) => event.message === "shift-count")
+      expect(shiftCount?.props).toMatchObject({
+        shifts: 1,
       })
-      expect(String(shift?.props?.path)).toContain("movable")
-      expect(shift?.props).toHaveProperty("dtMs")
+      expect(String(shiftCount?.props?.firstPaths)).toContain("movable")
+      expect(events.some((event) => event.message === "shift")).toBe(false)
     })
+  })
+
+  test("narrow DEBUG namespace keeps full per-node shift details available", () => {
+    withClsLogging(
+      (events) => {
+        const m = createClsMonitor()
+        primeMonitor(m)
+
+        const root = fakeNode({
+          type: "silvery-root",
+          id: "root",
+          rect: { x: 0, y: 0, width: 80, height: 24 },
+          children: [
+            fakeNode({
+              type: "silvery-box",
+              id: "movable",
+              prevRect: { x: 0, y: 0, width: 10, height: 1 },
+              rect: { x: 3, y: 0, width: 10, height: 1 },
+            }),
+          ],
+        })
+        m.onCommit(root, 80, 24, false)
+
+        const shift = events.find((event) => event.message === "shift")
+        expect(shift?.props).toMatchObject({
+          prev: { x: 0, y: 0, width: 10, height: 1 },
+          next: { x: 3, y: 0, width: 10, height: 1 },
+        })
+        expect(String(shift?.props?.path)).toContain("movable")
+        expect(shift?.props).toHaveProperty("dtMs")
+      },
+      { debugFilter: ["silvery:cls-detail"], writers: ["silvery:cls-detail"] },
+    )
   })
 
   test("per-path quick-reflow storm emits one warning for one continuous storm", () => {

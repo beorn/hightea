@@ -4,10 +4,12 @@
  * Detects two classes of layout instability:
  *
  *  1. **Layout shifts** — an AgNode's `screenRect` changes between
- *     consecutive render commits with no scroll/resize cause. Logged
- *     individually under `DEBUG=silvery:cls`; quick-reflow storms (the
+ *     consecutive render commits with no scroll/resize cause. Logged as
+ *     per-commit counts under `DEBUG=silvery:cls`; quick-reflow storms (the
  *     same path shifting many times in a short window) escalate to a
- *     `warn` summary.
+ *     `warn` summary. Full per-node shift logs live under the narrower
+ *     `DEBUG=silvery:cls-detail` namespace so instrumentation does not create
+ *     the scroll jank it is meant to diagnose.
  *
  *  2. **Unreasonable sizes** — degenerate or oversized rects detected
  *     during the same walk: `width=0` / `height=0` with visible content
@@ -26,8 +28,9 @@
  * The walk runs every commit but does nothing when no logger method is
  * armed. Activation:
  *
- *  - `DEBUG=silvery:cls` — full instrumentation, per-shift `debug` logs
- *    + storm `warn` logs + size-violation `warn` logs.
+ *  - `DEBUG=silvery:cls` — summary instrumentation, per-commit shift
+ *    counts + storm `warn` logs + size-violation `warn` logs.
+ *  - `DEBUG=silvery:cls-detail` — full per-node shift `debug` logs.
  *  - `LOG_LEVEL=warn` only — storm + size-violation `warn` logs (no
  *    per-shift spam). Useful in CI / smoke tests.
  *
@@ -49,12 +52,13 @@ import type { AgNode, Rect } from "@silvery/ag/types"
 import { assertNoUnexpectedShifts } from "../strict-cls"
 
 const log = createLogger("silvery:cls")
+const shiftLog = createLogger("silvery:cls-detail")
 
 /**
  * Opt-in gate. CLS instrumentation runs ONLY when one of these
  * env vars is set:
  *
- *   - `DEBUG=silvery:cls` (or `DEBUG=silvery:*` / `DEBUG=*`)
+ *   - `DEBUG=silvery:cls` / `DEBUG=silvery:cls-detail` (or `DEBUG=silvery:*` / `DEBUG=*`)
  *   - `SILVERY_INSTRUMENT=cls`
  *
  * Without the gate, even `warn`-level output stays silent — the
@@ -70,7 +74,7 @@ function clsEnabled(): boolean {
   if (process.env.SILVERY_INSTRUMENT === "cls") return true
   const debug = process.env.DEBUG ?? ""
   if (!debug) return false
-  return /(^|,)\s*(silvery:cls|silvery:\*|\*)\s*(,|$)/.test(debug)
+  return /(^|,)\s*(silvery:cls|silvery:cls-detail|silvery:\*|\*)\s*(,|$)/.test(debug)
 }
 
 const STORM_PATH_WINDOW_MS = 500
@@ -415,8 +419,12 @@ export function createClsMonitor(): ClsMonitor {
     for (const rec of commitShifts) {
       const stormForPath = recordShift(rec, now)
       if (stormForPath) stormPaths++
-      log.debug?.("shift", { path: rec.path, prev: rec.prev, next: rec.next, dtMs: rec.dtMs })
+      shiftLog.debug?.("shift", { path: rec.path, prev: rec.prev, next: rec.next, dtMs: rec.dtMs })
     }
+    log.debug?.("shift-count", {
+      shifts: commitShifts.length,
+      firstPaths: commitShifts.slice(0, 5).map((r) => r.path),
+    })
     if (stormPaths > 0) {
       log.warn?.("reflow-storm-per-path", {
         stormPaths,
