@@ -61,6 +61,10 @@ import { renderStringSync } from "../../render-string"
 import { createHeightModel, type HeightModel } from "./list-view/height-model"
 import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
 import {
+  resolveListViewBoxScrollTo,
+  resolveListViewRenderScrollRow,
+} from "./list-view/scroll-authority"
+import {
   resolveActiveAnchorCorrectionBudgetRows,
   resolveActiveScrollMeasuredHeightFallback,
   resolveRowsAboveViewport,
@@ -1503,7 +1507,24 @@ function ListViewInner<T>(
   const followOwnsViewport =
     resolvedFollow === "end" && (followActiveRef.current || pendingFollowSnapRef.current)
   const followPinnedTopRow = followOwnsViewport ? scrollableRows : null
-  const baseTopRow = followPinnedTopRow ?? (scrollRow !== null ? scrollRow : rowsAboveViewport)
+  // Explicit `scrollTo` prop means "place this item at the viewport
+  // anchor" rather than Box's child-index "ensure visible somewhere"
+  // behavior. Keyboard/nav cursor-follow and follow=end keep their
+  // edge-based semantics through `boxScrollTo` below.
+  const declarativeScrollRow =
+    scrollToProp !== undefined && adjustedScrollTo !== undefined && activeItems.length > 0
+      ? Math.max(
+          0,
+          Math.min(
+            scrollableRows,
+            heightModel.rowOfIndex(Math.max(0, Math.min(adjustedScrollTo, activeItems.length - 1))),
+          ),
+        )
+      : null
+  const baseTopRow =
+    declarativeScrollRow ??
+    followPinnedTopRow ??
+    (scrollRow !== null ? scrollRow : rowsAboveViewport)
   const anchoringEnabled = shouldApplyVisibleContentAnchoring({
     maintainVisibleContentPosition,
     followOwnsViewport: followPinnedTopRow !== null,
@@ -1513,9 +1534,7 @@ function ListViewInner<T>(
       ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
   const oppositeActiveAnchorCorrectionBudgetRows =
-    activeAnchorCorrectionBudgetRows !== undefined
-      ? Math.min(4, activeAnchorCorrectionBudgetRows)
-      : undefined
+    activeAnchorCorrectionBudgetRows !== undefined ? 0 : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
@@ -1536,29 +1555,18 @@ function ListViewInner<T>(
     modelVersion: heightModelVersion,
     onApplyTopRow: applyAnchoredTopRow,
   })
-  // Explicit `scrollTo` prop means "place this item at the viewport
-  // anchor" rather than Box's child-index "ensure visible somewhere"
-  // behavior. Keyboard/nav cursor-follow and follow=end keep their
-  // edge-based semantics through `boxScrollTo` below.
-  const declarativeScrollRow =
-    scrollToProp !== undefined && adjustedScrollTo !== undefined && activeItems.length > 0
-      ? Math.max(
-          0,
-          Math.min(
-            scrollableRows,
-            heightModel.rowOfIndex(Math.max(0, Math.min(adjustedScrollTo, activeItems.length - 1))),
-          ),
-        )
-      : null
   const followDisengagedThisRender =
     prevResolvedFollowRef.current === "end" && resolvedFollow !== "end" && scrollRow === null
   const followDisengageTopRow = rowsAboveViewportRef.current
-  const renderScrollRow =
-    declarativeScrollRow ??
-    followPinnedTopRow ??
-    scrollAnchoring.maintainedTopRow ??
-    (followDisengagedThisRender ? followDisengageTopRow : null) ??
-    scrollRow
+  const renderScroll = resolveListViewRenderScrollRow({
+    declarativeScrollRow,
+    followPinnedTopRow,
+    scrollRow,
+    followDisengageTopRow: followDisengagedThisRender ? followDisengageTopRow : null,
+    maintainedTopRow: scrollAnchoring.maintainedTopRow,
+  })
+  const renderScrollRow = renderScroll.row
+  const scrollAuthority = renderScroll.authority
 
   // ── Viewport-anchored windowing (height-independent / "index" mode) ──
   //
@@ -2561,12 +2569,10 @@ function ListViewInner<T>(
   // Otherwise use the virtualizer's measurement-based `rowsAboveViewport`.
   const effectiveRowsAbove = renderScrollRow !== null ? renderScrollRow : rowsAboveViewport
   const selectedBoxScrollTo = isSelectedInSlice ? Math.max(0, scrollToIndex) : undefined
-  const boxScrollTo =
-    declarativeScrollRow !== null
-      ? selectedBoxScrollTo
-      : renderScrollRow !== null
-        ? undefined
-        : selectedBoxScrollTo
+  const boxScrollTo = resolveListViewBoxScrollTo({
+    renderScrollRow,
+    selectedBoxScrollTo,
+  })
 
   // Content clamp lives in the kinetic-scroll hook (scrollRow clamped to
   // [0, maxRow], momentum amplitude pre-clamped — no rubber-band overshoot).
@@ -2606,7 +2612,8 @@ function ListViewInner<T>(
     resolvedFollow === "end" &&
     scrollableRows > 0 &&
     scrollableRows - effectiveRowsAbove > contentViewportHeight
-  const showScrollToBottomButton = shouldOfferScrollToBottomButton && !isScrolling
+  const scrollGestureUiActive = isScrolling || wheelGestureActiveRef.current
+  const showScrollToBottomButton = shouldOfferScrollToBottomButton && !scrollGestureUiActive
   const lastListLogKey = useRef("")
   useEffect(() => {
     const key = [
@@ -2638,8 +2645,11 @@ function ListViewInner<T>(
       wheelGestureActiveRef.current ? 1 : 0,
       activeScrollDirectionRef.current ?? "null",
       activeAnchorCorrectionBudgetRows ?? "null",
+      oppositeActiveAnchorCorrectionBudgetRows ?? "null",
       scrollAnchoring.maintainedTopRow ?? "null",
       declarativeScrollRow ?? "null",
+      scrollAuthority,
+      boxScrollTo ?? "null",
       isScrolling ? 1 : 0,
       scrollableRows,
       trackHeight,
@@ -2649,6 +2659,7 @@ function ListViewInner<T>(
       measuredHeights.size,
       showScrollbar,
       showScrollToBottomButton,
+      scrollGestureUiActive,
       pendingFollowSnapRef.current,
       followActiveRef.current,
       prevAtBottomRef.current,
@@ -2685,8 +2696,11 @@ function ListViewInner<T>(
       wheelGestureActive: wheelGestureActiveRef.current,
       activeScrollDirection: activeScrollDirectionRef.current,
       activeAnchorCorrectionBudgetRows,
+      oppositeActiveAnchorCorrectionBudgetRows,
       maintainedTopRow: scrollAnchoring.maintainedTopRow,
       declarativeScrollRow,
+      scrollAuthority,
+      boxScrollTo,
       kineticScrolling: isScrolling,
       virtualizerRowsAboveViewport,
       scrollRow,
@@ -2702,6 +2716,7 @@ function ListViewInner<T>(
       avgMeasuredHeight,
       showScrollbar,
       showScrollToBottomButton,
+      scrollGestureUiActive,
       pendingFollowSnap: pendingFollowSnapRef.current,
       followActive: followActiveRef.current,
       prevAtBottom: prevAtBottomRef.current,
@@ -2727,6 +2742,7 @@ function ListViewInner<T>(
     layoutOwnsRowBaseline,
     isScrolling,
     activeAnchorCorrectionBudgetRows,
+    oppositeActiveAnchorCorrectionBudgetRows,
     outerViewportSize,
     viewportInsetRows,
     contentViewportHeight,
@@ -2737,10 +2753,13 @@ function ListViewInner<T>(
     resolvedVirtualization,
     rowsAboveViewport,
     scrollAnchoring.maintainedTopRow,
+    scrollAuthority,
     declarativeScrollRow,
+    boxScrollTo,
     scrollOffset,
     scrollRow,
     scrollableRows,
+    scrollGestureUiActive,
     showScrollbar,
     showScrollToBottomButton,
     startIndex,

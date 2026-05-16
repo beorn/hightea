@@ -180,7 +180,6 @@ export function resolveDirectionalMaintainedTopRow({
   currentTopRow,
   activeScrollDirection,
   maxActiveCorrectionRows,
-  maxOppositeActiveCorrectionRows,
   allowActiveAnchorCorrection,
   toleranceRows,
 }: {
@@ -194,24 +193,8 @@ export function resolveDirectionalMaintainedTopRow({
 }): number | null {
   if (row === null || activeScrollDirection === null) return row
   if (allowActiveAnchorCorrection === false) return null
-  if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) {
-    if (
-      maxOppositeActiveCorrectionRows !== undefined &&
-      row <= currentTopRow + maxOppositeActiveCorrectionRows
-    ) {
-      return row
-    }
-    return null
-  }
-  if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) {
-    if (
-      maxOppositeActiveCorrectionRows !== undefined &&
-      row >= currentTopRow - maxOppositeActiveCorrectionRows
-    ) {
-      return row
-    }
-    return null
-  }
+  if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) return null
+  if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) return null
   if (
     maxActiveCorrectionRows !== undefined &&
     Math.abs(row - currentTopRow) > maxActiveCorrectionRows
