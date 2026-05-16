@@ -45,4 +45,7 @@ Both use their fastest synchronous render path:
 
 See the [Silvery vs Ink comparison page](https://silvery.dev/guide/silvery-vs-ink#performance) for formatted results.
 
-Silvery is 3–6× faster across all mounted rerender scenarios.
+Silvery is 3-27x faster in mounted rerender scenarios, with memoized interactive
+updates typically landing around 15-20x. Cold one-shot renders are a separate
+axis: Silvery wins larger flat/styled/kanban cases, while Ink wins tiny flat
+lists and deep nesting.
