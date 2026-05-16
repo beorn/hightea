@@ -2155,8 +2155,8 @@ function ListViewInner<T>(
   const currentScrollTarget =
     adjustedScrollTo !== undefined
       ? Math.max(0, Math.min(adjustedScrollTo, activeItems.length - 1))
-      : scrollOffset
-  const selectedIndexInSlice = currentScrollTarget - startIndex
+      : null
+  const selectedIndexInSlice = currentScrollTarget === null ? -1 : currentScrollTarget - startIndex
   const isSelectedInSlice = selectedIndexInSlice >= 0 && selectedIndexInSlice < visibleItems.length
   const scrollToIndex = hasTopPlaceholder ? selectedIndexInSlice + 1 : selectedIndexInSlice
 

@@ -27,6 +27,7 @@
 import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
+import type { AgNode } from "@silvery/ag/types"
 import { Box, Text } from "../../src/index.js"
 import { ListView } from "../../packages/ag-react/src/ui/components/ListView"
 
@@ -52,6 +53,16 @@ function FixedList({ scrollTo }: { scrollTo: number | undefined }) {
   )
 }
 
+function findListViewNodeFromText(app: ReturnType<ReturnType<typeof createRenderer>>, id: string) {
+  let node: AgNode | null = app.getByText(id).resolve()
+  while (node !== null) {
+    const props = node.props as Record<string, unknown>
+    if (props["data-component"] === "ListView") return node
+    node = node.parent
+  }
+  return null
+}
+
 function rowOfId(text: string, id: string): number {
   const stripped = stripAnsi(text)
   const lines = stripped.split("\n")
@@ -63,6 +74,19 @@ function rowOfId(text: string, id: string): number {
 }
 
 describe("ListView scrollTo={undefined} freezes the viewport", () => {
+  test("passive freeze does not project the stored virtualizer anchor into Box.scrollTo", () => {
+    const render = createRenderer({ cols: 30, rows: 15 })
+    const app = render(<FixedList scrollTo={10} />)
+
+    const before = findListViewNodeFromText(app, "r-10")
+    expect(before?.props).toMatchObject({ scrollTo: expect.any(Number) })
+
+    app.rerender(<FixedList scrollTo={undefined} />)
+
+    const after = findListViewNodeFromText(app, "r-10")
+    expect(after?.props).toMatchObject({ scrollTo: undefined })
+  })
+
   test("transition scrollTo: number → undefined preserves the row offset of every visible card", () => {
     // 1. scrollTo=10 — virtualizer scrolls so r-10 is in the viewport with
     //    earlier items (r-0..r-?) pushed off the top.
