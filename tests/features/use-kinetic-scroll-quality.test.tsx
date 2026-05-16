@@ -27,6 +27,13 @@ import {
 
 const settle = (ms = 30): Promise<void> => new Promise((r) => setTimeout(r, ms))
 
+function busyWait(ms: number): void {
+  const start = performance.now()
+  while (performance.now() - start < ms) {
+    // Simulate a render/logging turn that blocks timer callbacks.
+  }
+}
+
 interface HarnessRef {
   current: UseKineticScrollResult | null
 }
@@ -328,6 +335,48 @@ describe("useKineticScroll — input cadence detection", () => {
 
     await settle(150)
     expect(apiRef.current!.scrollFloat, "both packet groups eventually drain in full").toBe(24)
+  })
+
+  test("smoothWheelPackets catches up after a starved captured flick instead of adding a long tail", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          smoothWheelPackets: true,
+        }}
+      />,
+    )
+    await settle()
+
+    // Packet-group counts from the user's 2026-05-16 08:51 trace. The busy
+    // wait forces the worst case we saw live: wheel input keeps arriving while
+    // render work prevents the smooth-drain timer from running on schedule.
+    const groups = [
+      1, 1, 11, 42, 26, 9, 22, 18, 10, 2, 15, 3, 6, 7, 6, 3, 3, 2, 1, 2, 1, 1, 2, 1, 1,
+    ]
+    for (const events of groups) {
+      for (let i = 0; i < events; i++) {
+        apiRef.current!.onWheel({ deltaY: 1 })
+      }
+      busyWait(8)
+    }
+
+    const afterInput = apiRef.current!.getScrollFloat()
+    expect(afterInput, "input turn should still move immediately").toBeGreaterThan(30)
+
+    await settle(320)
+    expect(apiRef.current!.scrollFloat, "captured flick backlog drains by the deadline").toBe(196)
+    const afterDeadline = apiRef.current!.scrollFloat
+
+    await settle(160)
+    expect(apiRef.current!.scrollFloat, "no extra post-input tail after the backlog is gone").toBe(
+      afterDeadline,
+    )
   })
 
   test("cadence detection disabled by default — old behaviour preserved", async () => {
