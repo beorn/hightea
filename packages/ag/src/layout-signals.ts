@@ -58,6 +58,19 @@ type WritableSignal<T> = {
   (value: T): void
 }
 
+export type ObservedLayoutSignalKey = "boxRect" | "scrollRect" | "screenRect"
+
+const observedLayoutSignals = new WeakMap<AgNode, Set<ObservedLayoutSignalKey>>()
+
+export function markObservedLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): void {
+  let observed = observedLayoutSignals.get(node)
+  if (!observed) {
+    observed = new Set()
+    observedLayoutSignals.set(node, observed)
+  }
+  observed.add(key)
+}
+
 /**
  * Reactive projection of `AgNode.scrollState` — the layout-phase's pixel-space
  * truth about what's visible in an `overflow="scroll"` container.
@@ -956,6 +969,10 @@ function scrollStateEqual(a: ScrollStateSnapshot | null, b: ScrollStateSnapshot 
 /** Check whether a node has signals allocated (for testing). */
 export function hasLayoutSignals(node: AgNode): boolean {
   return signalMap.has(node)
+}
+
+export function hasObservedLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): boolean {
+  return observedLayoutSignals.get(node)?.has(key) ?? false
 }
 
 // ============================================================================

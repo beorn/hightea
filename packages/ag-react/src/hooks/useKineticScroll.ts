@@ -28,10 +28,9 @@
  * - Direction-confirmation filter (`WheelGestureFilter`) drops a single
  *   opposite-direction sample as inertia bounce; two consecutive opposite
  *   samples commit a real reversal.
- * - Release (no wheel for `RELEASE_TIMEOUT_MS`) → velocity = Σ(bufferRows) /
- *   (last.t − first.t) × 1000; closed-form exponential decay
- *   pos(t) = start + amplitude·(1 − e^(−t/τ)) with τ=180ms, gained and
- *   hard-capped so momentum coasts a modest, predictable distance.
+ * - Release (no wheel for `RELEASE_TIMEOUT_MS`) → optional synthetic
+ *   momentum from the recent wheel buffer. ListView disables this for
+ *   terminal trackpads because the OS already emits inertial packets.
  * - Optional same-direction compounding (`enableSameDirCompounding`):
  *   when a new wheel flick interrupts an in-flight coast in the same
  *   direction, the residual instantaneous velocity is added (pure
@@ -81,16 +80,13 @@ const KINETIC_STOP_DISTANCE = 1.5
 const KINETIC_FRAME_MS = 16
 /** Wait this long with no wheel events before entering momentum phase. */
 const RELEASE_TIMEOUT_MS = 60
-/** Continuous trackpad packets may arrive as a large same-timestamp SGR
- * burst. Move toward the accumulated target at this row budget per frame
- * instead of applying every packet immediately. Terminal/browser trackpads
- * already emit their own inertial tails; the frame pump preserves that input
- * without creating a second app-owned momentum tail. */
+/** Continuous trackpad packets can arrive in same-turn SGR bursts. We keep
+ * every packet in the target and frame-pace rendering toward it; this is a
+ * visual pacing budget, not a packet cap. */
 const SMOOTH_WHEEL_ROWS_PER_FRAME = 4
-/** Maximum queued smooth-wheel lead. This is render coalescing, not synthetic
- * momentum: after the OS stops sending trackpad packets, the app may drain at
- * most this many frames of backlog. */
-const SMOOTH_WHEEL_MAX_TARGET_LEAD_FRAMES = 8
+/** Drain a packet burst quickly enough that Silvery does not add a long
+ * app-owned tail after the OS/native trackpad stream has already ended. */
+const SMOOTH_WHEEL_DRAIN_FRAMES = 3
 /** Scrollbar auto-hide delay after the last scroll activity. */
 export const SCROLLBAR_FADE_AFTER_MS = 800
 /** Default duration for animated scrollTo — calibrated for "feels deliberate
@@ -202,19 +198,14 @@ export interface UseKineticScrollOptions {
    */
   enableInputCadenceDetection?: boolean
   /**
-   * Smooth same-timestamp continuous wheel packet bursts by draining at most
-   * a small row budget per frame. Excess same-frame packets are dropped,
-   * not buffered, because terminal/browser trackpads already emit inertial
-   * wheel packet tails. Discrete mouse-wheel clicks still apply immediately.
-   *
-   * Default `false` for compatibility. ListView enables this because its
-   * transcript/log use case values visual cadence over immediate row jumps.
+   * Frame-pace continuous wheel packet bursts without dropping signal.
+   * Every packet is accumulated into the target; the frame loop only controls
+   * how quickly the visible row offset catches up.
    */
   smoothWheelPackets?: boolean
   /**
-   * Per-frame row budget for `smoothWheelPackets`. Defaults to 4 rows. Apps
-   * with very tall viewports can pass a viewport-scaled value so a fast flick
-   * remains responsive without creating large visible jumps.
+   * Minimum per-frame row budget for `smoothWheelPackets`. Defaults to 4.
+   * Large bursts may drain faster so the app does not add a long tail.
    */
   smoothWheelMaxRowsPerFrame?: number | (() => number)
   /**
@@ -314,7 +305,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const smoothWheelFrameRowsRef = useRef(0)
   const smoothWheelFrameBudgetRowsRef = useRef(SMOOTH_WHEEL_ROWS_PER_FRAME)
   const smoothWheelFrameStartedAtRef = useRef(0)
-  const smoothWheelDrainRowsPerFrameRef = useRef(SMOOTH_WHEEL_ROWS_PER_FRAME)
   const smoothWheelTargetRef = useRef<number | null>(null)
   // Active animation state (mutex — only one runs at a time, all share
   // `loopRef`). Three flavors:
@@ -512,7 +502,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     smoothWheelFrameRowsRef.current = 0
     smoothWheelFrameBudgetRowsRef.current = readSmoothWheelRowsPerFrame()
     smoothWheelFrameStartedAtRef.current = 0
-    smoothWheelDrainRowsPerFrameRef.current = readSmoothWheelRowsPerFrame()
     smoothWheelTargetRef.current = null
   }, [readSmoothWheelRowsPerFrame])
 
@@ -560,9 +549,9 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         smoothWheelTargetRef.current = null
         return false
       }
-      const maxRows = Math.min(
+      const maxRows = Math.max(
         readSmoothWheelRowsPerFrame(),
-        smoothWheelDrainRowsPerFrameRef.current,
+        Math.ceil(Math.abs(distance) / SMOOTH_WHEEL_DRAIN_FRAMES),
       )
       const step = Math.sign(distance) * Math.min(Math.abs(distance), maxRows)
       updatePosition(cur + step, { direction: step < 0 ? -1 : 1 })
@@ -724,13 +713,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         }
         if (pendingRows === 0) return
         const targetStart = smoothWheelTargetRef.current ?? scrollFloatRef.current
-        const rawTarget = clampToScrollRange(targetStart + pendingRows)
-        const maxTargetLead = readSmoothWheelRowsPerFrame() * SMOOTH_WHEEL_MAX_TARGET_LEAD_FRAMES
-        const current = scrollFloatRef.current
-        const target = clampToScrollRange(
-          Math.max(current - maxTargetLead, Math.min(current + maxTargetLead, rawTarget)),
-        )
-        const targetMove = target - current
+        const target = clampToScrollRange(targetStart + pendingRows)
+        const targetMove = target - scrollFloatRef.current
         if (Math.abs(targetMove) >= 0.001) {
           const targetDir = targetMove < 0 ? -1 : 1
           const maxS = readMaxScroll()
@@ -742,7 +726,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           smoothWheelTargetRef.current = target
           const immediateRows = smoothWheelImmediateRows(pendingRows, now)
           if (immediateRows !== 0) {
-            smoothWheelDrainRowsPerFrameRef.current = Math.max(1, smoothWheelFrameRowsRef.current)
             updatePosition(clampToScrollRange(scrollFloatRef.current + immediateRows), {
               direction: immediateRows < 0 ? -1 : 1,
             })
@@ -813,7 +796,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       enableSameDirCompounding,
       maxVelocity,
       readMaxScroll,
-      readSmoothWheelRowsPerFrame,
       scheduleRelease,
       scheduleScrollbarHide,
       smoothWheelImmediateRows,
@@ -837,7 +819,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const clamped = Math.max(0, Number.isFinite(maxS) ? Math.min(maxS, offset) : offset)
       updatePosition(clamped)
     },
-    [clearReleaseTimer, resetSmoothWheelFrameBudget, stopKinetic, updatePosition],
+    [clearReleaseTimer, readMaxScroll, resetSmoothWheelFrameBudget, stopKinetic, updatePosition],
   )
 
   // Same as setScrollOffset but documented to accept fractional values.

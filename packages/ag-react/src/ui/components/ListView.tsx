@@ -42,7 +42,7 @@ import React, {
   useState,
 } from "react"
 import { effect as signalEffect } from "@silvery/signals"
-import { getLayoutSignals } from "@silvery/ag/layout-signals"
+import { getLayoutSignals, markObservedLayoutSignal } from "@silvery/ag/layout-signals"
 import {
   averageMeasuredHeightForWidth,
   sumHeights,
@@ -560,8 +560,9 @@ export interface ListViewProps<T> {
    * clicks (≥50ms gaps + |deltaY|≤1), each event jumps multiple rows
    * with no momentum coast. Trackpad streams keep smooth physics.
    * Default `false` — opt in for real interactive surfaces after profiling
-   * the input backend. When enabled, same-timestamp continuous packet bursts
-   * are frame-paced so trackpad flicks do not jump by an entire packet.
+   * the input backend. Continuous packet bursts are preserved as input
+   * signal; ListView frame-paces rendering without dropping packets or
+   * adding a long synthetic tail.
    */
   enableInputCadenceDetection?: boolean
 }
@@ -1330,15 +1331,18 @@ function ListViewInner<T>(
   // @km/silvery/useboxrect-refactor-incomplete-tracking (Kimi K2.6's
   // observation in the 2026-05-11 /pro review).
   if (outerNode && prevOuterRectRef.current === null) {
+    markObservedLayoutSignal(outerNode, "boxRect")
     const seed = getLayoutSignals(outerNode).boxRectCommitted()
     if (seed && seed.width > 0 && seed.height > 0) prevOuterRectRef.current = seed
   }
   if (containerNode && prevInnerRectRef.current === null) {
+    markObservedLayoutSignal(containerNode, "boxRect")
     const seed = getLayoutSignals(containerNode).boxRectCommitted()
     if (seed && seed.width > 0 && seed.height > 0) prevInnerRectRef.current = seed
   }
   useLayoutEffect(() => {
     if (!outerNode) return
+    markObservedLayoutSignal(outerNode, "boxRect")
     const signals = getLayoutSignals(outerNode)
     return signalEffect(() => {
       const next = signals.boxRectCommitted()
@@ -1356,6 +1360,7 @@ function ListViewInner<T>(
   }, [outerNode])
   useLayoutEffect(() => {
     if (!containerNode) return
+    markObservedLayoutSignal(containerNode, "boxRect")
     const signals = getLayoutSignals(containerNode)
     return signalEffect(() => {
       const next = signals.boxRectCommitted()

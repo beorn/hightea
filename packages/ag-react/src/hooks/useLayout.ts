@@ -54,7 +54,11 @@ import { useContext, useLayoutEffect, useReducer, useRef } from "react"
 import { effect } from "@silvery/signals"
 import { NodeContext } from "../context"
 import { type AgNode, type BoxProps, type Rect, rectEqual } from "@silvery/ag/types"
-import { getLayoutSignals } from "@silvery/ag/layout-signals"
+import {
+  getLayoutSignals,
+  markObservedLayoutSignal,
+  type ObservedLayoutSignalKey,
+} from "@silvery/ag/layout-signals"
 
 export type { Rect }
 
@@ -106,6 +110,18 @@ type CommittedRectSignalKey = "boxRectCommitted" | "scrollRectCommitted" | "scre
 /** Selector that picks which in-flight rect signal to subscribe to. */
 type InFlightRectSignalKey = "boxRect" | "scrollRect" | "screenRect"
 
+const COMMITTED_RECT_OBSERVED_KEY: Record<CommittedRectSignalKey, ObservedLayoutSignalKey> = {
+  boxRectCommitted: "boxRect",
+  scrollRectCommitted: "scrollRect",
+  screenRectCommitted: "screenRect",
+}
+
+const IN_FLIGHT_RECT_OBSERVED_KEY: Record<InFlightRectSignalKey, ObservedLayoutSignalKey> = {
+  boxRect: "boxRect",
+  scrollRect: "scrollRect",
+  screenRect: "screenRect",
+}
+
 /**
  * Reactive rect hook (deferred): subscribes to a committed rect signal and
  * re-renders when the value advances at a commit boundary. Returns the
@@ -129,6 +145,7 @@ function useReactiveRect(
   useLayoutEffect(() => {
     if (!node) return
 
+    markObservedLayoutSignal(node, COMMITTED_RECT_OBSERVED_KEY[committedSignalKey])
     const signals = getLayoutSignals(node)
     const rectSignal = signals[committedSignalKey]
 
@@ -156,6 +173,7 @@ function useReactiveRect(
   // may have been updated by an earlier convergence pass within this batch
   // — reading it would re-introduce the feedback edge this hook exists to
   // eliminate. The committed signal is invariant for the batch.
+  markObservedLayoutSignal(node, COMMITTED_RECT_OBSERVED_KEY[committedSignalKey])
   const signals = getLayoutSignals(node)
   const committed = signals[committedSignalKey]()
   return getCommittedRect(committed, node) ?? EMPTY_RECT
@@ -370,6 +388,7 @@ function useReactiveRectInFlight(
   useLayoutEffect(() => {
     if (!node) return
 
+    markObservedLayoutSignal(node, IN_FLIGHT_RECT_OBSERVED_KEY[inFlightSignalKey])
     const signals = getLayoutSignals(node)
     const rectSignal = signals[inFlightSignalKey]
 
@@ -397,6 +416,7 @@ function useReactiveRectInFlight(
   // edge and would let the render see one value while the effect sees
   // another). The in-flight signal value reflects the most recent layout
   // pass; it may differ between convergence passes within a batch.
+  markObservedLayoutSignal(node, IN_FLIGHT_RECT_OBSERVED_KEY[inFlightSignalKey])
   const signals = getLayoutSignals(node)
   const raw = signals[inFlightSignalKey]()
   return getDerivedRect(raw, node) ?? EMPTY_RECT

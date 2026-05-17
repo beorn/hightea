@@ -14,6 +14,7 @@ import {
   type TermlessTrackpadFlickProfile,
 } from "@silvery/test"
 import { run, type RunHandle } from "../../packages/ag-term/src/runtime/run"
+import { getPassHistogram, resetPassHistogram } from "../../packages/ag-term/src/runtime/pass-cause"
 import { Box, ListView, Text } from "../../src/index"
 import type { ListViewHandle } from "../../packages/ag-react/src/ui/components/ListView"
 
@@ -377,6 +378,13 @@ function longestUnchangedOldestRun(samples: readonly { oldest: number | null }[]
     previous = sample.oldest
   }
   return longest
+}
+
+function layoutInvalidateEdgeCount(edge: string): number {
+  const layoutInvalidates = getPassHistogram().byCause.find(
+    (entry) => entry.cause === "layout-invalidate",
+  )
+  return layoutInvalidates?.topEdges.find((entry) => entry.edge === edge)?.count ?? 0
 }
 
 describe("ListView trackpad flick replay through termless", () => {
@@ -763,6 +771,44 @@ describe("ListView trackpad flick replay through termless", () => {
       handle.unmount()
     }
   }, 20_000)
+
+  test.skipIf(process.env.SILVERY_INSTRUMENT !== "1")(
+    "does not treat measurement-only rows as scroll/screen rect subscribers during a flick",
+    async () => {
+      using term = createTermless({ cols: 302, rows: 117 })
+      const listRef = React.createRef<ListViewHandle>()
+      const items = makeUniformRows(1271)
+      const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+        mouse: true,
+      })
+      try {
+        await settle(120)
+        act(() => {
+          listRef.current?.scrollToBottom()
+        })
+        await settle(120)
+
+        resetPassHistogram()
+        await term.mouse.trackpadFlick(USER_LOG_20260517_SLIP_UP_FLICK_PACKETS)
+        await settle(800)
+
+        const scrollRectInvalidates = layoutInvalidateEdgeCount("scrollRect")
+        const screenRectInvalidates = layoutInvalidateEdgeCount("screenRect")
+        expect(
+          scrollRectInvalidates + screenRectInvalidates,
+          getPassHistogram()
+            .byCause.map(
+              (entry) =>
+                `${entry.cause}: ${entry.topEdges.map((edge) => `${edge.edge}=${edge.count}`).join(", ")}`,
+            )
+            .join(" | "),
+        ).toBeLessThanOrEqual(20)
+      } finally {
+        handle.unmount()
+      }
+    },
+    20_000,
+  )
 
   test("accumulates repeated captured upward flick bursts instead of dropping them", async () => {
     using term = createTermless({ cols: 302, rows: 117 })

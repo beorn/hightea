@@ -20,7 +20,12 @@ import {
   DESC_OVERFLOW_BIT,
 } from "@silvery/ag/epoch"
 import { getBorderSize, getPadding } from "./helpers"
-import { syncDecorationRects, syncRectSignals, hasLayoutSignals } from "@silvery/ag/layout-signals"
+import {
+  syncDecorationRects,
+  syncRectSignals,
+  hasLayoutSignals,
+  hasObservedLayoutSignal,
+} from "@silvery/ag/layout-signals"
 import { logPass, INSTRUMENT } from "../runtime/pass-cause"
 
 const log = createLogger("silvery:layout")
@@ -568,7 +573,7 @@ export function notifyLayoutSubscribers(node: AgNode): void {
       const observed = hasLayoutSignals(node)
       if (observed) {
         const ident = nodeIdent(node)
-        if (contentChanged) {
+        if (contentChanged && hasObservedLayoutSignal(node, "boxRect")) {
           logPass({
             cause: "layout-invalidate",
             edge: "boxRect",
@@ -576,7 +581,7 @@ export function notifyLayoutSubscribers(node: AgNode): void {
             producerPhase: "layout",
           })
         }
-        if (screenChanged) {
+        if (screenChanged && hasObservedLayoutSignal(node, "scrollRect")) {
           logPass({
             cause: "layout-invalidate",
             edge: "scrollRect",
@@ -584,7 +589,7 @@ export function notifyLayoutSubscribers(node: AgNode): void {
             producerPhase: "layout",
           })
         }
-        if (renderChanged) {
+        if (renderChanged && hasObservedLayoutSignal(node, "screenRect")) {
           logPass({
             cause: "layout-invalidate",
             edge: "screenRect",
@@ -596,9 +601,9 @@ export function notifyLayoutSubscribers(node: AgNode): void {
     }
   }
 
-  // Sync rect values into alien-signals (for signal-based hooks).
-  // Always sync — even when no rect changed — because the signal may
-  // have been created after the last sync (lazy initialization).
+  // Sync current rect values into layout signals. The signal layer also
+  // tracks which rect fields were actually read, so instrumentation can
+  // avoid counting measurement-only boxes as scroll/screen subscribers.
   syncRectSignals(node)
 
   // Recurse to children

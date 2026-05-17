@@ -33,7 +33,7 @@
 import { useContext, useLayoutEffect, useReducer, useRef, type RefObject } from "react"
 import { effect as signalEffect } from "@silvery/signals"
 import { NodeContext } from "../context"
-import { getLayoutSignals } from "@silvery/ag/layout-signals"
+import { getLayoutSignals, markObservedLayoutSignal } from "@silvery/ag/layout-signals"
 import type { AgNode } from "@silvery/ag/types"
 
 // ============================================================================
@@ -152,6 +152,7 @@ export function useBoxMetrics(ref?: RefObject<unknown>): BoxMetrics {
   useLayoutEffect(() => {
     if (!node) return
 
+    markObservedLayoutSignal(node, "boxRect")
     const signals = getLayoutSignals(node)
     const dispose = signalEffect(() => {
       // Read the signal to establish the reactive dependency.
