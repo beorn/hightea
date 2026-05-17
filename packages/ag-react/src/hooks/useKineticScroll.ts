@@ -82,11 +82,15 @@ const KINETIC_FRAME_MS = 16
 /** Wait this long with no wheel events before entering momentum phase. */
 const RELEASE_TIMEOUT_MS = 60
 /** Continuous trackpad packets may arrive as a large same-timestamp SGR
- * burst. Apply a small per-frame budget immediately and drop excess
- * same-frame packets. Terminal/browser trackpads already emit their own
- * inertial tails; buffering excess packets creates a second, app-owned tail
- * that can visibly accelerate after the physical flick has slowed. */
+ * burst. Move toward the accumulated target at this row budget per frame
+ * instead of applying every packet immediately. Terminal/browser trackpads
+ * already emit their own inertial tails; the frame pump preserves that input
+ * without creating a second app-owned momentum tail. */
 const SMOOTH_WHEEL_ROWS_PER_FRAME = 4
+/** Maximum queued smooth-wheel lead. This is render coalescing, not synthetic
+ * momentum: after the OS stops sending trackpad packets, the app may drain at
+ * most this many frames of backlog. */
+const SMOOTH_WHEEL_MAX_TARGET_LEAD_FRAMES = 8
 /** Scrollbar auto-hide delay after the last scroll activity. */
 export const SCROLLBAR_FADE_AFTER_MS = 800
 /** Default duration for animated scrollTo — calibrated for "feels deliberate
@@ -310,6 +314,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const smoothWheelFrameRowsRef = useRef(0)
   const smoothWheelFrameBudgetRowsRef = useRef(SMOOTH_WHEEL_ROWS_PER_FRAME)
   const smoothWheelFrameStartedAtRef = useRef(0)
+  const smoothWheelDrainRowsPerFrameRef = useRef(SMOOTH_WHEEL_ROWS_PER_FRAME)
+  const smoothWheelTargetRef = useRef<number | null>(null)
   // Active animation state (mutex — only one runs at a time, all share
   // `loopRef`). Three flavors:
   //   - "momentum"  velocity-driven exponential coast after a wheel release
@@ -317,6 +323,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   //                 scrollTo + elastic spring-back share this shape)
   type AnimationState =
     | { kind: "momentum"; startPos: number; amplitude: number; startTime: number }
+    | { kind: "smooth-wheel" }
     | {
         kind: "ease"
         startPos: number
@@ -366,6 +373,16 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const onScrollRef = useRef(onScroll)
   onScrollRef.current = onScroll
 
+  const clampToScrollRange = useCallback(
+    (float: number): number => {
+      const maxS = readMaxScroll()
+      if (float < 0) return 0
+      if (Number.isFinite(maxS) && float > maxS) return maxS
+      return float
+    },
+    [readMaxScroll],
+  )
+
   const updatePosition = useCallback(
     (float: number, meta?: { direction: -1 | 1 }) => {
       scrollFloatRef.current = float
@@ -392,6 +409,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       loopRef.current = null
       setIsAnimating(false)
     }
+    smoothWheelTargetRef.current = null
     animRef.current = null
     // Note: do NOT zero pendingBoostVelocityRef here — onWheel captures
     // residual velocity *before* calling stopKinetic, and enterMomentum
@@ -494,6 +512,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     smoothWheelFrameRowsRef.current = 0
     smoothWheelFrameBudgetRowsRef.current = readSmoothWheelRowsPerFrame()
     smoothWheelFrameStartedAtRef.current = 0
+    smoothWheelDrainRowsPerFrameRef.current = readSmoothWheelRowsPerFrame()
+    smoothWheelTargetRef.current = null
   }, [readSmoothWheelRowsPerFrame])
 
   useEffect(
@@ -530,6 +550,24 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       updatePosition(pos)
       return true
     }
+    if (a.kind === "smooth-wheel") {
+      const target = smoothWheelTargetRef.current
+      if (target === null) return false
+      const cur = scrollFloatRef.current
+      const distance = target - cur
+      if (Math.abs(distance) < 0.5) {
+        updatePosition(target)
+        smoothWheelTargetRef.current = null
+        return false
+      }
+      const maxRows = Math.min(
+        readSmoothWheelRowsPerFrame(),
+        smoothWheelDrainRowsPerFrameRef.current,
+      )
+      const step = Math.sign(distance) * Math.min(Math.abs(distance), maxRows)
+      updatePosition(cur + step, { direction: step < 0 ? -1 : 1 })
+      return true
+    }
     // Ease-out cubic: 1 - (1-t)^3. Used by both programmatic scrollTo and
     // elastic spring-back. Pure displacement interpolation — no edge
     // bouncing or velocity carryover.
@@ -543,7 +581,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     const pos = a.startPos + (a.target - a.startPos) * eased
     updatePosition(pos)
     return true
-  }, [readMaxScroll, updatePosition])
+  }, [readMaxScroll, readSmoothWheelRowsPerFrame, updatePosition])
 
   const startAnimationLoop = useCallback(() => {
     if (loopRef.current !== null) return
@@ -634,27 +672,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     ({ deltaY }: { deltaY: number }) => {
       const dir = Math.sign(deltaY) || 0
       if (dir === 0) return
-      // Capture the residual velocity from any in-flight momentum BEFORE we
-      // stop it. Same direction → carryover (additive). Opposite → zero.
-      if (enableSameDirCompounding) {
-        const m = animRef.current
-        if (m?.kind === "momentum") {
-          const tau = KINETIC_TIME_CONSTANT_MS
-          const t = performance.now() - m.startTime
-          const decay = Math.exp(-t / tau)
-          const instantVRowsPerSec = (m.amplitude / tau) * decay * 1000
-          const sameDir = Math.sign(instantVRowsPerSec) === dir
-          if (sameDir) {
-            pendingBoostVelocityRef.current += instantVRowsPerSec
-            const cap = maxVelocity
-            if (pendingBoostVelocityRef.current > cap) pendingBoostVelocityRef.current = cap
-            else if (pendingBoostVelocityRef.current < -cap) pendingBoostVelocityRef.current = -cap
-          } else {
-            pendingBoostVelocityRef.current = 0
-          }
-        }
-      }
-      stopKinetic()
       clearReleaseTimer()
       // Seed from caller-provided source on the first wheel event after reset
       // (ListView uses this for cursor-pinned-to-edge handling).
@@ -689,8 +706,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         }
         lastWheelTimeRef.current = now
       }
-      const buf = wheelBufferRef.current
-      while (buf.length > 0 && now - buf[0]!.t > WHEEL_VELOCITY_WINDOW_MS) buf.shift()
       const samples = wheelGestureFilterRef.current.process({ t: now, deltaY })
       if (samples.length === 0) return
       const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
@@ -701,21 +716,72 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const shouldSmooth =
         smoothWheelPackets && enableInputCadenceDetection && !isDiscrete && !enableMomentum
       if (shouldSmooth) {
+        if (animRef.current?.kind !== "smooth-wheel") stopKinetic()
         let pendingRows = 0
         for (const sample of samples) {
           const sampleDir = Math.sign(sample.deltaY) || 0
           if (sampleDir !== 0) pendingRows += sampleDir * stepRows
         }
         if (pendingRows === 0) return
-        const immediateRows = smoothWheelImmediateRows(pendingRows, now)
-        if (immediateRows !== 0) {
-          applyWheelRows(immediateRows, false)
+        const targetStart = smoothWheelTargetRef.current ?? scrollFloatRef.current
+        const rawTarget = clampToScrollRange(targetStart + pendingRows)
+        const maxTargetLead = readSmoothWheelRowsPerFrame() * SMOOTH_WHEEL_MAX_TARGET_LEAD_FRAMES
+        const current = scrollFloatRef.current
+        const target = clampToScrollRange(
+          Math.max(current - maxTargetLead, Math.min(current + maxTargetLead, rawTarget)),
+        )
+        const targetMove = target - current
+        if (Math.abs(targetMove) >= 0.001) {
+          const targetDir = targetMove < 0 ? -1 : 1
+          const maxS = readMaxScroll()
+          if (targetDir > 0 && Number.isFinite(maxS) && target >= maxS) {
+            onEdgeReachedRef.current?.("bottom")
+          } else if (targetDir < 0 && target <= 0) {
+            onEdgeReachedRef.current?.("top")
+          }
+          smoothWheelTargetRef.current = target
+          const immediateRows = smoothWheelImmediateRows(pendingRows, now)
+          if (immediateRows !== 0) {
+            smoothWheelDrainRowsPerFrameRef.current = Math.max(1, smoothWheelFrameRowsRef.current)
+            updatePosition(clampToScrollRange(scrollFloatRef.current + immediateRows), {
+              direction: immediateRows < 0 ? -1 : 1,
+            })
+          }
+          if (Math.abs(target - scrollFloatRef.current) >= 0.5) {
+            animRef.current = { kind: "smooth-wheel" }
+            startAnimationLoop()
+          } else {
+            smoothWheelTargetRef.current = null
+          }
         }
         setIsScrolling(true)
         scheduleScrollbarHide()
         return
       }
 
+      // Capture the residual velocity from any in-flight momentum BEFORE we
+      // stop it. Same direction → carryover (additive). Opposite → zero.
+      if (enableSameDirCompounding) {
+        const m = animRef.current
+        if (m?.kind === "momentum") {
+          const tau = KINETIC_TIME_CONSTANT_MS
+          const t = performance.now() - m.startTime
+          const decay = Math.exp(-t / tau)
+          const instantVRowsPerSec = (m.amplitude / tau) * decay * 1000
+          const sameDir = Math.sign(instantVRowsPerSec) === dir
+          if (sameDir) {
+            pendingBoostVelocityRef.current += instantVRowsPerSec
+            const cap = maxVelocity
+            if (pendingBoostVelocityRef.current > cap) pendingBoostVelocityRef.current = cap
+            else if (pendingBoostVelocityRef.current < -cap) pendingBoostVelocityRef.current = -cap
+          } else {
+            pendingBoostVelocityRef.current = 0
+          }
+        }
+      }
+      stopKinetic()
+      const buf = wheelBufferRef.current
+      while (buf.length > 0 && now - buf[0]!.t > WHEEL_VELOCITY_WINDOW_MS) buf.shift()
       for (const sample of samples) {
         const sampleDir = Math.sign(sample.deltaY) || 0
         if (sampleDir === 0) continue
@@ -741,15 +807,20 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     [
       clearReleaseTimer,
       applyWheelRows,
+      clampToScrollRange,
       enableInputCadenceDetection,
       enableMomentum,
       enableSameDirCompounding,
       maxVelocity,
+      readMaxScroll,
+      readSmoothWheelRowsPerFrame,
       scheduleRelease,
       scheduleScrollbarHide,
       smoothWheelImmediateRows,
       smoothWheelPackets,
+      startAnimationLoop,
       stopKinetic,
+      updatePosition,
       wheelMultiplier,
     ],
   )

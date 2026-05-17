@@ -145,6 +145,66 @@ const USER_LOG_20260517_SLIP_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
   ],
 }
 
+const USER_LOG_20260517_REPEATED_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
+  x: 40,
+  y: 76,
+  direction: "up",
+  coordinateMode: "pixel",
+  cellSize: { width: 8, height: 17 },
+  packets: [
+    { atMs: 0, count: 1, direction: "up" },
+    { atMs: 1, count: 1, direction: "up" },
+    { atMs: 77, count: 18, direction: "up" },
+    { atMs: 78, count: 45, direction: "up" },
+    { atMs: 79, count: 10, direction: "up" },
+    { atMs: 158, count: 23, direction: "up" },
+    { atMs: 159, count: 40, direction: "up" },
+    { atMs: 160, count: 2, direction: "up" },
+    { atMs: 238, count: 42, direction: "up" },
+    { atMs: 239, count: 7, direction: "up" },
+    { atMs: 315, count: 1, direction: "up" },
+    { atMs: 316, count: 32, direction: "up" },
+    { atMs: 318, count: 7, direction: "up" },
+    { atMs: 394, count: 24, direction: "up" },
+    { atMs: 395, count: 2, direction: "up" },
+    { atMs: 472, count: 23, direction: "up" },
+    { atMs: 546, count: 13, direction: "up" },
+    { atMs: 618, count: 11, direction: "up" },
+    { atMs: 687, count: 2, direction: "up" },
+    { atMs: 750, count: 1, direction: "up" },
+    { atMs: 809, count: 11, direction: "up" },
+    { atMs: 810, count: 52, direction: "up" },
+    { atMs: 811, count: 25, direction: "up" },
+    { atMs: 881, count: 21, direction: "up" },
+    { atMs: 882, count: 41, direction: "up" },
+    { atMs: 950, count: 32, direction: "up" },
+    { atMs: 951, count: 15, direction: "up" },
+    { atMs: 952, count: 11, direction: "up" },
+    { atMs: 1019, count: 18, direction: "up" },
+    { atMs: 1020, count: 21, direction: "up" },
+    { atMs: 1086, count: 6, direction: "up" },
+    { atMs: 1087, count: 27, direction: "up" },
+    { atMs: 1154, count: 27, direction: "up" },
+    { atMs: 1220, count: 1, direction: "up" },
+    { atMs: 1221, count: 21, direction: "up" },
+    { atMs: 1283, count: 12, direction: "up" },
+    { atMs: 1344, count: 3, direction: "up" },
+    { atMs: 1345, count: 10, direction: "up" },
+    { atMs: 1409, count: 9, direction: "up" },
+    { atMs: 1468, count: 6, direction: "up" },
+    { atMs: 1526, count: 3, direction: "up" },
+    { atMs: 1583, count: 2, direction: "up" },
+    { atMs: 1634, count: 2, direction: "up" },
+    { atMs: 1689, count: 2, direction: "up" },
+    { atMs: 1740, count: 1, direction: "up" },
+    { atMs: 1790, count: 1, direction: "up" },
+    { atMs: 1901, count: 1, direction: "up" },
+    { atMs: 1952, count: 50, direction: "up" },
+    { atMs: 1952, count: 1, direction: "down" },
+    { atMs: 1953, count: 22, direction: "up" },
+  ],
+}
+
 const USER_LOG_20260516_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
   x: 189.07142857142858,
   y: 59,
@@ -703,4 +763,68 @@ describe("ListView trackpad flick replay through termless", () => {
       handle.unmount()
     }
   }, 20_000)
+
+  test("accumulates repeated captured upward flick bursts instead of dropping them", async () => {
+    using term = createTermless({ cols: 302, rows: 117 })
+    const listRef = React.createRef<ListViewHandle>()
+    const items = makeUniformRows(2500)
+    const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+      mouse: true,
+    })
+    try {
+      await settle(120)
+      act(() => {
+        listRef.current?.scrollToBottom()
+      })
+      await settle(120)
+
+      const samples: { label: string; oldest: number | null; eventCount: number }[] = [
+        { label: "initial", oldest: oldestVisibleLine(term.screen.getText()), eventCount: 0 },
+      ]
+      const result = await term.mouse.trackpadFlick(USER_LOG_20260517_REPEATED_UP_FLICK_PACKETS, {
+        afterGroup(group) {
+          samples.push({
+            label: `packet-${group.atMs}`,
+            oldest: oldestVisibleLine(term.screen.getText()),
+            eventCount: group.eventCount,
+          })
+        },
+      })
+      const lastPacket = samples.at(-1)
+      await settle(300)
+      samples.push({
+        label: "settled",
+        oldest: oldestVisibleLine(term.screen.getText()),
+        eventCount: result.eventCount,
+      })
+
+      const initial = samples[0]?.oldest
+      const settled = samples.at(-1)?.oldest
+      expect(result.eventCount).toBe(759)
+      expect(initial).not.toBeNull()
+      expect(settled).not.toBeNull()
+      expect(
+        initial! - settled!,
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toBeGreaterThanOrEqual(560)
+      expect(
+        upwardReversals(samples),
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toEqual([])
+      expect(
+        longestUnchangedOldestRun(samples),
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toBeLessThanOrEqual(4)
+      if (
+        lastPacket !== undefined &&
+        lastPacket.oldest !== null &&
+        settled !== null &&
+        settled !== undefined
+      ) {
+        expect(Math.abs(settled - lastPacket.oldest)).toBeLessThanOrEqual(80)
+      }
+    } finally {
+      handle.unmount()
+    }
+  }, 30_000)
 })

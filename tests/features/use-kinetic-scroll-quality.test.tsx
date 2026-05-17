@@ -267,7 +267,7 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(apiRef.current!.scrollFloat, "continuous tail stays continuous").toBe(5)
   })
 
-  test("smoothWheelPackets caps same-turn trackpad bursts without artificial tail", async () => {
+  test("smoothWheelPackets caps same-turn trackpad bursts and drains the accumulated target", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -284,9 +284,8 @@ describe("useKineticScroll — input cadence detection", () => {
     await settle()
 
     // Real terminal trackpad traces can batch 13-16 same-timestamp SGR
-    // wheel packets. The old path applied all of them before the next
-    // paint, producing a visible row jump. Smooth packet mode caps the
-    // visible frame and does not create a delayed app-owned tail.
+    // wheel packets. Smooth packet mode caps the visible frame, but preserves
+    // the burst as a bounded target so repeated flicks don't lose energy.
     for (let i = 0; i < 16; i++) {
       apiRef.current!.onWheel({ deltaY: 1 })
     }
@@ -297,7 +296,11 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(afterInput, "burst still moves immediately").toBeGreaterThan(0)
 
     await settle(90)
-    expect(apiRef.current!.scrollFloat, "no delayed post-input drain").toBe(afterInput)
+    const settled = apiRef.current!.scrollFloat
+    expect(settled, "accumulated burst drains to its target").toBe(16)
+
+    await settle(90)
+    expect(apiRef.current!.scrollFloat, "no extra synthetic tail after target drains").toBe(settled)
   })
 
   test("smoothWheelPackets honors a viewport-scaled frame budget", async () => {
@@ -326,8 +329,12 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(afterInput, "custom frame budget caps the visible burst").toBe(6)
 
     await settle(90)
-    expect(apiRef.current!.scrollFloat, "custom budget still does not create a tail").toBe(
-      afterInput,
+    const settled = apiRef.current!.scrollFloat
+    expect(settled, "custom budget drains the same captured target").toBe(16)
+
+    await settle(90)
+    expect(apiRef.current!.scrollFloat, "custom budget does not coast after target drains").toBe(
+      settled,
     )
   })
 
@@ -367,10 +374,14 @@ describe("useKineticScroll — input cadence detection", () => {
     ).toBe(8)
 
     await settle(150)
-    expect(apiRef.current!.scrollFloat, "no delayed post-input drain").toBe(8)
+    const settled = apiRef.current!.scrollFloat
+    expect(settled, "starved packet groups still drain the captured target").toBe(24)
+
+    await settle(90)
+    expect(apiRef.current!.scrollFloat, "no extra synthetic tail after target drains").toBe(settled)
   })
 
-  test("smoothWheelPackets does not add a tail after a starved captured flick", async () => {
+  test("smoothWheelPackets bounds the tail after a starved captured flick", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -403,10 +414,16 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(afterInput, "input turn should still move immediately").toBeGreaterThan(30)
 
     await settle(320)
-    expect(apiRef.current!.scrollFloat, "no extra post-input tail").toBe(afterInput)
+    const final = apiRef.current!.scrollFloat
+    expect(final, "bounded target may catch up a little after input").toBeGreaterThanOrEqual(
+      afterInput,
+    )
+    expect(final, "bounded target must not preserve seconds of backlog").toBeLessThanOrEqual(
+      afterInput + 32,
+    )
   })
 
-  test("smoothWheelPackets keeps captured flick motion input-owned", async () => {
+  test("smoothWheelPackets keeps captured flick catch-up bounded", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -440,12 +457,15 @@ describe("useKineticScroll — input cadence detection", () => {
 
     await settle(220)
     const final = apiRef.current!.scrollFloat
-    expect(final, "no app-owned backlog should move after input stops").toBe(afterInput)
+    expect(final, "bounded target may drain after a blocked input turn").toBeGreaterThanOrEqual(
+      afterInput,
+    )
+    expect(final, "post-input drain stays within the queued render horizon").toBeLessThanOrEqual(
+      afterInput + 32,
+    )
   })
 
   test("smoothWheelPackets does not accelerate while a captured trackpad tail decays", async () => {
-    const moves: number[] = []
-    let previousFloat = 0
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -456,11 +476,6 @@ describe("useKineticScroll — input cadence detection", () => {
           enableInputCadenceDetection: true,
           enableMomentum: false,
           smoothWheelPackets: true,
-          onScroll: (_offset, float) => {
-            const move = float - previousFloat
-            previousFloat = float
-            if (move > 0.001) moves.push(move)
-          },
         }}
       />,
     )
@@ -469,20 +484,41 @@ describe("useKineticScroll — input cadence detection", () => {
     // A real trackpad inertial tail is already a decelerating packet stream.
     // If rendering/timers are starved, the app must not turn the queued rows
     // into a new faster phase.
+    const groupMoves: number[] = []
+    let previousFloat = apiRef.current!.getScrollFloat()
     const decayingTailGroups = [20, 14, 10, 7, 5, 4, 3, 2, 1]
     for (const events of decayingTailGroups) {
       for (let i = 0; i < events; i++) {
         apiRef.current!.onWheel({ deltaY: 1 })
       }
       busyWait(17)
+      const next = apiRef.current!.getScrollFloat()
+      groupMoves.push(next - previousFloat)
+      previousFloat = next
     }
 
-    expect(moves.length, "test fixture should produce multiple visible moves").toBeGreaterThan(3)
-    for (let i = 1; i < moves.length; i++) {
+    expect(groupMoves.length, "test fixture should produce multiple visible moves").toBeGreaterThan(
+      3,
+    )
+    for (let i = 1; i < groupMoves.length; i++) {
       expect(
-        moves[i],
-        `visible movement accelerated at step ${i}: ${moves.join(", ")}`,
-      ).toBeLessThanOrEqual(moves[i - 1]! + 0.001)
+        groupMoves[i],
+        `visible movement accelerated across input groups at step ${i}: ${groupMoves.join(", ")}`,
+      ).toBeLessThanOrEqual(groupMoves[i - 1]! + 0.001)
+    }
+
+    const postInputMoves: number[] = []
+    for (let i = 0; i < 6; i++) {
+      await settle(20)
+      const next = apiRef.current!.scrollFloat
+      postInputMoves.push(next - previousFloat)
+      previousFloat = next
+    }
+    for (const move of postInputMoves) {
+      expect(
+        move,
+        `post-input drain sped up after a one-packet tail: ${postInputMoves.join(", ")}`,
+      ).toBeLessThanOrEqual(2.001)
     }
   })
 
