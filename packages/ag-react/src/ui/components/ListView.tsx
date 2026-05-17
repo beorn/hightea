@@ -922,7 +922,7 @@ function ListViewInner<T>(
     smoothWheelMaxRowsPerFrame: () => {
       const viewportRows = contentViewportHeightRef.current
       if (!Number.isFinite(viewportRows) || viewportRows <= 0) return 4
-      return Math.max(4, Math.min(8, Math.ceil(viewportRows / 3)))
+      return Math.max(6, Math.min(12, Math.ceil(viewportRows * 0.1)))
     },
     getInitialFloat: () => {
       // Cursor pinned to an endpoint? Seed straight to that edge so the

@@ -106,6 +106,45 @@ const USER_LOG_DENSE_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
   ],
 }
 
+const USER_LOG_20260517_SLIP_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
+  x: 40,
+  y: 76,
+  direction: "up",
+  coordinateMode: "pixel",
+  cellSize: { width: 8, height: 17 },
+  packets: [
+    { atMs: 0, count: 1, direction: "up" },
+    { atMs: 48, count: 1, direction: "up" },
+    { atMs: 49, count: 3, direction: "up" },
+    { atMs: 98, count: 49, direction: "up" },
+    { atMs: 151, count: 10, direction: "up" },
+    { atMs: 152, count: 26, direction: "up" },
+    { atMs: 202, count: 22, direction: "up" },
+    { atMs: 250, count: 10, direction: "up" },
+    { atMs: 251, count: 3, direction: "up" },
+    { atMs: 252, count: 6, direction: "up" },
+    { atMs: 297, count: 11, direction: "up" },
+    { atMs: 350, count: 14, direction: "up" },
+    { atMs: 390, count: 11, direction: "up" },
+    { atMs: 434, count: 8, direction: "up" },
+    { atMs: 436, count: 1, direction: "up" },
+    { atMs: 489, count: 6, direction: "up" },
+    { atMs: 531, count: 4, direction: "up" },
+    { atMs: 572, count: 3, direction: "up" },
+    { atMs: 612, count: 2, direction: "up" },
+    { atMs: 651, count: 3, direction: "up" },
+    { atMs: 686, count: 1, direction: "up" },
+    { atMs: 724, count: 1, direction: "up" },
+    { atMs: 764, count: 1, direction: "up" },
+    { atMs: 804, count: 1, direction: "up" },
+    { atMs: 849, count: 1, direction: "up" },
+    { atMs: 890, count: 1, direction: "up" },
+    { atMs: 951, count: 1, direction: "up" },
+    { atMs: 1051, count: 1, direction: "up" },
+    { atMs: 1184, count: 1, direction: "up" },
+  ],
+}
+
 const USER_LOG_20260516_UP_FLICK_PACKETS: TermlessTrackpadFlickProfile = {
   x: 189.07142857142858,
   y: 59,
@@ -601,6 +640,61 @@ describe("ListView trackpad flick replay through termless", () => {
         initial! - settled!,
         samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
       ).toBeGreaterThanOrEqual(90)
+      expect(
+        longestUnchangedOldestRun(samples),
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toBeLessThanOrEqual(5)
+    } finally {
+      handle.unmount()
+    }
+  }, 20_000)
+
+  test("preserves enough input during the latest captured slip flick", async () => {
+    using term = createTermless({ cols: 302, rows: 117 })
+    const listRef = React.createRef<ListViewHandle>()
+    const items = makeUniformRows(1271)
+    const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+      mouse: true,
+    })
+    try {
+      await settle(120)
+      act(() => {
+        listRef.current?.scrollToBottom()
+      })
+      await settle(120)
+
+      const samples: { label: string; oldest: number | null; eventCount: number }[] = [
+        { label: "initial", oldest: oldestVisibleLine(term.screen.getText()), eventCount: 0 },
+      ]
+      const result = await term.mouse.trackpadFlick(USER_LOG_20260517_SLIP_UP_FLICK_PACKETS, {
+        afterGroup(group) {
+          samples.push({
+            label: `packet-${group.atMs}`,
+            oldest: oldestVisibleLine(term.screen.getText()),
+            eventCount: group.eventCount,
+          })
+        },
+      })
+      await settle(800)
+      samples.push({
+        label: "settled",
+        oldest: oldestVisibleLine(term.screen.getText()),
+        eventCount: result.eventCount,
+      })
+
+      const initial = samples[0]?.oldest
+      const settled = samples.at(-1)?.oldest
+      expect(result.eventCount).toBe(203)
+      expect(initial).not.toBeNull()
+      expect(settled).not.toBeNull()
+      expect(
+        initial! - settled!,
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toBeGreaterThanOrEqual(120)
+      expect(
+        upwardReversals(samples),
+        samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
+      ).toEqual([])
       expect(
         longestUnchangedOldestRun(samples),
         samples.map((sample) => `${sample.label}@${sample.eventCount}:${sample.oldest}`).join(", "),
