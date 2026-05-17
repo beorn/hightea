@@ -362,11 +362,11 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
       return { tMeasure: 0, tLayout: 0, tScroll: 0, tScrollRect: 0, tNotify: 0 }
     }
 
-    using render = baseLog.span("pipeline", { width: cols, height: rows })
+    using render = baseLog.span?.("pipeline", { width: cols, height: rows })
 
     let tMeasure: number
     {
-      using _m = render.span("measure")
+      using _m = render?.span("measure")
       const t = performance.now()
       measurePhase(root, ctx)
       tMeasure = performance.now() - t
@@ -375,7 +375,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     let tLayout: number
     {
-      using _l = render.span("layout")
+      using _l = render?.span("layout")
       const t = performance.now()
       layoutPhase(root, cols, rows)
       tLayout = performance.now() - t
@@ -396,7 +396,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     let tScroll: number
     if (hasScroll) {
-      using _s = render.span("scroll")
+      using _s = render?.span("scroll")
       const t = performance.now()
       scrollPhase(root, { skipStateUpdates: opts?.skipScrollStateUpdates })
       tScroll = performance.now() - t
@@ -410,7 +410,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     let tScrollRect: number
     {
-      using _r = render.span("scrollRect")
+      using _r = render?.span("scrollRect")
       const t = performance.now()
       if (hasScroll || hasSticky) {
         scrollrectPhase(root)
@@ -424,7 +424,7 @@ export function createAg(root: AgNode, options?: CreateAgOptions): Ag {
 
     let tNotify = 0
     if (!opts?.skipLayoutNotifications) {
-      using _n = render.span("notify")
+      using _n = render?.span("notify")
       const t = performance.now()
       notifyLayoutSubscribers(root)
       tNotify = performance.now() - t

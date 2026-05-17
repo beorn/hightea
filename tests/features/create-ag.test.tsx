@@ -42,6 +42,19 @@ describe("createAg", () => {
       expect(app.text).toContain("Hello World")
     })
 
+    test("layout works when loggily spans are disabled", () => {
+      const prevTrace = process.env.TRACE
+      delete process.env.TRACE
+      try {
+        const render = createRenderer({ cols: 40, rows: 10 })
+        const app = render(<Text>No span logger required</Text>)
+        expect(app.text).toContain("No span logger required")
+      } finally {
+        if (prevTrace === undefined) delete process.env.TRACE
+        else process.env.TRACE = prevTrace
+      }
+    })
+
     test("incremental rendering works through delegation", () => {
       const render = createRenderer({ cols: 40, rows: 10 })
       const app = render(<Text>Before</Text>)

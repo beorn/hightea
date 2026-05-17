@@ -600,7 +600,7 @@ export class RenderScheduler {
    * Execute the actual render.
    */
   private doRender(): void {
-    using render = this.log.span("render")
+    using render = this.log.span?.("render")
     const startTime = Date.now()
 
     try {
@@ -762,10 +762,7 @@ export class RenderScheduler {
         // bytes_out instrumentation — record AFTER write so the monitor
         // accounts for what actually left the process. Fixed thresholds
         // (1 MB/s WARN × 10s, 100 MB/s PANIC × 2s) in `bytes-out-monitor.ts`.
-        this.bytesOutMonitor?.recordWrite(
-          this.stats.renderCount,
-          Buffer.byteLength(fullOutput),
-        )
+        this.bytesOutMonitor?.recordWrite(this.stats.renderCount, Buffer.byteLength(fullOutput))
       }
 
       // Save buffer for next diff
@@ -868,9 +865,11 @@ export class RenderScheduler {
       this.lastRenderTime = Date.now()
 
       // Record span data
-      render.spanData.renderCount = this.stats.renderCount
-      render.spanData.renderTime = renderTime
-      render.spanData.bytes = transformedOutput.length
+      if (render) {
+        render.spanData.renderCount = this.stats.renderCount
+        render.spanData.renderTime = renderTime
+        render.spanData.bytes = transformedOutput.length
+      }
 
       log.debug?.(
         `render #${this.stats.renderCount} complete: ${renderTime}ms, output: ${transformedOutput.length} bytes`,
