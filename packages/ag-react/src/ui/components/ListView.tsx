@@ -850,6 +850,7 @@ function ListViewInner<T>(
   // virtualizer's measurement is consumed via `rowsAboveViewport`; the
   // ref is updated every render below.
   const rowsAboveViewportRef = useRef(0)
+  const contentViewportHeightRef = useRef(0)
   // Mark the viewport as wheel-driven on the first wheel event of a
   // gesture so `scrollRow` flips from null → integer. Reset to null by
   // `moveTo` when the cursor takes over.
@@ -918,6 +919,11 @@ function ListViewInner<T>(
     enableElasticEdges,
     enableInputCadenceDetection,
     smoothWheelPackets: enableInputCadenceDetection,
+    smoothWheelMaxRowsPerFrame: () => {
+      const viewportRows = contentViewportHeightRef.current
+      if (!Number.isFinite(viewportRows) || viewportRows <= 0) return 4
+      return Math.max(4, Math.min(8, Math.ceil(viewportRows / 3)))
+    },
     getInitialFloat: () => {
       // Cursor pinned to an endpoint? Seed straight to that edge so the
       // overscroll indicator fires immediately and rowsAboveViewport's
@@ -2747,6 +2753,7 @@ function ListViewInner<T>(
   // closure with stable identity).
   maxScrollRowRef.current = scrollableRows
   rowsAboveViewportRef.current = rowsAboveViewport
+  contentViewportHeightRef.current = contentViewportHeight
 
   useLayoutEffect(() => {
     const previous = prevResolvedFollowRef.current
