@@ -50,6 +50,44 @@ export function computeIndexTrailingSpacer(
   return Math.max(0, raw)
 }
 
+export interface ResolveTrailingSpacerFillEndInput {
+  endIndex: number
+  previousEndIndex: number
+  itemCount: number
+  viewportHeight: number
+  overscan: number
+  trailingSpacerVisible: boolean
+  rowSpaceAtEnd: boolean
+}
+
+/**
+ * Extend the rendered tail when layout proves the viewport has reached the
+ * trailing spacer before row-space says the list is at the bottom.
+ *
+ * This is the height-independent ListView escape hatch for stale/frozen height
+ * predictions: row math can under-render the tail when rendered children are
+ * shorter than the model expects. The layout pass is authoritative about the
+ * visible children, so a visible trailing spacer means the next window must
+ * mount more real items.
+ */
+export function resolveTrailingSpacerFillEnd({
+  endIndex,
+  previousEndIndex,
+  itemCount,
+  viewportHeight,
+  overscan,
+  trailingSpacerVisible,
+  rowSpaceAtEnd,
+}: ResolveTrailingSpacerFillEndInput): number {
+  if (!trailingSpacerVisible || rowSpaceAtEnd || itemCount <= 0) {
+    return Math.max(0, Math.min(endIndex, itemCount))
+  }
+  const baseEnd = Math.max(endIndex, previousEndIndex)
+  if (baseEnd >= itemCount) return itemCount
+  const fillItems = Math.max(1, Math.ceil(viewportHeight), Math.ceil(overscan))
+  return Math.max(endIndex, Math.min(itemCount, baseEnd + fillItems))
+}
+
 /**
  * Map a child-node index from layout-phase back to a virtual-item index.
  *

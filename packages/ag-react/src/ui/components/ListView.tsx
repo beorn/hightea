@@ -63,7 +63,11 @@ import {
   shouldFreezeHeightModelForWheel,
   type HeightModel,
 } from "./list-view/height-model"
-import { computeIndexTrailingSpacer, mapChildIndexToItem } from "./list-view/index-window"
+import {
+  computeIndexTrailingSpacer,
+  mapChildIndexToItem,
+  resolveTrailingSpacerFillEnd,
+} from "./list-view/index-window"
 import {
   resolveActiveLeadingSpacer,
   resolveActiveScrollWindow,
@@ -154,6 +158,10 @@ function lastIndexAtOrBeforeRow(model: HeightModel, row: number): number | null 
     }
   }
   return best
+}
+
+function rowSpaceIsBeforeEnd(row: number | null, scrollableRows: number): boolean {
+  return row !== null && row < scrollableRows - 0.5
 }
 
 function toPhysicalRows(rows: number): number {
@@ -1732,6 +1740,7 @@ function ListViewInner<T>(
   const safeEstHeight = Math.max(1, indexEstAsNumber)
   let viewportAnchorFirst = cursorAnchor
   let viewportAnchorLast = cursorAnchor
+  let trailingSpacerVisibleBeforeRowEnd = false
 
   if (resolvedVirtualization === "index") {
     // Try to derive a viewport-anchor item index from layout-phase's
@@ -1783,6 +1792,8 @@ function ListViewInner<T>(
         viewportLastItem = prev.startIndex + Math.floor(local / stride)
       } else if (lMapped.kind === "after") {
         viewportLastItem = prev.endIndex - 1
+        trailingSpacerVisibleBeforeRowEnd =
+          prev.endIndex < activeItems.length && rowSpaceIsBeforeEnd(renderScrollRow, scrollableRows)
       }
     }
 
@@ -1944,6 +1955,20 @@ function ListViewInner<T>(
     indexWindowStart = monotonicWindow.startIndex
     indexWindowEnd = monotonicWindow.endIndex
     activeScrollWindowClamped = monotonicWindow.clamped
+
+    const filledEnd = resolveTrailingSpacerFillEnd({
+      endIndex: indexWindowEnd,
+      previousEndIndex: indexWindowPrevRef.current.endIndex,
+      itemCount: activeItems.length,
+      viewportHeight: contentViewportHeight,
+      overscan,
+      trailingSpacerVisible: trailingSpacerVisibleBeforeRowEnd,
+      rowSpaceAtEnd: !rowSpaceIsBeforeEnd(renderScrollRow, scrollableRows),
+    })
+    if (filledEnd !== indexWindowEnd) {
+      indexWindowEnd = filledEnd
+      activeScrollWindowClamped = true
+    }
 
     if (renderScrollRow !== null) {
       const lastNonBlankStart = lastIndexAtOrBeforeRow(heightModel, renderScrollRow)
@@ -2866,6 +2891,12 @@ function ListViewInner<T>(
       endIndex,
       effectiveStartIndex,
       effectiveEndIndex,
+      innerScrollState?.firstVisibleChild ?? "null",
+      innerScrollState?.lastVisibleChild ?? "null",
+      innerScrollState?.contentHeight ?? "null",
+      innerScrollState?.viewportHeight ?? "null",
+      innerScrollState?.hiddenAbove ?? "null",
+      innerScrollState?.hiddenBelow ?? "null",
       effectiveLeadingHeight,
       effectiveTrailingHeight,
       effectiveHiddenBefore,
@@ -2888,6 +2919,7 @@ function ListViewInner<T>(
       scrollAuthority,
       boxScrollTo ?? "null",
       activeScrollWindowClamped ? 1 : 0,
+      trailingSpacerVisibleBeforeRowEnd ? 1 : 0,
       isScrolling ? 1 : 0,
       scrollableRows,
       trackHeight,
@@ -2923,6 +2955,12 @@ function ListViewInner<T>(
       endIndex,
       effectiveStartIndex,
       effectiveEndIndex,
+      layoutFirstVisibleChild: innerScrollState?.firstVisibleChild ?? null,
+      layoutLastVisibleChild: innerScrollState?.lastVisibleChild ?? null,
+      layoutContentHeight: innerScrollState?.contentHeight ?? null,
+      layoutViewportHeight: innerScrollState?.viewportHeight ?? null,
+      layoutHiddenAbove: innerScrollState?.hiddenAbove ?? null,
+      layoutHiddenBelow: innerScrollState?.hiddenBelow ?? null,
       effectiveLeadingHeight,
       effectiveTrailingHeight,
       effectiveHiddenBefore,
@@ -2942,6 +2980,7 @@ function ListViewInner<T>(
       scrollAuthority,
       boxScrollTo,
       activeScrollWindowClamped,
+      trailingSpacerVisibleBeforeRowEnd,
       kineticScrolling: isScrolling,
       virtualizerRowsAboveViewport,
       scrollRow,
@@ -2978,7 +3017,13 @@ function ListViewInner<T>(
     isHeightIndependent,
     items.length,
     measuredHeights.size,
+    innerScrollState?.contentHeight,
+    innerScrollState?.firstVisibleChild,
+    innerScrollState?.hiddenAbove,
+    innerScrollState?.hiddenBelow,
+    innerScrollState?.lastVisibleChild,
     innerScrollState?.offset,
+    innerScrollState?.viewportHeight,
     anchoringEnabled,
     freezeHeightModelForWheel,
     layoutOwnsRowBaseline,
@@ -3010,6 +3055,7 @@ function ListViewInner<T>(
     totalRowsMeasured,
     totalRowsStable,
     trackHeight,
+    trailingSpacerVisibleBeforeRowEnd,
     viewportSize,
     wheelScrollStabilizing,
     visibleItems.length,

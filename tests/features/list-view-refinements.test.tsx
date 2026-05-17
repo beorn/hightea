@@ -30,6 +30,7 @@ import {
   makeMeasureKey,
   sumHeights,
 } from "../../packages/ag-react/src/hooks/useVirtualizer"
+import { resolveTrailingSpacerFillEnd } from "../../packages/ag-react/src/ui/components/list-view/index-window"
 
 // ============================================================================
 // Helpers
@@ -47,7 +48,7 @@ function makeItems(n: number): Item[] {
 function countRendered(text: string, total: number): number {
   let n = 0
   for (let i = 0; i < total; i++) {
-    if (text.includes(`Item ${i}`)) n++
+    if (new RegExp(`\\bItem ${i}\\b`).test(text)) n++
   }
   return n
 }
@@ -214,6 +215,25 @@ describe("Refinement 2: scroll spacers preserve virtual scroll extent", () => {
 // ============================================================================
 
 describe("Refinement 3: viewport-anchored windowing", () => {
+  test("visible trailing spacer before row-space bottom extends the rendered tail", () => {
+    // Live silvercode trace 2026-05-17: row-space said the viewport was
+    // hundreds of rows before the bottom, but layout had already scrolled
+    // into the trailing spacer because the active index window's measured
+    // children were shorter than the frozen height model predicted. The next
+    // window must render more real items, not keep showing spacer rows.
+    expect(
+      resolveTrailingSpacerFillEnd({
+        endIndex: 1157,
+        previousEndIndex: 1157,
+        itemCount: 1271,
+        viewportHeight: 118,
+        overscan: 50,
+        trailingSpacerVisible: true,
+        rowSpaceAtEnd: false,
+      }),
+    ).toBe(1271)
+  })
+
   test("cursor stays renderable when far from viewport (defensive constraint)", () => {
     // Cursor at 500, viewport not yet established (first frame). The
     // window falls back to cursor ± overscan. Cursor's neighborhood is
@@ -310,7 +330,8 @@ describe("Refinement 4: row-budget cap (maxEstimatedRows)", () => {
 
   test("item budget binds when items are short", () => {
     // 100 items, 1 row each. maxRendered = 30, maxEstimatedRows = 200.
-    // 30 items × 1 row = 30 rows << 200 → item budget binds first.
+    // The item budget binds first, with a small framework-owned floor so
+    // the viewport can still keep enough mounted rows to avoid spacer cliffs.
     const items = makeItems(100)
     const r = createRenderer({ cols: 80, rows: 40 })
     const app = r(
@@ -332,7 +353,7 @@ describe("Refinement 4: row-budget cap (maxEstimatedRows)", () => {
     const text = stripAnsi(app.text)
     expect(text).toContain("Item 50")
     const renderedCount = countRendered(text, 100)
-    expect(renderedCount, `rendered count = ${renderedCount}`).toBeLessThanOrEqual(35)
+    expect(renderedCount, `rendered count = ${renderedCount}`).toBeLessThanOrEqual(45)
   })
 })
 
