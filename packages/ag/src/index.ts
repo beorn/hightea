@@ -150,6 +150,7 @@ export {
 export {
   getLayoutSignals,
   hasLayoutSignals,
+  observeLayoutSignal,
   syncRectSignals,
   syncTextContentSignal,
   syncFocusedSignal,

@@ -60,15 +60,55 @@ type WritableSignal<T> = {
 
 export type ObservedLayoutSignalKey = "boxRect" | "scrollRect" | "screenRect"
 
+const permanentlyObservedLayoutSignals = new WeakMap<AgNode, Set<ObservedLayoutSignalKey>>()
 const observedLayoutSignals = new WeakMap<AgNode, Set<ObservedLayoutSignalKey>>()
+const retainedLayoutSignals = new WeakMap<AgNode, Map<ObservedLayoutSignalKey, number>>()
 
-export function markObservedLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): void {
+function addObservedLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): void {
   let observed = observedLayoutSignals.get(node)
   if (!observed) {
     observed = new Set()
     observedLayoutSignals.set(node, observed)
   }
   observed.add(key)
+}
+
+export function markObservedLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): void {
+  addObservedLayoutSignal(node, key)
+  let permanent = permanentlyObservedLayoutSignals.get(node)
+  if (!permanent) {
+    permanent = new Set()
+    permanentlyObservedLayoutSignals.set(node, permanent)
+  }
+  permanent.add(key)
+}
+
+export function observeLayoutSignal(node: AgNode, key: ObservedLayoutSignalKey): () => void {
+  addObservedLayoutSignal(node, key)
+  let retained = retainedLayoutSignals.get(node)
+  if (!retained) {
+    retained = new Map()
+    retainedLayoutSignals.set(node, retained)
+  }
+  retained.set(key, (retained.get(key) ?? 0) + 1)
+
+  let released = false
+  return () => {
+    if (released) return
+    released = true
+    const current = retainedLayoutSignals.get(node)
+    if (!current) return
+    const next = (current.get(key) ?? 0) - 1
+    if (next > 0) {
+      current.set(key, next)
+      return
+    }
+    current.delete(key)
+    if (current.size === 0) retainedLayoutSignals.delete(node)
+    if (!permanentlyObservedLayoutSignals.get(node)?.has(key)) {
+      observedLayoutSignals.get(node)?.delete(key)
+    }
+  }
 }
 
 /**

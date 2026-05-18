@@ -24,7 +24,7 @@ import {
 } from "react"
 import { effect as signalEffect } from "@silvery/signals"
 import { NodeContext } from "../context"
-import { getLayoutSignals, markObservedLayoutSignal } from "@silvery/ag/layout-signals"
+import { getLayoutSignals, observeLayoutSignal } from "@silvery/ag/layout-signals"
 import type { BoxProps as BoxPropsType, AgNode, Rect } from "@silvery/ag/types"
 
 // ============================================================================
@@ -111,7 +111,7 @@ export const Box = forwardRef(function Box(
   useLayoutEffect(() => {
     if (!onLayout || !node) return
 
-    markObservedLayoutSignal(node, "boxRect")
+    const releaseObservation = observeLayoutSignal(node, "boxRect")
     const signals = getLayoutSignals(node)
     const onLayoutRef = { current: onLayout }
     onLayoutRef.current = onLayout
@@ -134,7 +134,10 @@ export const Box = forwardRef(function Box(
       }
     })
 
-    return dispose
+    return () => {
+      dispose()
+      releaseObservation()
+    }
   }, [node, onLayout])
 
   // Expose imperative methods via ref

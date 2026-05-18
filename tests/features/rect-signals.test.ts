@@ -9,8 +9,10 @@ import { describe, test, expect } from "vitest"
 import {
   getLayoutSignals,
   hasLayoutSignals,
+  hasObservedLayoutSignal,
+  markObservedLayoutSignal,
+  observeLayoutSignal,
   syncRectSignals,
-  type LayoutSignals,
 } from "@silvery/ag/layout-signals"
 import type { AgNode, Rect } from "@silvery/ag/types"
 
@@ -118,5 +120,21 @@ describe("rect-signals (@silvery/ag)", () => {
     expect(typeof getLayoutSignals).toBe("function")
     expect(typeof hasLayoutSignals).toBe("function")
     expect(typeof syncRectSignals).toBe("function")
+    expect(typeof observeLayoutSignal).toBe("function")
+  })
+
+  test("temporary observations release without clearing permanent observations", () => {
+    const temporaryOnly = createStubNode({ id: "temporary" })
+    const releaseTemporary = observeLayoutSignal(temporaryOnly, "boxRect")
+    expect(hasObservedLayoutSignal(temporaryOnly, "boxRect")).toBe(true)
+    releaseTemporary()
+    expect(hasObservedLayoutSignal(temporaryOnly, "boxRect")).toBe(false)
+
+    const permanent = createStubNode({ id: "permanent" })
+    markObservedLayoutSignal(permanent, "boxRect")
+    const releaseRetained = observeLayoutSignal(permanent, "boxRect")
+    expect(hasObservedLayoutSignal(permanent, "boxRect")).toBe(true)
+    releaseRetained()
+    expect(hasObservedLayoutSignal(permanent, "boxRect")).toBe(true)
   })
 })
