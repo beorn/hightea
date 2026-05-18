@@ -230,6 +230,8 @@ export type { TabsProps, TabListProps, TabProps, TabPanelProps } from "./compone
 // Tooltip
 export { Tooltip } from "./components/Tooltip"
 export type { TooltipProps } from "./components/Tooltip"
+export { AnchoredOverlay } from "./components/AnchoredOverlay"
+export type { AnchoredOverlayProps, AnchoredOverlayRect } from "./components/AnchoredOverlay"
 
 // Skeleton
 export { Skeleton } from "./components/Skeleton"

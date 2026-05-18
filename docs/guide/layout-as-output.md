@@ -79,6 +79,30 @@ the layout-signal pass. The geometry is resolved in the same frame as the
 anchor rect; component code does not call `useBoxRect()` to position the
 overlay.
 
+For the common "render this fixed-size overlay at that anchor" case, use
+`AnchoredOverlay`. It declares the decoration and renders the placed content
+from the resolved rect:
+
+```tsx
+<Box anchorRef="session-menu">
+  <Text>Sessions</Text>
+</Box>
+
+<AnchoredOverlay
+  anchorId="session-menu"
+  placement="bottom-start"
+  size={{ width: 32, height: 8 }}
+  offset={1}
+>
+  <SessionMenu />
+</AnchoredOverlay>
+```
+
+Mount `AnchoredOverlay` inside the same overlay surface/root as the anchor.
+Its host is absolutely positioned and non-flowing, so the placed content uses
+the layout-resolved root coordinates rather than the component's local flex
+position.
+
 ## Migration patterns
 
 ### "I was reading `useBoxRect().width` for sizing" → use flex props
