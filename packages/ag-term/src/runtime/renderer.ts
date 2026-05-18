@@ -114,13 +114,14 @@ export interface Renderer {
 
 /**
  * Build a `doRender` closure wired to the supplied runtime. The closure
- * manages its own long-lived `Ag` instance and tracks the last
- * TerminalBuffer for dimension-change detection.
+ * manages its own long-lived `Ag` instance and tracks the last layout
+ * dimensions for dimension-change detection.
  */
 export function createRenderer(opts: RendererOptions): Renderer {
   let _renderCount = 0
   let _ag: Ag | null = null
   let _lastTermBuffer: TerminalBuffer | null = null
+  let _lastLayoutDims: Dims | null = null
   let lastCurrentBuffer: Buffer | null = null
 
   function doRender(): Buffer {
@@ -171,10 +172,10 @@ export function createRenderer(opts: RendererOptions): Renderer {
     // prevBuffer to be null, which triggers the first-render clear path with \x1b[J
     // — wiping the entire visible screen including shell prompt content above the app.
     if (_ag) {
-      const lastBuffer = _lastTermBuffer
-      if (lastBuffer) {
-        const widthChanged = dims.cols !== lastBuffer.width
-        const heightChanged = !isInline && dims.rows !== lastBuffer.height
+      const lastDims = _lastLayoutDims
+      if (lastDims) {
+        const widthChanged = dims.cols !== lastDims.cols
+        const heightChanged = !isInline && dims.rows !== lastDims.rows
         if (widthChanged || heightChanged) {
           _ag.resetBuffer()
           opts.runtime.invalidate()
@@ -188,7 +189,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
               cause: "viewport-resize",
               edge: widthChanged && heightChanged ? "wh" : widthChanged ? "w" : "h",
               producerPhase: "renderer",
-              detail: `${dims.cols}x${dims.rows} from ${lastBuffer.width}x${lastBuffer.height}`,
+              detail: `${dims.cols}x${dims.rows} from ${lastDims.cols}x${lastDims.rows}`,
             })
           }
         }
@@ -220,8 +221,8 @@ export function createRenderer(opts: RendererOptions): Renderer {
     const rootHasDirty =
       rootNode.layoutNode?.isDirty() || isAnyDirty(rootNode.dirtyBits, rootNode.dirtyEpoch)
     const dimsChanged =
-      _lastTermBuffer != null &&
-      (dims.cols !== _lastTermBuffer.width || dims.rows !== _lastTermBuffer.height)
+      _lastLayoutDims != null &&
+      (dims.cols !== _lastLayoutDims.cols || (!isInline && dims.rows !== _lastLayoutDims.rows))
     if (!rootHasDirty && !dimsChanged && _lastTermBuffer && lastCurrentBuffer) {
       return lastCurrentBuffer
     }
@@ -254,6 +255,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
     const { buffer: termBuffer, prevBuffer: agPrevBuffer } = agResult
     const overlay = agResult.overlay
     _lastTermBuffer = termBuffer
+    _lastLayoutDims = { cols: dims.cols, rows: dims.rows }
     const wasIncremental = !opts.noIncremental && agPrevBuffer !== null
     const pipelineMs = performance.now() - pipelineStart
 
@@ -498,6 +500,7 @@ export function createRenderer(opts: RendererOptions): Renderer {
     resetAg: () => {
       _ag = null
       _lastTermBuffer = null
+      _lastLayoutDims = null
     },
     commitLayout,
   }

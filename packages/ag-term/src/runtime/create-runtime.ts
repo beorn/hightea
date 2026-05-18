@@ -39,6 +39,28 @@ import "./wrap-measurer-registration"
 // Event Channel - unified async iterable for all internal events
 // =============================================================================
 
+function buffersHaveSameVisibleCells(prev: Buffer, next: Buffer): boolean {
+  const prevBuffer = prev._buffer
+  const nextBuffer = next._buffer
+  if (prevBuffer.width !== nextBuffer.width || prevBuffer.height !== nextBuffer.height) {
+    return false
+  }
+  const minRow = nextBuffer.minDirtyRow
+  if (minRow < 0) return true
+  const maxRow = Math.min(nextBuffer.maxDirtyRow, nextBuffer.height - 1)
+  for (let y = minRow; y <= maxRow; y++) {
+    if (!nextBuffer.isRowDirty(y)) continue
+    if (
+      !nextBuffer.rowMetadataEquals(y, prevBuffer) ||
+      !nextBuffer.rowCharsEquals(y, prevBuffer) ||
+      !nextBuffer.rowExtrasEquals(y, prevBuffer)
+    ) {
+      return false
+    }
+  }
+  return true
+}
+
 interface EventChannel {
   push(event: Event): void
   events(): AsyncIterable<Event>
@@ -160,6 +182,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
   let prevBuffer: Buffer | null = null
   let renderedOnce = false
   let lastRenderDims: Dims | null = null
+  let lastCursorSuffix = ""
   let clearNextFullscreenRender = false
 
   // Scrollback offset tracking (inline mode only)
@@ -270,6 +293,36 @@ export function createRuntime(options: RuntimeOptions): Runtime {
         (lastRenderDims.cols !== targetDims.cols || lastRenderDims.rows !== targetDims.rows)
       const clearFullscreen =
         mode === "fullscreen" && renderedOnce && (clearNextFullscreenRender || targetDimsChanged)
+      const overlayChanged = !!buffer.overlay && buffer.overlay.length > 0
+      let cursorSuffix = ""
+      if (mode === "fullscreen") {
+        const cursor = findActiveCursorRect(buffer.nodes)
+        if (cursor && cursor.visible) {
+          // Caret shape is target-specific — derive at the terminal layer
+          // (invariant 6 of `km-silvery.cursor-invariants`).
+          const activeNode = findActiveCursorNode(buffer.nodes)
+          const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
+          const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
+          cursorSuffix = ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
+        } else {
+          cursorSuffix = ANSI.CURSOR_HIDE
+        }
+      }
+      if (
+        prevBuffer &&
+        buffersHaveSameVisibleCells(prevBuffer, buffer) &&
+        offset === 0 &&
+        !targetDimsChanged &&
+        !clearFullscreen &&
+        !overlayChanged &&
+        cursorSuffix === lastCursorSuffix
+      ) {
+        prevBuffer = buffer
+        lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
+        renderedOnce = true
+        clearNextFullscreenRender = false
+        return
+      }
 
       // Use scoped output phase if provided (threads measurer/caps correctly),
       // otherwise fall back to raw diff() for backwards compatibility
@@ -302,22 +355,18 @@ export function createRuntime(options: RuntimeOptions): Runtime {
       //
       // Inline mode skips this — `inlineCursorSuffix` (in output-phase.ts)
       // already positions the cursor inside the diff output.
-      if (mode === "fullscreen") {
-        const cursor = findActiveCursorRect(buffer.nodes)
-        if (cursor && cursor.visible) {
-          // Caret shape is target-specific — derive at the terminal layer
-          // (invariant 6 of `km-silvery.cursor-invariants`).
-          const activeNode = findActiveCursorNode(buffer.nodes)
-          const resolvedShape = resolveCaretStyle(activeNode, cursor.shape)
-          const shapeSeq = resolvedShape ? setCursorStyle(resolvedShape) : resetCursorStyle()
-          patch += ANSI.moveCursor(cursor.x, cursor.y) + shapeSeq + ANSI.CURSOR_SHOW
-        } else {
-          patch += ANSI.CURSOR_HIDE
-        }
-      }
+      patch += cursorSuffix
 
       if (clearFullscreen) {
         patch = ANSI.SYNC_BEGIN + "\x1b[2J\x1b[H" + patch + ANSI.SYNC_END
+      }
+
+      if (patch.length === 0) {
+        lastCursorSuffix = cursorSuffix
+        lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
+        renderedOnce = true
+        clearNextFullscreenRender = false
+        return
       }
 
       // Debug: capture raw ANSI output that's actually written to the terminal
@@ -330,6 +379,7 @@ export function createRuntime(options: RuntimeOptions): Runtime {
 
       // Write to target
       target.write(patch)
+      lastCursorSuffix = cursorSuffix
       lastRenderDims = { cols: targetDims.cols, rows: targetDims.rows }
       renderedOnce = true
       clearNextFullscreenRender = false
