@@ -1698,12 +1698,11 @@ function ListViewInner<T>(
     followOwnsViewport: followPinnedTopRow !== null,
     wheelGestureActive: wheelMeasurementSnapshotActive,
   })
-  const activeAnchorCorrectionBudgetRows =
+  const correctionBudgetRows =
     wheelDirectionGuardActive && activeScrollDirectionRef.current !== null
       ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
-  const oppositeActiveAnchorCorrectionBudgetRows =
-    activeAnchorCorrectionBudgetRows !== undefined ? 0 : undefined
+  const oppositeCorrectionBudgetRows = correctionBudgetRows !== undefined ? 0 : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
@@ -1717,8 +1716,8 @@ function ListViewInner<T>(
     viewportHeight: contentViewportHeight,
     followOwnsViewport: false,
     activeScrollDirection: wheelDirectionGuardActive ? activeScrollDirectionRef.current : null,
-    maxActiveCorrectionRows: activeAnchorCorrectionBudgetRows,
-    maxOppositeActiveCorrectionRows: oppositeActiveAnchorCorrectionBudgetRows,
+    maxActiveCorrectionRows: correctionBudgetRows,
+    maxOppositeActiveCorrectionRows: oppositeCorrectionBudgetRows,
     modelVersion: heightModelVersion,
     onApplyTopRow: applyAnchoredTopRow,
   })
@@ -2996,8 +2995,8 @@ function ListViewInner<T>(
       wheelMeasurementSnapshotActive ? 1 : 0,
       wheelDirectionGuardActive ? 1 : 0,
       activeScrollDirectionRef.current ?? "null",
-      activeAnchorCorrectionBudgetRows ?? "null",
-      oppositeActiveAnchorCorrectionBudgetRows ?? "null",
+      correctionBudgetRows ?? "null",
+      oppositeCorrectionBudgetRows ?? "null",
       scrollAnchoring.maintainedTopRow ?? "null",
       declarativeScrollRow ?? "null",
       scrollAuthority,
@@ -3058,13 +3057,13 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline,
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
-      heightModelFrozenForWheel: freezeHeightModelForWheel,
+      heightModelSnapshotActive: freezeHeightModelForWheel,
       wheelInputActive,
       wheelMeasurementSnapshotActive,
       wheelDirectionGuardActive,
-      activeScrollDirection: activeScrollDirectionRef.current,
-      activeAnchorCorrectionBudgetRows,
-      oppositeActiveAnchorCorrectionBudgetRows,
+      gestureDirection: activeScrollDirectionRef.current,
+      correctionBudgetRows,
+      oppositeCorrectionBudgetRows,
       maintainedTopRow: scrollAnchoring.maintainedTopRow,
       declarativeScrollRow,
       scrollAuthority,
@@ -3119,8 +3118,8 @@ function ListViewInner<T>(
     freezeHeightModelForWheel,
     layoutOwnsRowBaseline,
     isScrolling,
-    activeAnchorCorrectionBudgetRows,
-    oppositeActiveAnchorCorrectionBudgetRows,
+    correctionBudgetRows,
+    oppositeCorrectionBudgetRows,
     outerViewportSize,
     viewportInsetRows,
     contentViewportHeight,
