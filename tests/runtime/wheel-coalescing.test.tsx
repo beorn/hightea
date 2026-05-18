@@ -16,10 +16,20 @@ describe("runtime wheel coalescing", () => {
   test("same-chunk SGR wheel burst dispatches as one distance-preserving wheel event", async () => {
     using term = createTermless({ cols: 24, rows: 6 })
     const wheelDeltas: number[] = []
+    const wheelTimestamps: number[] = []
+    const wheelBatchIds: Array<number | undefined> = []
 
     function App(): React.ReactElement {
       return (
-        <Box width={24} height={6} onWheel={(event) => wheelDeltas.push(event.deltaY)}>
+        <Box
+          width={24}
+          height={6}
+          onWheel={(event) => {
+            wheelDeltas.push(event.deltaY)
+            wheelTimestamps.push(event.timeStamp)
+            wheelBatchIds.push(event.inputBatchId)
+          }}
+        >
           <Text>scroll target</Text>
         </Box>
       )
@@ -34,6 +44,10 @@ describe("runtime wheel coalescing", () => {
     handle.unmount()
 
     expect(wheelDeltas).toEqual([-12])
+    expect(wheelTimestamps).toHaveLength(1)
+    expect(Number.isFinite(wheelTimestamps[0])).toBe(true)
+    expect(wheelBatchIds).toHaveLength(1)
+    expect(wheelBatchIds[0]).toBeGreaterThan(0)
   })
 
   test("wheel stream renders without waiting for the input queue to become stable", async () => {

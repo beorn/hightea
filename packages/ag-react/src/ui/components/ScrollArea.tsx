@@ -12,7 +12,7 @@ export interface ScrollController {
   setContentHeight: (height: number) => void
   setViewportHeight: (height: number) => void
   setScrollOffset: (offset: number) => void
-  onWheel: (event: { deltaY: number }) => void
+  onWheel: (event: { deltaY: number; timeStamp?: number }) => void
 }
 
 export interface ScrollAreaProps {

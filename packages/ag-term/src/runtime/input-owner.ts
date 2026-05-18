@@ -364,6 +364,7 @@ export function createInputOwner(
   let resolvedCount = 0
   let timedOutCount = 0
   let disposed = false
+  let inputBatchSeq = 0
 
   // Fire an event to every handler in a set, catching throws so one broken
   // subscriber doesn't prevent others from seeing the event.
@@ -381,7 +382,7 @@ export function createInputOwner(
    * Parse one CSI/SS3/meta/control/printable sequence into the right event
    * type and fire it. Order: focus → mouse → key (catch-all).
    */
-  function dispatchSequence(raw: string): void {
+  function dispatchSequence(raw: string, receivedAt?: number, inputBatchId?: number): void {
     const focus = parseFocusEvent(raw)
     if (focus) {
       fire(focusHandlers, { focused: focus.type === "focus-in" })
@@ -390,6 +391,7 @@ export function createInputOwner(
     if (isMouseSequence(raw)) {
       const mouse = parseMouseSequence(raw, options.mouse)
       if (mouse) {
+        const event = { ...mouse, receivedAt, inputBatchId }
         // Action-specific debug — silvery:input-owner only logs the
         // less-frequent wheel and click actions to avoid drowning move
         // streams. Use `silvery:input-owner` namespace for live capture.
@@ -399,7 +401,7 @@ export function createInputOwner(
             `parsed mouse: action=${mouse.action} button=${mouse.button} x=${mouse.x} y=${mouse.y} delta=${mouse.delta ?? 0} bytes=${JSON.stringify(raw)}`,
           )
         }
-        fire(mouseHandlers, mouse)
+        fire(mouseHandlers, event)
         return
       }
       // Mouse sequence detected but failed to parse — log raw bytes so
@@ -413,7 +415,7 @@ export function createInputOwner(
   // Drain the current buffer against probes (in registration order). Anything
   // probes don't consume flows into the event parser, which fires typed
   // handlers for each parsed sequence.
-  function drain(): void {
+  function drain(receivedAt?: number, inputBatchId?: number): void {
     if (disposed) return
 
     // Loop because one probe resolving may leave bytes that unblock the next.
@@ -472,15 +474,17 @@ export function createInputOwner(
 
     const { sequences, incomplete } = splitRawInput(chunk)
     incompleteCSI = incomplete
-    for (const raw of sequences) dispatchSequence(raw)
+    for (const raw of sequences) dispatchSequence(raw, receivedAt, inputBatchId)
   }
 
   // Single stdin listener — the whole reason this file exists. No other
   // code in the session should call stdin.on("data", …) or stdin.setRawMode.
   const onChunk = (chunk: string | Buffer) => {
     if (disposed) return
+    const receivedAt = performance.now()
+    const inputBatchId = ++inputBatchSeq
     buffer += typeof chunk === "string" ? chunk : chunk.toString("utf8")
-    drain()
+    drain(receivedAt, inputBatchId)
   }
   if (isTTY) stdin.on("data", onChunk)
 

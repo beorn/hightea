@@ -1032,7 +1032,7 @@ function ListViewInner<T>(
   // onWheel only to plumb the layout-anchor suppression into the same
   // moment as the displacement and to flip the wheel-driven sentinel.
   const handleWheel = useCallback(
-    (event: { deltaY: number }) => {
+    (event: { deltaY: number; timeStamp?: number }) => {
       const maxRow = maxScrollRowRef.current
       if (maxRow <= 0) {
         // Diagnostic — wheel event arrived but layout hasn't converged
@@ -3344,7 +3344,7 @@ function ScrollToBottomButton({
   onWheel,
 }: {
   onClick: () => void
-  onWheel: (event: { deltaY: number }) => void
+  onWheel: (event: { deltaY: number; timeStamp?: number }) => void
 }): React.ReactElement {
   const { isHovered, onMouseEnter, onMouseLeave } = useHover()
   const bg = isHovered ? "$primary" : "$mutedbg"

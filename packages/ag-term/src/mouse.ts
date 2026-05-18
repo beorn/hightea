@@ -44,6 +44,10 @@ export interface ParsedMouse {
   meta: boolean
   /** Ctrl was held */
   ctrl: boolean
+  /** Monotonic timestamp when the terminal input chunk was received. */
+  receivedAt?: number
+  /** Monotonic id shared by events parsed from the same terminal input chunk. */
+  inputBatchId?: number
 }
 
 const SGR_MOUSE_RE = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/

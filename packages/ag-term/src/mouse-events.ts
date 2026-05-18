@@ -80,6 +80,8 @@ export function createMouseEvent(
     ctrlKey: parsed.ctrl,
     metaKey,
     shiftKey: parsed.shift,
+    timeStamp: parsed.receivedAt ?? performance.now(),
+    inputBatchId: parsed.inputBatchId,
     target,
     currentTarget: target,
     nativeEvent: parsed,
@@ -406,7 +408,8 @@ export function nearestSelectableCellFromPoint(
   const sameRow = rows.find((candidate) => candidate.row === pointerRow)
   if (sameRow) {
     if (pointerCol < sameRow.first) return { col: sameRow.first, row: sameRow.row }
-    if (pointerCol > sameRow.last) return { col: Math.min(right, sameRow.last + 1), row: sameRow.row }
+    if (pointerCol > sameRow.last)
+      return { col: Math.min(right, sameRow.last + 1), row: sameRow.row }
     return { col: sameRow.nearest, row: sameRow.row }
   }
 
@@ -452,10 +455,17 @@ export function resolveSelectionAnchorFromPoint(
   }
 
   const pointerTarget = hitTest(root, x, y)
-  const pointerBlocksSelection = pointerTarget !== null && resolveUserSelect(pointerTarget) === "none"
+  const pointerBlocksSelection =
+    pointerTarget !== null && resolveUserSelect(pointerTarget) === "none"
   let selectedNode = !pointerBlocksSelection ? selectionHitTest(root, x, y) : null
 
-  if (selectedNode === null && !forceBufferSelection && !pointerBlocksSelection && pointerTarget !== null && buffer) {
+  if (
+    selectedNode === null &&
+    !forceBufferSelection &&
+    !pointerBlocksSelection &&
+    pointerTarget !== null &&
+    buffer
+  ) {
     let current: AgNode | null = pointerTarget
     while (current && selectedNode === null) {
       const rect = current.scrollRect

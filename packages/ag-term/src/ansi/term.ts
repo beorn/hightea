@@ -1111,6 +1111,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
   // ANSI bytes and fans out to onKey/onMouse/onPaste/onFocus subscribers so
   // emulator-backed Terms share the same consumer shape as Node-backed.
   const input = createInputOwner(HEADLESS_STDIN, stdout, { enableBracketedPaste: false })
+  let inputBatchSeq = 0
   // Signals owner — emulator-backed terms share the host process so exit /
   // SIGINT handlers remain meaningful. Construction is free (no process
   // listeners until first on()), and the contract promises signals on every
@@ -1165,6 +1166,8 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
     },
     sendInput: (data: string) => {
       // Parse the data into typed events and fan out via the input owner.
+      const receivedAt = performance.now()
+      const inputBatchId = ++inputBatchSeq
       const pasteResult = parseBracketedPaste(data)
       if (pasteResult) {
         input.sendPaste({ text: pasteResult.content })
@@ -1178,7 +1181,7 @@ function createBackendTerm(emulator: TermEmulator, capsOverride?: Partial<Termin
         }
         if (isMouseSequence(raw)) {
           const parsed = parseMouseSequence(raw)
-          if (parsed) input.sendMouse(parsed)
+          if (parsed) input.sendMouse({ ...parsed, receivedAt, inputBatchId })
           continue
         }
         const [parsedInput, key] = parseKey(raw)

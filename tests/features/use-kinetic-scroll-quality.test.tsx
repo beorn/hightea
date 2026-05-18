@@ -304,6 +304,38 @@ describe("useKineticScroll — input cadence detection", () => {
     )
   })
 
+  test("same-turn continuous packets use the minimum cadence interval for acceleration", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.435,
+          continuousWheelAcceleration: 3,
+        }}
+      />,
+    )
+    await settle()
+
+    for (let i = 0; i < 32; i++) {
+      apiRef.current!.onWheel({ deltaY: 1 })
+    }
+
+    const afterBurst = apiRef.current!.getScrollFloat()
+    expect(
+      afterBurst,
+      "batched trackpad packets are real signal and should still get dense-stream acceleration",
+    ).toBeGreaterThan(16)
+    expect(
+      afterBurst,
+      "acceleration remains bounded by the configured multiplier",
+    ).toBeLessThanOrEqual(1 + 31 * 0.435 * 3)
+  })
+
   test("continuous cadence keeps inertial tail from becoming discrete jumps", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })

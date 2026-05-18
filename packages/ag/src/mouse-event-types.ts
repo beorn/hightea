@@ -54,6 +54,10 @@ export interface SilveryMouseEvent {
     | "mouseenter"
     | "mouseleave"
     | "wheel"
+  /** Monotonic timestamp for the input event. */
+  timeStamp: number
+  /** Monotonic id shared by events parsed from the same terminal input chunk. */
+  inputBatchId?: number
   /**
    * Click count for `click` / `dblclick` / `tripleclick` events
    * (mirrors DOM `MouseEvent.detail`).

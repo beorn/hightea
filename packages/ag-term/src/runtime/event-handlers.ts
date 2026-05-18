@@ -195,6 +195,8 @@ export function dispatchMouseEventToTree(
     y: number
     action: string
     delta?: number
+    receivedAt?: number
+    inputBatchId?: number
     shift: boolean
     meta: boolean
     ctrl: boolean
@@ -209,6 +211,8 @@ export function dispatchMouseEventToTree(
       coordinateMode: "cell",
       action: mouseData.action as "down" | "up" | "move" | "wheel",
       delta: mouseData.delta,
+      receivedAt: mouseData.receivedAt,
+      inputBatchId: mouseData.inputBatchId,
       shift: mouseData.shift,
       meta: mouseData.meta,
       ctrl: mouseData.ctrl,

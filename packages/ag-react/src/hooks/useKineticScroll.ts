@@ -129,6 +129,12 @@ const CONTINUOUS_ACCEL_REFERENCE_INTERVAL_MS = 100
 const CONTINUOUS_ACCEL_TAU = 3
 const CONTINUOUS_ACCEL_GAIN = 0.8
 const CONTINUOUS_ACCEL_MIN_INTERVAL_MS = 6
+/** Synthetic cadence for packets that arrive in the same JS turn. Packet
+ * count already carries speed for a coalesced terminal read; using a tiny
+ * near-zero interval would double-count that burst as both "many packets" and
+ * "impossibly high frequency", creating first-frame speed spikes. */
+const CONTINUOUS_ACCEL_SAME_TURN_INTERVAL_MS = 50
+const CONTINUOUS_ACCEL_SAME_TURN_ACCEL_AFTER_PACKETS = 12
 
 export interface UseKineticScrollOptions {
   /**
@@ -254,7 +260,7 @@ export interface UseKineticScrollResult {
   /** Fractional position 0..1 across the full scrollable track. */
   scrollFrac: number
   /** Wheel event handler. Attach to the scroll container's `onWheel`. */
-  onWheel: (event: { deltaY: number }) => void
+  onWheel: (event: { deltaY: number; timeStamp?: number }) => void
   /** True from the first wheel event until SCROLLBAR_FADE_AFTER_MS after
    * the last one. */
   isScrolling: boolean
@@ -357,6 +363,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const continuousAccelLastTickTimeRef = useRef(0)
   const continuousAccelIntervalsRef = useRef<number[]>([])
   const continuousAccelDirectionRef = useRef<-1 | 1 | 0>(0)
+  const continuousAccelSameTurnStreakRef = useRef(0)
   // Same-direction compounding carryover (rows/sec), set when a wheel flick
   // interrupts an in-flight coast. Pure additive — no multiplier.
   const pendingBoostVelocityRef = useRef(0)
@@ -479,6 +486,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     continuousAccelLastTickTimeRef.current = 0
     continuousAccelIntervalsRef.current = []
     continuousAccelDirectionRef.current = 0
+    continuousAccelSameTurnStreakRef.current = 0
   }, [])
 
   const resolveContinuousAccelerationMultiplier = useCallback(
@@ -496,13 +504,26 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       if (!Number.isFinite(dt) || dt > CONTINUOUS_ACCEL_STREAK_TIMEOUT_MS) {
         continuousAccelLastTickTimeRef.current = now
         continuousAccelIntervalsRef.current = []
+        continuousAccelSameTurnStreakRef.current = 0
         return 1
       }
-      if (dt < CONTINUOUS_ACCEL_MIN_INTERVAL_MS) return 1
       continuousAccelLastTickTimeRef.current = now
 
+      if (dt < CONTINUOUS_ACCEL_MIN_INTERVAL_MS) {
+        continuousAccelSameTurnStreakRef.current += 1
+        if (
+          continuousAccelSameTurnStreakRef.current <= CONTINUOUS_ACCEL_SAME_TURN_ACCEL_AFTER_PACKETS
+        ) {
+          return 1
+        }
+      } else {
+        continuousAccelSameTurnStreakRef.current = 0
+      }
+
       const intervals = continuousAccelIntervalsRef.current
-      intervals.push(dt)
+      intervals.push(
+        dt < CONTINUOUS_ACCEL_MIN_INTERVAL_MS ? CONTINUOUS_ACCEL_SAME_TURN_INTERVAL_MS : dt,
+      )
       if (intervals.length > CONTINUOUS_ACCEL_HISTORY_SIZE) intervals.shift()
 
       const avgInterval = intervals.reduce((sum, value) => sum + value, 0) / intervals.length
@@ -658,7 +679,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   }, [clearReleaseTimer, enterMomentum])
 
   const onWheel = useCallback(
-    ({ deltaY }: { deltaY: number }) => {
+    ({ deltaY, timeStamp }: { deltaY: number; timeStamp?: number }) => {
       const dir = Math.sign(deltaY) || 0
       if (dir === 0) return
       clearReleaseTimer()
@@ -669,7 +690,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         const seedFn = getInitialFloatRef.current
         if (seedFn) scrollFloatRef.current = seedFn()
       }
-      const now = performance.now()
+      const now =
+        typeof timeStamp === "number" && Number.isFinite(timeStamp) ? timeStamp : performance.now()
       const samples = wheelGestureFilterRef.current.process({ t: now, deltaY })
       if (samples.length === 0) return
 
@@ -713,6 +735,9 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         if (enableInputCadenceDetection) {
           const last = lastWheelTimeRef.current
           const absD = Math.abs(sample.deltaY)
+          if (absD > 1) {
+            cadenceModeRef.current = "continuous"
+          }
           if (last > 0) {
             const interval = sample.t - last
             if (interval > CADENCE_CONTEXT_EXPIRY_MS) {
@@ -732,6 +757,13 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           lastWheelTimeRef.current = sample.t
         }
         let appliedSampleRows = 0
+        const sampleCanAccelerate =
+          enableInputCadenceDetection &&
+          cadenceModeRef.current === "continuous" &&
+          sampleMagnitude === 1
+        const sampleAccelerationMultiplier = sampleCanAccelerate
+          ? resolveContinuousAccelerationMultiplier(sample.t, sampleDir < 0 ? -1 : 1)
+          : 1
         for (let unit = 0; unit < sampleMagnitude; unit++) {
           const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
           const isContinuous =
@@ -739,9 +771,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           if (isDiscrete) acceptedDiscrete = true
           if (isContinuous) acceptedContinuous = true
           if (!isContinuous) resetContinuousAcceleration()
-          const continuousAccelerationMultiplier = isContinuous
-            ? resolveContinuousAccelerationMultiplier(sample.t, sampleDir < 0 ? -1 : 1)
-            : 1
+          const continuousAccelerationMultiplier =
+            isContinuous && sampleMagnitude === 1 ? sampleAccelerationMultiplier : 1
           const stepRows = isDiscrete
             ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
             : WHEEL_STEP_ROWS *
