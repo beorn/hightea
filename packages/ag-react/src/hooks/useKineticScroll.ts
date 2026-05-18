@@ -757,6 +757,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           lastWheelTimeRef.current = sample.t
         }
         let appliedSampleRows = 0
+        let pendingSampleRows = 0
+        let pendingSampleIsDiscrete = false
         for (let unit = 0; unit < sampleMagnitude; unit++) {
           const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
           const isContinuous =
@@ -778,7 +780,16 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
               (isContinuous
                 ? continuousWheelMultiplier * continuousAccelerationMultiplier
                 : wheelMultiplier)
-          appliedSampleRows += applyWheelRows(sampleDir * stepRows, isDiscrete)
+          const rows = sampleDir * stepRows
+          if (enableElasticEdges && !isDiscrete) {
+            appliedSampleRows += applyWheelRows(rows, isDiscrete)
+          } else {
+            pendingSampleRows += rows
+            pendingSampleIsDiscrete = isDiscrete
+          }
+        }
+        if (pendingSampleRows !== 0) {
+          appliedSampleRows += applyWheelRows(pendingSampleRows, pendingSampleIsDiscrete)
         }
         if (appliedSampleRows !== 0) buf.push({ t: sample.t, rows: appliedSampleRows })
       }

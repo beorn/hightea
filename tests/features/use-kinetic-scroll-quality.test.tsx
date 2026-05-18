@@ -483,6 +483,32 @@ describe("useKineticScroll — input cadence detection", () => {
     ).toBeLessThanOrEqual(1 + 60 * 0.435 * 3)
   })
 
+  test("coalesced continuous bursts commit one position update per runtime wheel event", async () => {
+    const scrolls: number[] = []
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.435,
+          continuousWheelAcceleration: 3,
+          onScroll: (_offset, float) => scrolls.push(float),
+        }}
+      />,
+    )
+    await settle()
+
+    apiRef.current!.onWheel({ deltaY: 1, timeStamp: 1000 })
+    apiRef.current!.onWheel({ deltaY: 60, timeStamp: 1050 })
+
+    expect(scrolls).toHaveLength(2)
+    expect(scrolls.at(-1)).toBeCloseTo(apiRef.current!.getScrollFloat(), 5)
+  })
+
   test("smoothWheelPackets applies same-turn trackpad bursts immediately", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
