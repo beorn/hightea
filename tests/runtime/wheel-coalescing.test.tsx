@@ -1,5 +1,5 @@
 import React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { describe, expect, test } from "vitest"
 import { createTermless } from "@silvery/test"
 import { Box, Text } from "../../src/index.js"
@@ -48,6 +48,74 @@ describe("runtime wheel coalescing", () => {
     expect(Number.isFinite(wheelTimestamps[0])).toBe(true)
     expect(wheelBatchIds).toHaveLength(1)
     expect(wheelBatchIds[0]).toBeGreaterThan(0)
+  })
+
+  test("separate terminal input batches preserve wheel cadence", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+    const wheelDeltas: number[] = []
+    const wheelBatchIds: Array<number | undefined> = []
+
+    function App(): React.ReactElement {
+      return (
+        <Box
+          width={24}
+          height={6}
+          onWheel={(event) => {
+            wheelDeltas.push(event.deltaY)
+            wheelBatchIds.push(event.inputBatchId)
+          }}
+        >
+          <Text>scroll target</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term, { mouse: true, selection: false })
+    await settle()
+
+    const si = term as unknown as { sendInput(data: string): void }
+    si.sendInput(wheelUpBurst(2, 0, 1))
+    si.sendInput(wheelUpBurst(2, 0, 1))
+    await settle()
+
+    handle.unmount()
+
+    expect(wheelDeltas).toEqual([-1, -1])
+    expect(new Set(wheelBatchIds).size).toBe(2)
+  })
+
+  test("separate terminal input batches render as separate pointer frames", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+    const committedCounts: number[] = []
+
+    function App(): React.ReactElement {
+      const [count, setCount] = useState(0)
+      useEffect(() => {
+        committedCounts.push(count)
+      }, [count])
+      return (
+        <Box
+          width={24}
+          height={6}
+          onWheel={(event) => setCount((prev) => prev + Math.abs(event.deltaY))}
+        >
+          <Text>count={count}</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term, { mouse: true, selection: false })
+    await settle()
+
+    const si = term as unknown as { sendInput(data: string): void }
+    si.sendInput(wheelUpBurst(2, 0, 1))
+    si.sendInput(wheelUpBurst(2, 0, 1))
+    await settle()
+
+    handle.unmount()
+
+    expect(committedCounts).toContain(1)
+    expect(committedCounts).toContain(2)
   })
 
   test("wheel stream renders without waiting for the input queue to become stable", async () => {

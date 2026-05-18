@@ -213,6 +213,7 @@ const PANIC_STDIN_DRAIN_MS = 75
 type RuntimeWheelMouseEvent = {
   action?: string
   delta?: number
+  inputBatchId?: number
   x?: number
   y?: number
   clientX?: number
@@ -236,15 +237,41 @@ function isMouseEvent(event: NamespacedEvent): boolean {
   return event.event === "mouse"
 }
 
+function inputBatchIdForMouseEvent(event: NamespacedEvent): number | undefined {
+  if (!isMouseEvent(event)) return undefined
+  return (event.data as { inputBatchId?: number } | undefined)?.inputBatchId
+}
+
+function takeNextFrameBatch(events: NamespacedEvent[]): NamespacedEvent[] {
+  const firstMouseIndex = events.findIndex(isMouseEvent)
+  if (firstMouseIndex === -1) return events.splice(0)
+  if (firstMouseIndex > 0) return events.splice(0, firstMouseIndex)
+
+  const first = events[0]
+  if (!first || !isMouseEvent(first)) return events.splice(0, 1)
+
+  const inputBatchId = inputBatchIdForMouseEvent(first)
+  let count = 1
+  while (count < events.length) {
+    const next = events[count]!
+    if (!isMouseEvent(next)) break
+    if (inputBatchIdForMouseEvent(next) !== inputBatchId) break
+    count++
+  }
+  return events.splice(0, count)
+}
+
 function canCoalesceWheelEvent(prev: NamespacedEvent, next: NamespacedEvent): boolean {
   if (!isWheelEvent(prev) || !isWheelEvent(next)) return false
   const a = prev.data
   const b = next.data
   const deltaA = a.delta ?? 0
   const deltaB = b.delta ?? 0
+  const sameInputBatch = a.inputBatchId === b.inputBatchId
   return (
     prev.type === next.type &&
     prev.provider === next.provider &&
+    sameInputBatch &&
     Math.sign(deltaA) !== 0 &&
     Math.sign(deltaA) === Math.sign(deltaB) &&
     a.x === b.x &&
@@ -4065,16 +4092,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _g = globalThis as any
         _g.__silvery_last_drain_spins = drainSpins
-        _g.__silvery_last_batch_size = eventQueue.length
+        const batch = takeNextFrameBatch(eventQueue)
+        _g.__silvery_last_batch_size = batch.length
+        _g.__silvery_last_queued_event_count = eventQueue.length
         _g.__silvery_batch_count = (_g.__silvery_batch_count ?? 0) + 1
 
-        // Process all pending events — run handlers without rendering.
+        // Process the next render batch — run handlers without rendering.
+        // Keyboard repeat still drains all pending events into one frame.
+        // Pointer streams keep one terminal input batch per frame so a
+        // trackpad cannot collapse several delivered motion chunks into one
+        // visible jump.
         // Wheel packets from terminal trackpads often arrive as same-turn
-        // bursts. Coalesce only consecutive same-direction packets with
-        // identical geometry/modifiers: this preserves the total input
-        // distance while avoiding one React handler pass per packet.
-        const batch = coalesceWheelEvents(eventQueue.splice(0))
-        const buf = await processEventBatch(batch)
+        // bursts. Coalesce only consecutive same-direction packets from
+        // the same terminal input batch with identical geometry/modifiers:
+        // this preserves the total input distance without erasing cadence
+        // between separately delivered trackpad chunks.
+        const buf = await processEventBatch(coalesceWheelEvents(batch))
         if (buf) emitFrame(buf)
       }
     } finally {
