@@ -81,6 +81,11 @@ describe("ListView: scroll-to-latest floating button", () => {
 
     expect(app.text).not.toContain("↓ Latest")
 
+    await settle(120)
+    expect(app.text).toContain("↓ Latest")
+
+    // It should not wait for the scrollbar's much longer fade timer; the
+    // affordance is gated by input idleness, not chrome visibility.
     await waitForText(app, "↓ Latest")
   })
 

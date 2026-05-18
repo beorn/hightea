@@ -86,7 +86,7 @@ import {
   shouldApplyVisibleContentAnchoring,
   useScrollAnchoring,
 } from "./list-view/use-scroll-anchoring"
-import { useKineticScroll, SCROLLBAR_FADE_AFTER_MS } from "../../hooks/useKineticScroll"
+import { useKineticScroll } from "../../hooks/useKineticScroll"
 import { createHistoryBuffer, createHistoryItem } from "@silvery/ag-term/history-buffer"
 import type { HistoryBuffer } from "@silvery/ag-term/history-buffer"
 import { createListDocument } from "@silvery/ag-term/list-document"
@@ -653,6 +653,10 @@ const DEFAULT_VIRTUALIZATION_THRESHOLD = 100
  * rows) is hit. Tall items hit the row budget first, short items hit the
  * item budget first — same React + pipeline cost either way. */
 const DEFAULT_MAX_ESTIMATED_ROWS = 200
+/** Input-idle delay for gesture-owned UI and scroll stabilization. This is
+ * intentionally shorter than the scrollbar fade; chrome can linger without
+ * making the content feel like it is still actively scrolling. */
+const SCROLL_GESTURE_IDLE_MS = 220
 
 /** Shared no-match sentinel — every renderItem call with no search activity
  * gets the same identity-stable reference so consumers that memoise on
@@ -896,7 +900,6 @@ function ListViewInner<T>(
   const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scrollActivityActiveRef = useRef(false)
   const liveAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
   const activeWheelAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
   const [, rerenderOnWheelGestureIdle] = useReducer((value: number) => value + 1, 0)
@@ -916,18 +919,13 @@ function ListViewInner<T>(
     if (wheelGestureActiveTimerRef.current !== null) {
       clearTimeout(wheelGestureActiveTimerRef.current)
     }
-    const checkForIdle = () => {
-      if (scrollActivityActiveRef.current) {
-        wheelGestureActiveTimerRef.current = setTimeout(checkForIdle, SCROLLBAR_FADE_AFTER_MS)
-        return
-      }
+    wheelGestureActiveTimerRef.current = setTimeout(() => {
       if (wheelGestureActiveRef.current) {
         wheelGestureActiveRef.current = false
         rerenderOnWheelGestureIdle()
       }
       wheelGestureActiveTimerRef.current = null
-    }
-    wheelGestureActiveTimerRef.current = setTimeout(checkForIdle, SCROLLBAR_FADE_AFTER_MS)
+    }, SCROLL_GESTURE_IDLE_MS)
     if (!wasActive) rerenderOnWheelGestureIdle()
   }, [])
 
@@ -987,7 +985,6 @@ function ListViewInner<T>(
     },
   })
   const isScrolling = physics.isScrolling
-  scrollActivityActiveRef.current = isScrolling
 
   // Scrollbar-lifecycle sync: when wheel/momentum activity quiesces
   // (`isScrolling` falls), clear any lingering bump indicator. The user
@@ -2903,7 +2900,7 @@ function ListViewInner<T>(
     resolvedFollow === "end" &&
     scrollableRows > 0 &&
     scrollableRows - effectiveRowsAbove > contentViewportHeight
-  const scrollGestureUiActive = isScrolling || wheelGestureActiveRef.current
+  const scrollGestureUiActive = wheelGestureActiveRef.current || physics.isAnimating
   const showScrollToBottomButton = shouldOfferScrollToBottomButton && !scrollGestureUiActive
   const lastListLogKey = useRef("")
   useEffect(() => {
