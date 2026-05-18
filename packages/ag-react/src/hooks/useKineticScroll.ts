@@ -490,7 +490,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   }, [])
 
   const resolveContinuousAccelerationMultiplier = useCallback(
-    (now: number, direction: -1 | 1): number => {
+    (now: number, direction: -1 | 1, effectiveIntervalMs?: number): number => {
       const maxMultiplier = Math.max(1, continuousWheelAcceleration)
       if (maxMultiplier <= 1) return 1
 
@@ -500,7 +500,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       }
 
       const last = continuousAccelLastTickTimeRef.current
-      const dt = last > 0 ? now - last : Number.POSITIVE_INFINITY
+      const dt = last > 0 ? (effectiveIntervalMs ?? now - last) : Number.POSITIVE_INFINITY
       if (!Number.isFinite(dt) || dt > CONTINUOUS_ACCEL_STREAK_TIMEOUT_MS) {
         continuousAccelLastTickTimeRef.current = now
         continuousAccelIntervalsRef.current = []
@@ -757,13 +757,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           lastWheelTimeRef.current = sample.t
         }
         let appliedSampleRows = 0
-        const sampleCanAccelerate =
-          enableInputCadenceDetection &&
-          cadenceModeRef.current === "continuous" &&
-          sampleMagnitude === 1
-        const sampleAccelerationMultiplier = sampleCanAccelerate
-          ? resolveContinuousAccelerationMultiplier(sample.t, sampleDir < 0 ? -1 : 1)
-          : 1
         for (let unit = 0; unit < sampleMagnitude; unit++) {
           const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
           const isContinuous =
@@ -771,8 +764,14 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           if (isDiscrete) acceptedDiscrete = true
           if (isContinuous) acceptedContinuous = true
           if (!isContinuous) resetContinuousAcceleration()
-          const continuousAccelerationMultiplier =
-            isContinuous && sampleMagnitude === 1 ? sampleAccelerationMultiplier : 1
+          const sampleAccelerationMultiplier = isContinuous
+            ? resolveContinuousAccelerationMultiplier(
+                sample.t,
+                sampleDir < 0 ? -1 : 1,
+                sampleMagnitude > 1 && unit > 0 ? 0 : undefined,
+              )
+            : 1
+          const continuousAccelerationMultiplier = isContinuous ? sampleAccelerationMultiplier : 1
           const stepRows = isDiscrete
             ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
             : WHEEL_STEP_ROWS *

@@ -421,7 +421,7 @@ describe("useKineticScroll — input cadence detection", () => {
     ).toBeGreaterThan(30)
   })
 
-  test("coalesced continuous bursts preserve packet mass without burst-wide over-acceleration", async () => {
+  test("coalesced continuous bursts preserve packet mass with bounded acceleration", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -445,11 +445,42 @@ describe("useKineticScroll — input cadence detection", () => {
     apiRef.current!.onWheel({ deltaY: 60 })
 
     const afterBurst = apiRef.current!.getScrollFloat()
-    expect(afterBurst, "coalesced packets still move the viewport").toBeGreaterThan(25)
+    expect(afterBurst, "coalesced packets still move the viewport").toBeGreaterThan(38)
     expect(
       afterBurst,
-      "one cadence acceleration sample must not multiply every packet in a coalesced burst",
-    ).toBeLessThan(32)
+      "virtual packet acceleration must stay below the configured ceiling",
+    ).toBeLessThanOrEqual(2 + 60 * 0.435 * 3)
+  })
+
+  test("coalesced continuous bursts still accelerate dense virtual packets", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.435,
+          continuousWheelAcceleration: 3,
+        }}
+      />,
+    )
+    await settle()
+
+    apiRef.current!.onWheel({ deltaY: 1, timeStamp: 1000 })
+    apiRef.current!.onWheel({ deltaY: 60, timeStamp: 1050 })
+
+    const afterBurst = apiRef.current!.getScrollFloat()
+    expect(
+      afterBurst,
+      "a coalesced trackpad burst should keep the dense-stream acceleration signal",
+    ).toBeGreaterThan(38)
+    expect(
+      afterBurst,
+      "virtual packet acceleration stays bounded by the configured ceiling",
+    ).toBeLessThanOrEqual(1 + 60 * 0.435 * 3)
   })
 
   test("smoothWheelPackets applies same-turn trackpad bursts immediately", async () => {
