@@ -16,7 +16,7 @@ describe("runtime wheel coalescing", () => {
   test("same-chunk SGR wheel burst dispatches as one distance-preserving wheel event", async () => {
     using term = createTermless({ cols: 24, rows: 6 })
     const wheelDeltas: number[] = []
-    const wheelTimestamps: number[] = []
+    const wheelTimestamps: Array<number | undefined> = []
     const wheelBatchIds: Array<number | undefined> = []
 
     function App(): React.ReactElement {

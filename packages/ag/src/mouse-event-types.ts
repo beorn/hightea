@@ -55,7 +55,7 @@ export interface SilveryMouseEvent {
     | "mouseleave"
     | "wheel"
   /** Monotonic timestamp for the input event. */
-  timeStamp: number
+  timeStamp?: number
   /** Monotonic id shared by events parsed from the same terminal input chunk. */
   inputBatchId?: number
   /**
