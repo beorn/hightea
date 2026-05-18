@@ -2930,6 +2930,9 @@ function ListViewInner<T>(
   const showScrollToBottomButton = shouldOfferScrollToBottomButton && !scrollGestureUiActive
   const lastListLogKey = useRef("")
   useEffect(() => {
+    const debugListView = listLog.debug
+    if (!debugListView) return
+
     const key = [
       items.length,
       activeItems.length,
@@ -2995,7 +2998,7 @@ function ListViewInner<T>(
     ].join(":")
     if (key === lastListLogKey.current) return
     lastListLogKey.current = key
-    listLog.debug?.("listview state", {
+    debugListView("listview state", {
       itemCount: items.length,
       activeCount: activeItems.length,
       visibleCount: visibleItems.length,
