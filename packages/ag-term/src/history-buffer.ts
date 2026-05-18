@@ -3,7 +3,9 @@
  *
  * Each item represents a rendered list entry (card, row, etc.) with its
  * ANSI snapshot, split rows, and plain-text rows for searching.
- * When total rows exceed capacity, the oldest items are evicted.
+ * When total rows or cached ANSI bytes exceed capacity, the oldest items are
+ * evicted. The byte count tracks the serialized string payload; it is a
+ * deterministic cache budget, not an exact process heap measurement.
  */
 
 import { stripAnsi } from "./unicode"
@@ -19,6 +21,7 @@ export interface HistoryItem {
 export interface HistoryBuffer {
   push(item: HistoryItem): void
   readonly totalRows: number
+  readonly totalBytes: number
   readonly itemCount: number
   getRows(startRow: number, count: number): string[]
   getPlainTextRows(startRow: number, count: number): string[]
@@ -26,6 +29,13 @@ export interface HistoryBuffer {
   getItemAtRow(row: number): { item: HistoryItem; localRow: number } | null
   clear(): void
   readonly capacity: number
+  readonly capacityBytes: number | null
+}
+
+export interface HistoryBufferOptions {
+  capacityRows?: number
+  /** Maximum cached ANSI payload bytes. Omit for no byte cap. */
+  capacityBytes?: number
 }
 
 export function createHistoryItem(key: string | number, ansi: string, width: number): HistoryItem {
@@ -34,15 +44,25 @@ export function createHistoryItem(key: string | number, ansi: string, width: num
   return { key, ansi, rows, plainTextRows, width }
 }
 
-export function createHistoryBuffer(capacity = 10_000): HistoryBuffer {
+export function createHistoryBuffer(
+  options: number | HistoryBufferOptions = 10_000,
+): HistoryBuffer {
+  const capacity = typeof options === "number" ? options : (options.capacityRows ?? 10_000)
+  const capacityBytes =
+    typeof options === "number" ? null : normalizeCapacityBytes(options.capacityBytes)
   // Store items in insertion order; evict from front when over budget.
   let items: HistoryItem[] = []
   let _totalRows = 0
+  let _totalBytes = 0
 
   function evict(): void {
-    while (_totalRows > capacity && items.length > 0) {
+    while (
+      items.length > 0 &&
+      (_totalRows > capacity || (capacityBytes !== null && _totalBytes > capacityBytes))
+    ) {
       const removed = items.shift()!
       _totalRows -= removed.rows.length
+      _totalBytes -= estimateHistoryItemBytes(removed)
     }
   }
 
@@ -64,11 +84,16 @@ export function createHistoryBuffer(capacity = 10_000): HistoryBuffer {
     push(item: HistoryItem): void {
       items.push(item)
       _totalRows += item.rows.length
+      _totalBytes += estimateHistoryItemBytes(item)
       evict()
     },
 
     get totalRows(): number {
       return _totalRows
+    },
+
+    get totalBytes(): number {
+      return _totalBytes
     },
 
     get itemCount(): number {
@@ -77,6 +102,10 @@ export function createHistoryBuffer(capacity = 10_000): HistoryBuffer {
 
     get capacity(): number {
       return capacity
+    },
+
+    get capacityBytes(): number | null {
+      return capacityBytes
     },
 
     getRows(startRow: number, count: number): string[] {
@@ -130,6 +159,17 @@ export function createHistoryBuffer(capacity = 10_000): HistoryBuffer {
     clear(): void {
       items = []
       _totalRows = 0
+      _totalBytes = 0
     },
   }
+}
+
+function normalizeCapacityBytes(value: number | undefined): number | null {
+  return Number.isFinite(value) && value !== undefined && value > 0 ? Math.floor(value) : null
+}
+
+const utf8Encoder = new TextEncoder()
+
+function estimateHistoryItemBytes(item: HistoryItem): number {
+  return utf8Encoder.encode(item.ansi).byteLength
 }

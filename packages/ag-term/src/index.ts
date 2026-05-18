@@ -755,6 +755,7 @@ export {
   createHistoryItem,
   type HistoryItem,
   type HistoryBuffer,
+  type HistoryBufferOptions,
 } from "./history-buffer"
 
 // =============================================================================

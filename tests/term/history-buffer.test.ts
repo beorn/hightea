@@ -56,6 +56,33 @@ describe("HistoryBuffer", () => {
     expect(buf.getRows(0, 3)).toEqual(["4", "5", "6"])
   })
 
+  it("tracks cached string bytes and evicts oldest items when byte capacity is exceeded", () => {
+    const buf = createHistoryBuffer({ capacityRows: 100, capacityBytes: 8 })
+
+    buf.push(item("a", ["abcd"]))
+    buf.push(item("b", ["efgh"]))
+    expect(buf.itemCount).toBe(2)
+    expect(buf.totalBytes).toBeLessThanOrEqual(8)
+
+    buf.push(item("c", ["ijkl"]))
+
+    expect(buf.itemCount).toBe(2)
+    expect(buf.totalBytes).toBeLessThanOrEqual(8)
+    expect(buf.getPlainTextRows(0, 2)).toEqual(["efgh", "ijkl"])
+  })
+
+  it("row capacity and byte capacity both apply", () => {
+    const buf = createHistoryBuffer({ capacityRows: 2, capacityBytes: 100 })
+
+    buf.push(item("a", ["one"]))
+    buf.push(item("b", ["two"]))
+    buf.push(item("c", ["three"]))
+
+    expect(buf.itemCount).toBe(2)
+    expect(buf.totalRows).toBe(2)
+    expect(buf.getPlainTextRows(0, 2)).toEqual(["two", "three"])
+  })
+
   it("evicts multiple items to fit under capacity", () => {
     const buf = createHistoryBuffer(4)
     buf.push(item("a", ["1"]))

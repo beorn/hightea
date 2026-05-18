@@ -154,6 +154,39 @@ describe("ListView", () => {
     expect(buf!.totalRows).toBe(2)
   })
 
+  test("virtual cache forwards byte capacity to HistoryBuffer", () => {
+    const listRef = React.createRef<ListViewHandle>()
+    const items: Message[] = [
+      { id: "1", body: "aaaa", delivered: true },
+      { id: "2", body: "bbbb", delivered: true },
+      { id: "3", body: "cccc", delivered: true },
+      { id: "4", body: "pending", delivered: false },
+    ]
+
+    const r = createRenderer({ cols: 40, rows: 10 })
+    r(
+      <ListView
+        ref={listRef}
+        items={items}
+        getKey={(m) => m.id}
+        height={10}
+        cache={{
+          mode: "virtual",
+          isCacheable: (m) => (m as Message).delivered,
+          capacity: 100,
+          capacityBytes: 8,
+        }}
+        renderItem={(msg) => <Text>{msg.body}</Text>}
+      />,
+    )
+
+    const buf = listRef.current?.getHistoryBuffer()
+    expect(buf).not.toBeNull()
+    expect(buf!.itemCount).toBe(2)
+    expect(buf!.totalBytes).toBeLessThanOrEqual(8)
+    expect(buf!.getPlainTextRows(0, 2)).toEqual(["bbbb", "cccc"])
+  })
+
   // ── getItemText for search ──────────────────────────────────────
 
   test("getItemText provides searchable text in history", () => {

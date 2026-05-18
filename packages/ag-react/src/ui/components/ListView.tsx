@@ -237,6 +237,8 @@ export interface ListViewCacheConfig<T> {
   isCacheable?: (item: T, index: number) => boolean
   /** Maximum rows in cache buffer. Default: 10_000 */
   capacity?: number
+  /** Maximum cached ANSI payload bytes. Omit for no byte cap. */
+  capacityBytes?: number
 }
 
 /** Search configuration for ListView */
@@ -1226,7 +1228,10 @@ function ListViewInner<T>(
       : rawCacheMode
   const cacheBufferRef = useRef<HistoryBuffer | null>(null)
   if (cacheMode === "virtual" && !cacheBufferRef.current) {
-    cacheBufferRef.current = createHistoryBuffer(cacheConfig?.capacity ?? 10_000)
+    cacheBufferRef.current = createHistoryBuffer({
+      capacityRows: cacheConfig?.capacity ?? 10_000,
+      capacityBytes: cacheConfig?.capacityBytes,
+    })
   }
   const cacheBuffer = cacheBufferRef.current
 
