@@ -25,10 +25,10 @@
  *   push applied displacement into a rolling buffer of the last ~150ms.
  *   Continuous trackpad streams can use `continuousWheelMultiplier` as a
  *   separate row scale when terminal wheel reports are row-quantized too
- *   coarsely. Every packet still contributes immediately; this is not a
- *   frame budget or delayed drain.
- * - No per-event inverse-dt acceleration — event frequency itself encodes
- *   speed (fast trackpad = many events = fast scroll naturally).
+ *   coarsely. `continuousWheelAcceleration` optionally multiplies that
+ *   continuous scale for dense packet streaks, macOS/OpenTUI-style. Every
+ *   packet still contributes immediately; this is not a frame budget or
+ *   delayed drain.
  * - Direction-confirmation filter (`WheelGestureFilter`) drops a single
  *   opposite-direction sample as inertia bounce; two consecutive opposite
  *   samples commit a real reversal.
@@ -119,6 +119,16 @@ const CADENCE_CONTEXT_EXPIRY_MS = 500
  * this many rows instead of 1. Matches typical OS mouse-wheel mappings (3-5
  * lines per notch). */
 const DISCRETE_STEP_MULTIPLIER = 3
+/** Small moving window used by continuous-wheel acceleration. Mirrors
+ * OpenTUI's macOS-inspired shape: recent inter-wheel intervals determine
+ * the multiplier, so slow/precise motion stays near 1x and dense bursts
+ * ramp toward the configured ceiling. */
+const CONTINUOUS_ACCEL_HISTORY_SIZE = 3
+const CONTINUOUS_ACCEL_STREAK_TIMEOUT_MS = 150
+const CONTINUOUS_ACCEL_REFERENCE_INTERVAL_MS = 100
+const CONTINUOUS_ACCEL_TAU = 3
+const CONTINUOUS_ACCEL_GAIN = 0.8
+const CONTINUOUS_ACCEL_MIN_INTERVAL_MS = 6
 
 export interface UseKineticScrollOptions {
   /**
@@ -166,6 +176,18 @@ export interface UseKineticScrollOptions {
    * discrete-step multiplier.
    */
   continuousWheelMultiplier?: number
+  /**
+   * Maximum acceleration multiplier for cadence-classified continuous
+   * input. `1` means linear/no acceleration. Values around `3` match
+   * common TUI scroll-speed defaults; OpenTUI's macOS-inspired accelerator
+   * defaults to a `6` ceiling.
+   *
+   * Terminal input can deliver many real trackpad packets in one JS turn
+   * after a busy render. Those packets are still user signal, so tiny
+   * same-turn intervals are clamped to a minimum interval instead of being
+   * dropped.
+   */
+  continuousWheelAcceleration?: number
   /**
    * When true, a new same-direction wheel flick that interrupts an in-flight
    * momentum coast adds the residual instantaneous velocity to the next
@@ -291,6 +313,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     maxCoastRows = DEFAULT_KINETIC_MAX_COAST_ROWS,
     wheelMultiplier = 1.0,
     continuousWheelMultiplier = wheelMultiplier,
+    continuousWheelAcceleration = 1,
     enableSameDirCompounding = false,
     enableMomentum = true,
     enableElasticEdges = false,
@@ -331,6 +354,9 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   // require crossing the relevant threshold (DISCRETE_GAP / CONTINUOUS_GAP).
   const lastWheelTimeRef = useRef(0)
   const cadenceModeRef = useRef<"unknown" | "continuous" | "discrete">("unknown")
+  const continuousAccelLastTickTimeRef = useRef(0)
+  const continuousAccelIntervalsRef = useRef<number[]>([])
+  const continuousAccelDirectionRef = useRef<-1 | 1 | 0>(0)
   // Same-direction compounding carryover (rows/sec), set when a wheel flick
   // interrupts an in-flight coast. Pure additive — no multiplier.
   const pendingBoostVelocityRef = useRef(0)
@@ -447,6 +473,44 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       return appliedRows
     },
     [enableElasticEdges, readMaxScroll, updatePosition],
+  )
+
+  const resetContinuousAcceleration = useCallback(() => {
+    continuousAccelLastTickTimeRef.current = 0
+    continuousAccelIntervalsRef.current = []
+    continuousAccelDirectionRef.current = 0
+  }, [])
+
+  const resolveContinuousAccelerationMultiplier = useCallback(
+    (now: number, direction: -1 | 1): number => {
+      const maxMultiplier = Math.max(1, continuousWheelAcceleration)
+      if (maxMultiplier <= 1) return 1
+
+      if (continuousAccelDirectionRef.current !== direction) {
+        resetContinuousAcceleration()
+        continuousAccelDirectionRef.current = direction
+      }
+
+      const last = continuousAccelLastTickTimeRef.current
+      const dt = last > 0 ? now - last : Number.POSITIVE_INFINITY
+      continuousAccelLastTickTimeRef.current = now
+      if (!Number.isFinite(dt) || dt > CONTINUOUS_ACCEL_STREAK_TIMEOUT_MS) {
+        continuousAccelIntervalsRef.current = []
+        return 1
+      }
+
+      const interval = Math.max(CONTINUOUS_ACCEL_MIN_INTERVAL_MS, dt)
+      const intervals = continuousAccelIntervalsRef.current
+      intervals.push(interval)
+      if (intervals.length > CONTINUOUS_ACCEL_HISTORY_SIZE) intervals.shift()
+
+      const avgInterval = intervals.reduce((sum, value) => sum + value, 0) / intervals.length
+      const velocity = CONTINUOUS_ACCEL_REFERENCE_INTERVAL_MS / avgInterval
+      const x = velocity / CONTINUOUS_ACCEL_TAU
+      const multiplier = 1 + CONTINUOUS_ACCEL_GAIN * (Math.exp(x) - 1)
+      return Math.min(multiplier, maxMultiplier)
+    },
+    [continuousWheelAcceleration, resetContinuousAcceleration],
   )
 
   useEffect(
@@ -634,9 +698,16 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       if (samples.length === 0) return
       const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
       const isContinuous = enableInputCadenceDetection && cadenceModeRef.current === "continuous"
+      if (!isContinuous) resetContinuousAcceleration()
+      const continuousAccelerationMultiplier = isContinuous
+        ? resolveContinuousAccelerationMultiplier(now, dir < 0 ? -1 : 1)
+        : 1
       const stepRows = isDiscrete
         ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
-        : WHEEL_STEP_ROWS * (isContinuous ? continuousWheelMultiplier : wheelMultiplier)
+        : WHEEL_STEP_ROWS *
+          (isContinuous
+            ? continuousWheelMultiplier * continuousAccelerationMultiplier
+            : wheelMultiplier)
 
       // Capture the residual velocity from any in-flight momentum BEFORE we
       // stop it. Same direction → carryover (additive). Opposite → zero.
@@ -698,7 +769,10 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       scheduleScrollbarHide,
       stopKinetic,
       continuousWheelMultiplier,
+      continuousWheelAcceleration,
       wheelMultiplier,
+      resetContinuousAcceleration,
+      resolveContinuousAccelerationMultiplier,
     ],
   )
 
@@ -708,12 +782,13 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       clearReleaseTimer()
       wheelBufferRef.current = []
       wheelGestureFilterRef.current.reset()
+      resetContinuousAcceleration()
       pendingBoostVelocityRef.current = 0
       const maxS = readMaxScroll()
       const clamped = Math.max(0, Number.isFinite(maxS) ? Math.min(maxS, offset) : offset)
       updatePosition(clamped)
     },
-    [clearReleaseTimer, readMaxScroll, stopKinetic, updatePosition],
+    [clearReleaseTimer, readMaxScroll, resetContinuousAcceleration, stopKinetic, updatePosition],
   )
 
   // Same as setScrollOffset but documented to accept fractional values.
@@ -737,11 +812,12 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     clearReleaseTimer()
     wheelBufferRef.current = []
     wheelGestureFilterRef.current.reset()
+    resetContinuousAcceleration()
     pendingBoostVelocityRef.current = 0
     needsSeedRef.current = true
     cadenceModeRef.current = "unknown"
     lastWheelTimeRef.current = 0
-  }, [clearReleaseTimer, stopKinetic])
+  }, [clearReleaseTimer, resetContinuousAcceleration, stopKinetic])
 
   const flashScrollbar = useCallback(() => {
     setIsScrolling(true)
@@ -757,6 +833,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       clearReleaseTimer()
       wheelBufferRef.current = []
       wheelGestureFilterRef.current.reset()
+      resetContinuousAcceleration()
       pendingBoostVelocityRef.current = 0
       const maxS = readMaxScroll()
       const clampedTarget = Math.max(
@@ -780,7 +857,14 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       }
       startAnimationLoop()
     },
-    [clearReleaseTimer, readMaxScroll, startAnimationLoop, stopKinetic, updatePosition],
+    [
+      clearReleaseTimer,
+      readMaxScroll,
+      resetContinuousAcceleration,
+      startAnimationLoop,
+      stopKinetic,
+      updatePosition,
+    ],
   )
 
   const getScrollFloat = useCallback(() => scrollFloatRef.current, [])

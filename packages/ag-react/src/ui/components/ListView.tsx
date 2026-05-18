@@ -552,6 +552,14 @@ export interface ListViewProps<T> {
   continuousWheelMultiplier?: number
 
   /**
+   * Maximum acceleration multiplier for cadence-classified continuous
+   * wheel streams. `1` means linear/no acceleration; `3` gives dense
+   * trackpad bursts up to three times the configured
+   * `continuousWheelMultiplier` while slow packets stay precise.
+   */
+  continuousWheelAcceleration?: number
+
+  /**
    * How imperative scrolls (scrollToItem / scrollBy / scrollToTop /
    * scrollToBottom on the ref handle) move the viewport. Default
    * `"instant"` — backward-compatible jump. `"smooth"` runs a cubic
@@ -762,6 +770,7 @@ function ListViewInner<T>(
     maxEstimatedRows = DEFAULT_MAX_ESTIMATED_ROWS,
     wheelMultiplier = 1.0,
     continuousWheelMultiplier,
+    continuousWheelAcceleration = 1,
     scrollBehavior = "instant",
     enableElasticEdges = false,
     enableInputCadenceDetection = false,
@@ -942,6 +951,7 @@ function ListViewInner<T>(
     maxCoastRows: 30,
     wheelMultiplier,
     continuousWheelMultiplier: resolvedContinuousWheelMultiplier,
+    continuousWheelAcceleration,
     enableSameDirCompounding: true,
     enableMomentum: false,
     enableElasticEdges,
@@ -2905,6 +2915,7 @@ function ListViewInner<T>(
       resolvedFollow,
       wheelMultiplier,
       resolvedContinuousWheelMultiplier,
+      continuousWheelAcceleration,
       outerViewportSize?.h ?? 0,
       viewportSize?.w ?? 0,
       viewportSize?.h ?? 0,
@@ -2968,6 +2979,7 @@ function ListViewInner<T>(
       follow: resolvedFollow,
       wheelMultiplier,
       continuousWheelMultiplier: resolvedContinuousWheelMultiplier,
+      continuousWheelAcceleration,
       heightIndependent: isHeightIndependent,
       outerViewport: outerViewportSize,
       viewport: viewportSize,

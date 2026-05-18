@@ -272,6 +272,38 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(apiRef.current!.scrollFloat, "no delayed drain or catch-up tail").toBeCloseTo(4, 5)
   })
 
+  test("continuous cadence can accelerate dense packet streams without dropping packets", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.4,
+          continuousWheelAcceleration: 3,
+        }}
+      />,
+    )
+    await settle()
+
+    for (let i = 0; i < 12; i++) {
+      apiRef.current!.onWheel({ deltaY: 1 })
+    }
+
+    await settle(5)
+    const afterInput = apiRef.current!.getScrollFloat()
+    expect(
+      afterInput,
+      "dense trackpad packets should accelerate above the base row scale",
+    ).toBeGreaterThan(10)
+    expect(afterInput, "acceleration is bounded by the configured multiplier").toBeLessThanOrEqual(
+      1 + 11 * 0.4 * 3,
+    )
+  })
+
   test("continuous cadence keeps inertial tail from becoming discrete jumps", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
