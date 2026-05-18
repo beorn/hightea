@@ -88,40 +88,14 @@ export interface ActiveLeadingSpacerResult {
 
 export function resolveActiveLeadingSpacer({
   leadingHeight,
-  activeScrollDirection,
-  renderScrollRow,
-  previousRenderScrollRow,
-  previousLeadingHeight,
-  visibleTopToleranceRows = 0.5,
 }: ActiveLeadingSpacerInput): ActiveLeadingSpacerResult {
-  if (
-    activeScrollDirection !== "up" ||
-    renderScrollRow == null ||
-    previousRenderScrollRow == null ||
-    previousLeadingHeight == null ||
-    leadingHeight > renderScrollRow
-  ) {
-    return { leadingHeight, carryRows: 0, clamped: false }
-  }
-
-  const previousVisibleTopRow = previousRenderScrollRow - previousLeadingHeight
-  const maxVisibleTopRow = previousVisibleTopRow + visibleTopToleranceRows
-  const minLeadingHeight = renderScrollRow - maxVisibleTopRow
-  const nonReversingLeadingHeight = Math.ceil(minLeadingHeight - 1e-9)
-  const adjustedLeadingHeight = Math.min(
-    renderScrollRow,
-    Math.max(leadingHeight, nonReversingLeadingHeight),
-  )
-
-  if (adjustedLeadingHeight <= leadingHeight) {
-    return { leadingHeight, carryRows: 0, clamped: false }
-  }
-
-  return {
-    leadingHeight: adjustedLeadingHeight,
-    carryRows: adjustedLeadingHeight - leadingHeight,
-    clamped: true,
-  }
+  // Active wheel scrolling is owned by absolute row-space (`renderScrollRow`).
+  // A virtual-window rebase may legitimately change the viewport's row
+  // *inside that new window* by many rows while the absolute content row still
+  // moves smoothly in one direction. Clamping the leading spacer to preserve
+  // the relative visible row pins the viewport to each new item top and skips
+  // the bottom of tall items during upward flicks.
+  return { leadingHeight, carryRows: 0, clamped: false }
 }
 
 export function resolveActiveScrollWindow({
@@ -149,8 +123,6 @@ export function resolveActiveScrollWindow({
     anchorKnown &&
     anchorFirstIndex >= previousStartIndex &&
     anchorLastIndex < previousEnd
-  const canKeepPreviousStartForUp =
-    previousWindowStillCoversAnchor && anchorFirstIndex > previousStartIndex + edgeBufferItems
   const canKeepPreviousStartForDown =
     previousWindowStillCoversAnchor && anchorLastIndex < previousEnd - edgeBufferItems
   if (
@@ -191,17 +163,6 @@ export function resolveActiveScrollWindow({
     }
   }
 
-  if (
-    activeScrollDirection === "up" &&
-    startIndex < previousStartIndex &&
-    canKeepPreviousStartForUp
-  ) {
-    return {
-      startIndex: previousStartIndex,
-      endIndex: Math.max(endIndex, previousEnd),
-      clamped: true,
-    }
-  }
   if (
     activeScrollDirection === "down" &&
     startIndex > previousStartIndex &&

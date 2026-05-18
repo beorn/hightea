@@ -13,7 +13,7 @@ function wheelUpBurst(x: number, y: number, count: number): string {
 }
 
 describe("runtime wheel coalescing", () => {
-  test("same-chunk SGR wheel burst dispatches as one distance-preserving wheel event", async () => {
+  test("same-chunk SGR wheel burst dispatches as frame-sized distance-preserving wheel events", async () => {
     using term = createTermless({ cols: 24, rows: 6 })
     const wheelDeltas: number[] = []
     const wheelTimestamps: Array<number | undefined> = []
@@ -43,10 +43,11 @@ describe("runtime wheel coalescing", () => {
 
     handle.unmount()
 
-    expect(wheelDeltas).toEqual([-12])
-    expect(wheelTimestamps).toHaveLength(1)
-    expect(Number.isFinite(wheelTimestamps[0])).toBe(true)
-    expect(wheelBatchIds).toHaveLength(1)
+    expect(wheelDeltas).toEqual([-4, -4, -4])
+    expect(wheelTimestamps).toHaveLength(3)
+    expect(wheelTimestamps.every((timestamp) => Number.isFinite(timestamp))).toBe(true)
+    expect(wheelBatchIds).toHaveLength(3)
+    expect(new Set(wheelBatchIds).size).toBe(1)
     expect(wheelBatchIds[0]).toBeGreaterThan(0)
   })
 

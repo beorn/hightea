@@ -242,6 +242,19 @@ function inputBatchIdForMouseEvent(event: NamespacedEvent): number | undefined {
   return (event.data as { inputBatchId?: number } | undefined)?.inputBatchId
 }
 
+/**
+ * Maximum raw wheel packets from one terminal input batch to process in one
+ * render frame.
+ *
+ * Terminal trackpads can deliver a large packet burst in one stdin read after
+ * the JS thread was busy. Treating that whole read as one frame preserves
+ * input mass but collapses the visual path into a 40+ row jump. Splitting the
+ * already-buffered batch into small render chunks keeps latency bounded
+ * (packets are already in-memory) while giving the terminal intermediate
+ * frames to paint.
+ */
+const MAX_WHEEL_EVENTS_PER_RENDER_BATCH = 4
+
 function takeNextFrameBatch(events: NamespacedEvent[]): NamespacedEvent[] {
   const firstMouseIndex = events.findIndex(isMouseEvent)
   if (firstMouseIndex === -1) return events.splice(0)
@@ -252,10 +265,12 @@ function takeNextFrameBatch(events: NamespacedEvent[]): NamespacedEvent[] {
 
   const inputBatchId = inputBatchIdForMouseEvent(first)
   let count = 1
+  const wheelBatch = isWheelEvent(first)
   while (count < events.length) {
     const next = events[count]!
     if (!isMouseEvent(next)) break
     if (inputBatchIdForMouseEvent(next) !== inputBatchId) break
+    if (wheelBatch && isWheelEvent(next) && count >= MAX_WHEEL_EVENTS_PER_RENDER_BATCH) break
     count++
   }
   return events.splice(0, count)
@@ -3774,6 +3789,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // moves per render instead of 1, keeping up with auto-repeat.
   const eventQueue: NamespacedEvent[] = []
   let eventQueueResolve: (() => void) | null = null
+  let continuePointerBacklog = false
 
   const eventLoop = async () => {
     // Direct subscriptions for providers that are Terms (have .input + .size).
@@ -4067,8 +4083,14 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const maxDrainSpins = 32
         let drainSpins = 0
         const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
-        // First mandatory yield — lets events already in-flight land.
-        await yieldToEventLoop()
+        // First mandatory yield — lets events already in-flight land. When
+        // the previous loop intentionally split a pointer burst into multiple
+        // render-sized chunks, the remaining events are already in memory; an
+        // extra setImmediate between those chunks adds latency without adding
+        // signal fidelity.
+        const skipInitialDrainYield = continuePointerBacklog && eventQueue.some(isMouseEvent)
+        continuePointerBacklog = false
+        if (!skipInitialDrainYield) await yieldToEventLoop()
         const pointerBatch = eventQueue.some(isMouseEvent)
         if (!pointerBatch) {
           let prevLen = eventQueue.length
@@ -4093,6 +4115,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const _g = globalThis as any
         _g.__silvery_last_drain_spins = drainSpins
         const batch = takeNextFrameBatch(eventQueue)
+        continuePointerBacklog = batch.some(isMouseEvent) && eventQueue.some(isMouseEvent)
         _g.__silvery_last_batch_size = batch.length
         _g.__silvery_last_queued_event_count = eventQueue.length
         _g.__silvery_batch_count = (_g.__silvery_batch_count ?? 0) + 1

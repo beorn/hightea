@@ -218,12 +218,13 @@ export function averageMeasuredHeightForWidth(
   return values.reduce((sum, height) => sum + height, 0) / values.length
 }
 
-/** Get item height for a specific index, checking measured cache first.
+/**
+ * Get item height for a specific index, checking measured cache first.
  *
- * When measurements exist but this specific item hasn't been measured,
- * falls back to the average measured height (if provided) rather than
- * the original estimate. This prevents leading/trailing placeholders
- * from overshooting when estimateHeight diverges from actual heights.
+ * For fixed numeric estimates, measured averages are a better fallback for
+ * unmeasured rows once any measurement exists. For per-index function
+ * estimates, the caller is already telling us this row's expected height, so
+ * a nearby measured average would erase useful item-specific geometry.
  */
 export function getHeight(
   index: number,
@@ -238,9 +239,9 @@ export function getHeight(
     const cacheKey = makeMeasureKey(baseKey, viewportWidth)
     const measured = measuredHeights.get(cacheKey)
     if (measured !== undefined) return measured
-    // Use average measured height for unmeasured items — more accurate
-    // than the original estimate which may diverge from actual heights.
-    if (avgMeasuredHeight !== undefined) return avgMeasuredHeight
+    if (typeof estimateHeight === "number" && avgMeasuredHeight !== undefined) {
+      return avgMeasuredHeight
+    }
   }
   return typeof estimateHeight === "function" ? estimateHeight(index) : estimateHeight
 }
@@ -268,14 +269,15 @@ export function calcAverageHeight(
   return total / sampleSize
 }
 
-/** Sum heights for a range of items, using measurements when available.
+/**
+ * Sum heights for a range of items, using measurements when available.
  * Optimized: when no measurements exist, uses multiplication instead of iteration.
  *
- * When measurements exist, unmeasured items in the range use the average
- * measured height as fallback (not the original estimate). This prevents
- * leading/trailing placeholders from overshooting when estimateHeight
- * diverges from actual heights — the root cause of blank rows at the top
- * (Bug 1) and inability to scroll to the bottom (Bug 2). */
+ * When measurements exist with a fixed numeric estimate, unmeasured items in
+ * the range use the average measured height as fallback. Function estimates
+ * remain per-index fallbacks so variable-height callers do not lose their
+ * explicit geometry after the first nearby measurement arrives.
+ */
 export function sumHeights(
   startIndex: number,
   endIndex: number,

@@ -1537,12 +1537,10 @@ function ListViewInner<T>(
     estimateKey: number
   } | null>(null)
 
-  // Average measured height — used as a fallback for unmeasured items
-  // when ANY measurements exist (mirrors `sumHeights` semantics; without
-  // this fallback, leading/trailing placeholders overshoot when the
-  // original estimate diverges from actual heights). When no
-  // measurements have arrived yet, this is undefined and we fall back to
-  // the original estimate.
+  // Average measured height — used as a fallback for unmeasured items with
+  // a fixed numeric estimate (mirrors `sumHeights` semantics). Per-index
+  // function estimates are already item-specific, so they stay authoritative
+  // until that exact item has a measured height.
   const liveAvgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportSize?.w)
   liveAvgMeasuredHeightRef.current = liveAvgMeasuredHeight
   const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
@@ -1562,16 +1560,18 @@ function ListViewInner<T>(
 
   // Build the effective-height estimator. This mirrors the per-item
   // resolution that `sumHeights` performs internally: measured cache
-  // first (keyed by `(itemKey, viewportWidth)`), avgMeasured fallback,
-  // then estimate. Captured by HeightModel via `update({estimate})` —
-  // the Fenwick tree rebuild reads each index through this function.
+  // first (keyed by `(itemKey, viewportWidth)`), numeric avgMeasured
+  // fallback, then estimate. Captured by HeightModel via `update({estimate})`
+  // — the Fenwick tree rebuild reads each index through this function.
   const effectiveEstimate = (index: number): number => {
     if (measuredHeights.size > 0) {
       const baseKey = wrappedGetKey ? wrappedGetKey(index) : index
       const cacheKey = makeMeasureKey(baseKey, viewportSize?.w)
       const measured = measuredHeights.get(cacheKey)
       if (measured !== undefined) return measured
-      if (avgMeasuredHeight !== undefined) return avgMeasuredHeight
+      if (typeof adjustedEstimateHeight === "number" && avgMeasuredHeight !== undefined) {
+        return avgMeasuredHeight
+      }
     }
     return typeof adjustedEstimateHeight === "function"
       ? adjustedEstimateHeight(index)

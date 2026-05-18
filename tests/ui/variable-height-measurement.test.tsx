@@ -16,6 +16,7 @@ import React from "react"
 import { describe, test, expect } from "vitest"
 import { createRenderer, stripAnsi } from "@silvery/test"
 import { Box, Text, ListView } from "@silvery/ag-react"
+import { getHeight, sumHeights } from "../../packages/ag-react/src/hooks/useVirtualizer"
 
 // ============================================================================
 // Test Helpers
@@ -58,6 +59,18 @@ function countVisibleItems(text: string, total: number): number {
 // ============================================================================
 
 describe("ListView — variable-height measurement", () => {
+  test("function estimates remain authoritative for unmeasured items after nearby measurements", () => {
+    const estimates = [1, 14, 2, 8]
+    const measuredHeights = new Map<string, number>([["item-0:80", 1]])
+    const estimateHeight = (index: number): number => estimates[index] ?? 1
+    const getItemKey = (index: number): string => `item-${index}`
+
+    expect(getHeight(1, estimateHeight, measuredHeights, getItemKey, 1, 80)).toBe(14)
+    expect(
+      sumHeights(0, estimates.length, estimateHeight, 0, measuredHeights, getItemKey, 80),
+    ).toBe(25)
+  })
+
   test("mixed heights: all visible items render within viewport", () => {
     // Items with heights 1, 3, 1, 2, 1 = 8 rows total, viewport=10
     const items = makeVariableItems([1, 3, 1, 2, 1])
