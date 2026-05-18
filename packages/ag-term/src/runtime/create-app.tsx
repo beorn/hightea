@@ -210,6 +210,68 @@ const ENV = typeof process !== "undefined" ? process.env : undefined
 const NO_INCREMENTAL = ENV?.SILVERY_NO_INCREMENTAL === "1"
 const PANIC_STDIN_DRAIN_MS = 75
 
+type RuntimeWheelMouseEvent = {
+  action?: string
+  delta?: number
+  x?: number
+  y?: number
+  clientX?: number
+  clientY?: number
+  coordinateMode?: string
+  shift?: boolean
+  meta?: boolean
+  ctrl?: boolean
+}
+
+function isWheelEvent(event: NamespacedEvent): event is NamespacedEvent & {
+  data: RuntimeWheelMouseEvent
+} {
+  return (
+    event.event === "mouse" &&
+    (event.data as RuntimeWheelMouseEvent | undefined)?.action === "wheel"
+  )
+}
+
+function canCoalesceWheelEvent(prev: NamespacedEvent, next: NamespacedEvent): boolean {
+  if (!isWheelEvent(prev) || !isWheelEvent(next)) return false
+  const a = prev.data
+  const b = next.data
+  const deltaA = a.delta ?? 0
+  const deltaB = b.delta ?? 0
+  return (
+    prev.type === next.type &&
+    prev.provider === next.provider &&
+    Math.sign(deltaA) !== 0 &&
+    Math.sign(deltaA) === Math.sign(deltaB) &&
+    a.x === b.x &&
+    a.y === b.y &&
+    a.clientX === b.clientX &&
+    a.clientY === b.clientY &&
+    a.coordinateMode === b.coordinateMode &&
+    a.shift === b.shift &&
+    a.meta === b.meta &&
+    a.ctrl === b.ctrl
+  )
+}
+
+function coalesceWheelEvents(events: NamespacedEvent[]): NamespacedEvent[] {
+  const coalesced: NamespacedEvent[] = []
+  for (const event of events) {
+    const prev = coalesced[coalesced.length - 1]
+    if (prev && canCoalesceWheelEvent(prev, event)) {
+      const prevData = prev.data as RuntimeWheelMouseEvent
+      const nextData = event.data as RuntimeWheelMouseEvent
+      prev.data = {
+        ...prevData,
+        delta: (prevData.delta ?? 0) + (nextData.delta ?? 0),
+      }
+      continue
+    }
+    coalesced.push(event)
+  }
+  return coalesced
+}
+
 /**
  * Auto-panic circuit-breaker — caps dump-file writes when panic loops.
  *
@@ -1126,7 +1188,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // Catch remaining CSI sequences
         .replace(/\x1b\[([0-9;]*)([A-Za-z])/g, "⟨CSI $1$2⟩")
         // Catch remaining ESC sequences
-        .replace(/\x1b([^\[])/, "⟨ESC $1⟩")
+        .replace(/\x1b([^[])/, "⟨ESC $1⟩")
 
     const traceWrite = function (this: typeof stdout, chunk: unknown, ...args: unknown[]): boolean {
       const str = typeof chunk === "string" ? chunk : String(chunk)
@@ -2992,7 +3054,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         delta?: number
       }
       if (mouseData.action === "wheel") {
-        const scrollLines = 3
+        const scrollLines = 3 * Math.max(1, Math.abs(mouseData.delta ?? 1))
         if (mouseData.delta && mouseData.delta < 0) {
           // Scroll up (into history)
           virtualScrollOffset = Math.min(
@@ -3991,8 +4053,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         _g.__silvery_last_batch_size = eventQueue.length
         _g.__silvery_batch_count = (_g.__silvery_batch_count ?? 0) + 1
 
-        // Process all pending events — run handlers without rendering
-        const buf = await processEventBatch(eventQueue.splice(0))
+        // Process all pending events — run handlers without rendering.
+        // Wheel packets from terminal trackpads often arrive as same-turn
+        // bursts. Coalesce only consecutive same-direction packets with
+        // identical geometry/modifiers: this preserves the total input
+        // distance while avoiding one React handler pass per packet.
+        const batch = coalesceWheelEvents(eventQueue.splice(0))
+        const buf = await processEventBatch(batch)
         if (buf) emitFrame(buf)
       }
     } finally {

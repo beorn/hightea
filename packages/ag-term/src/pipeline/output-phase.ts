@@ -11,6 +11,7 @@ import {
   type TerminalBuffer,
   type UnderlineStyle,
   VISIBLE_SPACE_ATTR_MASK,
+  cellEquals as cellVisualEquals,
   colorEquals,
   createMutableCell,
   hasActiveAttrs,
@@ -202,6 +203,85 @@ const defaultContext: OutputContext = {
   transitionCache: new Map(),
   mode: "fullscreen",
   termRows: undefined,
+}
+
+interface NativeScrollPlan {
+  top: number
+  height: number
+  delta: number
+  afterScroll: TerminalBuffer
+}
+
+const nativeScrollPrevCell = createMutableCell()
+const nativeScrollNextCell = createMutableCell()
+
+function rowsEqualWithOffset(
+  prev: TerminalBuffer,
+  next: TerminalBuffer,
+  nextY: number,
+  prevY: number,
+): boolean {
+  if (nextY < 0 || nextY >= next.height || prevY < 0 || prevY >= prev.height) return false
+  for (let x = 0; x < next.width; x++) {
+    prev.readCellInto(x, prevY, nativeScrollPrevCell)
+    next.readCellInto(x, nextY, nativeScrollNextCell)
+    if (!cellVisualEquals(nativeScrollPrevCell, nativeScrollNextCell)) {
+      return false
+    }
+  }
+  return true
+}
+
+function detectNativeScrollPlan(
+  prev: TerminalBuffer,
+  next: TerminalBuffer,
+): NativeScrollPlan | null {
+  if (prev.width !== next.width || prev.height !== next.height) return null
+  if (next.minDirtyRow < 0 || next.maxDirtyRow < next.minDirtyRow) return null
+  const top = next.minDirtyRow
+  const bottom = next.maxDirtyRow
+  const height = bottom - top + 1
+  if (height < 4 || next.width < 4) return null
+
+  let best: { delta: number; matchedRows: number } | null = null
+  for (let absDelta = 1; absDelta < height; absDelta++) {
+    let upMatches = true
+    for (let y = top; y <= bottom - absDelta; y++) {
+      if (!rowsEqualWithOffset(prev, next, y, y + absDelta)) {
+        upMatches = false
+        break
+      }
+    }
+    if (upMatches) {
+      const matchedRows = height - absDelta
+      if (!best || matchedRows > best.matchedRows) best = { delta: absDelta, matchedRows }
+    }
+
+    let downMatches = true
+    for (let y = top + absDelta; y <= bottom; y++) {
+      if (!rowsEqualWithOffset(prev, next, y, y - absDelta)) {
+        downMatches = false
+        break
+      }
+    }
+    if (downMatches) {
+      const matchedRows = height - absDelta
+      if (!best || matchedRows > best.matchedRows) best = { delta: -absDelta, matchedRows }
+    }
+  }
+
+  if (!best || best.matchedRows < Math.max(3, Math.floor(height * 0.5))) return null
+  const afterScroll = prev.clone()
+  afterScroll.scrollRegion(0, top, next.width, height, best.delta)
+  return { top, height, delta: best.delta, afterScroll }
+}
+
+function nativeScrollPrefix(plan: NativeScrollPlan): string {
+  const top = plan.top + 1
+  const bottom = plan.top + plan.height
+  const amount = Math.abs(plan.delta)
+  const command = plan.delta > 0 ? "S" : "T"
+  return `\x1b[${top};${bottom}r\x1b[${top};1H\x1b[${amount}${command}\x1b[r`
 }
 
 /** Output phase function signature. */
@@ -1093,7 +1173,28 @@ export function outputPhase(
   // - Orphaned continuation cells (main cell unchanged) trigger a
   //   re-emit of the main cell from the buffer
   const tAnsi0 = performance.now()
-  const incrOutput = changesToAnsi(pool, count, ctx, next).output
+  const nativeScrollPlan = ctx.mode === "fullscreen" ? detectNativeScrollPlan(prev, next) : null
+  let incrOutput: string
+  if (nativeScrollPlan) {
+    const { pool: nativePool, count: nativeCount } = diffBuffers(nativeScrollPlan.afterScroll, next)
+    let filteredNativeCount = nativeCount
+    if (termRows != null) {
+      let writeIdx = 0
+      for (let i = 0; i < nativeCount; i++) {
+        if (nativePool[i]!.y < termRows) {
+          nativePool[writeIdx++] = nativePool[i]!
+        }
+      }
+      filteredNativeCount = writeIdx
+    }
+    incrOutput =
+      nativeScrollPrefix(nativeScrollPlan) +
+      (filteredNativeCount === 0
+        ? ""
+        : changesToAnsi(nativePool, filteredNativeCount, ctx, next).output)
+  } else {
+    incrOutput = changesToAnsi(pool, count, ctx, next).output
+  }
   const tAnsi1 = performance.now()
 
   // Accumulate output-phase sub-timing for benchmarks

@@ -332,6 +332,39 @@ describe("useKineticScroll — input cadence detection", () => {
     expect(apiRef.current!.scrollFloat, "continuous tail stays continuous").toBe(5)
   })
 
+  test("opposite-direction bounce packets do not demote slow sparse input to sub-row grip", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.435,
+        }}
+      />,
+    )
+    await settle()
+
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(80)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    await settle(80)
+    apiRef.current!.onWheel({ deltaY: 1 })
+    apiRef.current!.onWheel({ deltaY: -1 })
+    for (let i = 0; i < 10; i++) {
+      await settle(80)
+      apiRef.current!.onWheel({ deltaY: 1 })
+    }
+
+    expect(
+      apiRef.current!.getScrollFloat(),
+      "a filtered bounce must not turn deliberate slow packets into low-gain trackpad quanta",
+    ).toBeGreaterThan(30)
+  })
+
   test("smoothWheelPackets applies same-turn trackpad bursts immediately", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })

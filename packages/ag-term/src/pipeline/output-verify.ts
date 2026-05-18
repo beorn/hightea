@@ -177,6 +177,10 @@ function createDefaultStyledCell(): StyledCell {
   }
 }
 
+function cloneStyledCell(cell: StyledCell): StyledCell {
+  return { ...cell }
+}
+
 /**
  * Apply SGR parameters to the current state.
  * Handles all SGR codes used by styleTransition().
@@ -350,6 +354,8 @@ export function replayAnsiWithStyles(
   )
   let cx = 0
   let cy = 0
+  let scrollTop = 0
+  let scrollBottom = height - 1
   let pendingWrap = false // VT100 pending wrap flag
   const sgr = createDefaultSgr()
   let i = 0
@@ -453,6 +459,45 @@ export function replayAnsiWithStyles(
           pendingWrap = false
           const n = parseInt(params) || 1
           cy = Math.min(height - 1, cy + n)
+        } else if (cmd === "r") {
+          // DECSTBM scrolling region (1-based inclusive). Empty params reset.
+          pendingWrap = false
+          if (params === "") {
+            scrollTop = 0
+            scrollBottom = height - 1
+          } else {
+            const [topParam, bottomParam] = params.split(";")
+            const top = Math.max(0, (parseInt(topParam ?? "1") || 1) - 1)
+            const bottom = Math.min(
+              height - 1,
+              (parseInt(bottomParam ?? String(height)) || height) - 1,
+            )
+            if (top < bottom) {
+              scrollTop = top
+              scrollBottom = bottom
+            }
+          }
+          cx = 0
+          cy = 0
+        } else if (cmd === "S" || cmd === "T") {
+          // SU / SD: scroll the active region up/down by N rows.
+          pendingWrap = false
+          const n = Math.min(parseInt(params) || 1, scrollBottom - scrollTop + 1)
+          if (cmd === "S") {
+            for (let y = scrollTop; y <= scrollBottom - n; y++) {
+              screen[y] = screen[y + n]!.map(cloneStyledCell)
+            }
+            for (let y = scrollBottom - n + 1; y <= scrollBottom; y++) {
+              screen[y] = Array.from({ length: width }, () => createDefaultStyledCell())
+            }
+          } else {
+            for (let y = scrollBottom; y >= scrollTop + n; y--) {
+              screen[y] = screen[y - n]!.map(cloneStyledCell)
+            }
+            for (let y = scrollTop; y < scrollTop + n; y++) {
+              screen[y] = Array.from({ length: width }, () => createDefaultStyledCell())
+            }
+          }
         } else if (cmd === "l" || cmd === "h") {
           // Private mode set/reset (e.g., ?25l = hide cursor, ?25h = show cursor)
           // Skip — we don't model cursor visibility

@@ -669,45 +669,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         if (seedFn) scrollFloatRef.current = seedFn()
       }
       const now = performance.now()
-      // Cadence-based mode classification. Done BEFORE the gesture filter
-      // so that filter-suppressed bounces (single opposite samples) still
-      // contribute to the cadence picture — a pause-then-continue stream
-      // shouldn't get reclassified by the filter dropping samples.
-      if (enableInputCadenceDetection) {
-        const last = lastWheelTimeRef.current
-        if (last > 0) {
-          const interval = now - last
-          const absD = Math.abs(deltaY)
-          if (interval > CADENCE_CONTEXT_EXPIRY_MS) {
-            cadenceModeRef.current = "unknown"
-          }
-          if (interval <= CADENCE_CONTINUOUS_GAP_MS || absD > 1) {
-            cadenceModeRef.current = "continuous"
-          } else if (
-            cadenceModeRef.current !== "continuous" &&
-            interval >= CADENCE_DISCRETE_GAP_MS &&
-            absD <= 1
-          ) {
-            cadenceModeRef.current = "discrete"
-          }
-          // else: ambiguous gap, keep current mode (hysteresis)
-        }
-        lastWheelTimeRef.current = now
-      }
       const samples = wheelGestureFilterRef.current.process({ t: now, deltaY })
       if (samples.length === 0) return
-      const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
-      const isContinuous = enableInputCadenceDetection && cadenceModeRef.current === "continuous"
-      if (!isContinuous) resetContinuousAcceleration()
-      const continuousAccelerationMultiplier = isContinuous
-        ? resolveContinuousAccelerationMultiplier(now, dir < 0 ? -1 : 1)
-        : 1
-      const stepRows = isDiscrete
-        ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
-        : WHEEL_STEP_ROWS *
-          (isContinuous
-            ? continuousWheelMultiplier * continuousAccelerationMultiplier
-            : wheelMultiplier)
 
       // Capture the residual velocity from any in-flight momentum BEFORE we
       // stop it. Same direction → carryover (additive). Opposite → zero.
@@ -736,9 +699,53 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         if (oldest === undefined || now - oldest.t <= WHEEL_VELOCITY_WINDOW_MS) break
         buf.shift()
       }
+      let acceptedContinuous = false
+      let acceptedDiscrete = false
       for (const sample of samples) {
         const sampleDir = Math.sign(sample.deltaY) || 0
         if (sampleDir === 0) continue
+        const sampleMagnitude = Math.max(1, Math.abs(sample.deltaY))
+        // Cadence-based mode classification only sees samples accepted by
+        // WheelGestureFilter. A one-packet opposite-direction inertia bounce is
+        // intentionally filtered; letting it update cadence turns slow sparse
+        // mouse/trackpad drags into low-gain continuous input.
+        if (enableInputCadenceDetection) {
+          const last = lastWheelTimeRef.current
+          const absD = Math.abs(sample.deltaY)
+          if (last > 0) {
+            const interval = sample.t - last
+            if (interval > CADENCE_CONTEXT_EXPIRY_MS) {
+              cadenceModeRef.current = "unknown"
+            }
+            if (interval <= CADENCE_CONTINUOUS_GAP_MS || absD > 1) {
+              cadenceModeRef.current = "continuous"
+            } else if (
+              cadenceModeRef.current !== "continuous" &&
+              interval >= CADENCE_DISCRETE_GAP_MS &&
+              absD <= 1
+            ) {
+              cadenceModeRef.current = "discrete"
+            }
+            // else: ambiguous gap, keep current mode (hysteresis)
+          }
+          lastWheelTimeRef.current = sample.t
+        }
+        const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
+        const isContinuous = enableInputCadenceDetection && cadenceModeRef.current === "continuous"
+        if (isDiscrete) acceptedDiscrete = true
+        if (isContinuous) acceptedContinuous = true
+        if (!isContinuous) resetContinuousAcceleration()
+        const continuousAccelerationMultiplier = isContinuous
+          ? resolveContinuousAccelerationMultiplier(sample.t, sampleDir < 0 ? -1 : 1)
+          : 1
+        const stepRows =
+          sampleMagnitude *
+          (isDiscrete
+            ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
+            : WHEEL_STEP_ROWS *
+              (isContinuous
+                ? continuousWheelMultiplier * continuousAccelerationMultiplier
+                : wheelMultiplier))
         const appliedRows = applyWheelRows(sampleDir * stepRows, isDiscrete)
         if (appliedRows !== 0) buf.push({ t: sample.t, rows: appliedRows })
       }
@@ -747,7 +754,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       // Discrete-cadence (mouse-wheel) inputs don't get a momentum coast —
       // each click is its own discrete jump. Continuous inputs follow the
       // standard release-into-momentum path.
-      if (isDiscrete) {
+      if (acceptedDiscrete && !acceptedContinuous) {
         wheelBufferRef.current = []
         pendingBoostVelocityRef.current = 0
       } else if (enableMomentum) {
