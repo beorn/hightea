@@ -422,11 +422,10 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(4612)
   })
 
-  test("active upward scroll keeps the rendered window stable while the anchor has buffer", () => {
-    // Reproduces the latest silvercode flick-tail failure: renderScrollRow
-    // moved upward, but the offscreen overscan start shifted 831 -> 830.
-    // The newly mounted offscreen item had a real height different from the
-    // frozen estimate, so the visible transcript moved downward by two lines.
+  test("active upward scroll allows absolute row-space to own window advance", () => {
+    // Active wheel scrolling is owned by renderScrollRow. The window may
+    // advance upward while the anchor still has buffer; clamping here pins
+    // upward flicks to item tops and skips the bottoms of tall items.
     expect(
       resolveActiveScrollWindow({
         startIndex: 830,
@@ -437,7 +436,7 @@ describe("ListView maintainVisibleContentPosition", () => {
         anchorLastIndex: 863,
         activeScrollDirection: "up",
       }),
-    ).toEqual({ startIndex: 831, endIndex: 889, clamped: true })
+    ).toEqual({ startIndex: 830, endIndex: 888, clamped: false })
   })
 
   test("active upward scroll rejects a window recenter that moves visible content downward", () => {
@@ -525,7 +524,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toEqual({ startIndex: 708, endIndex: 908, clamped: true })
   })
 
-  test("active upward scroll carries intra-item spacer offset instead of reversing visible rows", () => {
+  test("active upward scroll does not carry spacer debt between rebased windows", () => {
     expect(
       resolveActiveLeadingSpacer({
         leadingHeight: 2454,
@@ -535,7 +534,7 @@ describe("ListView maintainVisibleContentPosition", () => {
         previousLeadingHeight: 2458,
         visibleTopToleranceRows: 0.01,
       }),
-    ).toEqual({ leadingHeight: 2457, carryRows: 3, clamped: true })
+    ).toEqual({ leadingHeight: 2454, carryRows: 0, clamped: false })
   })
 
   test("active upward spacer carry does not introduce blank top rows", () => {

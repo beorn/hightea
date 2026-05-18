@@ -30,7 +30,11 @@ interface HarnessRef {
 }
 
 function TestHarness({ apiRef }: { apiRef: HarnessRef }): React.ReactElement {
-  const result = useKineticScroll({ maxScroll: 100, enableSameDirCompounding: true })
+  const result = useKineticScroll({
+    maxScroll: 100,
+    enableSameDirCompounding: true,
+    enableMomentum: false,
+  })
   apiRef.current = result
   return <Box width={20} height={5} />
 }

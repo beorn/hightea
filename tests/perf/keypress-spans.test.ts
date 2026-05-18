@@ -72,15 +72,17 @@ describe("keypress-spans", () => {
   })
 
   describe("span creation", () => {
-    test("creates span when TRACE is enabled", () => {
+    test("creates span when TRACE is enabled before perf logger creation", async () => {
       enableSpans()
       setTraceFilter(["silvery:perf"])
       setLogLevel("trace")
+      vi.resetModules()
+      const tracedPerf = await import("@silvery/ag-term/runtime/perf")
 
       const messages = withConsoleSpy(() => {
         const span = (() => {
-          startTracking()
-          return perfLog.span?.("keypress", { key: "j" })
+          tracedPerf.startTracking()
+          return tracedPerf.perfLog.span?.("keypress", { key: "j" })
         })()
         expect(span).toBeDefined()
         expect(span!.spanData).toBeDefined()

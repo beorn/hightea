@@ -37,7 +37,6 @@ import type { Theme } from "@silvery/ansi"
 // cascade-predicates is the imperative oracle — used for STRICT verification
 // and as the fallback when SILVERY_REACTIVE=0 (bench only).
 import { computeCascade } from "./cascade-predicates"
-import { isStyleOnlyDirty } from "@silvery/ag/dirty-tracking"
 import {
   isCurrentEpoch,
   isAnyDirty,
@@ -742,13 +741,6 @@ function renderNodeToBuffer(
       isDirty(node.dirtyBits, node.dirtyEpoch, STYLE_PROPS_BIT) ||
       cascade.bgRefillNeeded
 
-    // Render this node's own content (box bg/border or text).
-    // Compute boxInheritedBg even when skipping own repaint — it's needed by
-    // outline rendering (after children) and may be needed by child rendering.
-    const boxInheritedBg =
-      node.type === "silvery-box" && !getEffectiveBg(props)
-        ? nodeState.inheritedBg.color
-        : undefined
     if (needsOwnRepaint) {
       // STRICT bordered-rect-clip: track which AgNode is currently
       // emitting cells so the BufferSink hook can resolve "the nearest
@@ -1732,6 +1724,9 @@ function renderScrollContainerChildren(
         // Shifted children: their pixels are intact (not cleared)
         // Newly visible: exposed region was filled by scrollRegion
         thisChildAncestorCleared = wasFullyVisible ? ancestorCleared || contentRegionCleared : true
+        if (!wasFullyVisible) {
+          clearShiftedNewChildRegion(childRect, ss.offset, childClipBounds, sink, plan.clearBg)
+        }
       }
     }
 
@@ -1809,6 +1804,47 @@ function renderScrollContainerChildren(
         ctx,
       )
     }
+  }
+}
+
+/**
+ * Tier-1 scroll shifting reuses previous-frame pixels. A child that was not fully
+ * visible in the previous viewport is rendered like a fresh subtree, but the
+ * shifted buffer under its transparent cells may still contain unrelated pixels
+ * from a previous row. Clear the child's currently visible rectangle first so
+ * transparent boxes/text render onto the same blank base as a fresh render.
+ */
+function clearShiftedNewChildRegion(
+  childRect: Rect,
+  scrollOffset: number,
+  clipBounds: ClipBounds | undefined,
+  sink: RenderSink,
+  bg: Color | null,
+): void {
+  let x = childRect.x
+  let y = childRect.y - scrollOffset
+  let width = childRect.width
+  let height = childRect.height
+
+  if (clipBounds) {
+    if (clipBounds.left !== undefined && x < clipBounds.left) {
+      width -= clipBounds.left - x
+      x = clipBounds.left
+    }
+    if (clipBounds.right !== undefined && x + width > clipBounds.right) {
+      width = clipBounds.right - x
+    }
+    if (y < clipBounds.top) {
+      height -= clipBounds.top - y
+      y = clipBounds.top
+    }
+    if (y + height > clipBounds.bottom) {
+      height = clipBounds.bottom - y
+    }
+  }
+
+  if (width > 0 && height > 0) {
+    sink.emitClearRect(x, y, width, height, bg)
   }
 }
 
@@ -2311,22 +2347,6 @@ function hasDescendantWithBg(node: AgNode): boolean {
   for (const child of node.children) {
     if (getEffectiveBg(child.props as BoxProps)) return true
     if (child.children.length > 0 && hasDescendantWithBg(child)) return true
-  }
-  return false
-}
-
-/**
- * Check if a text node has any virtual text children with explicit backgroundColor.
- *
- * Used by the text style-only fast path: restyleRegion() applies a uniform
- * style to all cells. If nested children have their own bg, the uniform restyle
- * would overwrite it (those children rendered their own bg during the original
- * renderText, and won't re-render to restore it).
- */
-function hasChildWithBg(node: AgNode): boolean {
-  for (const child of node.children) {
-    if ((child.props as BoxProps).backgroundColor) return true
-    if (child.children.length > 0 && hasChildWithBg(child)) return true
   }
   return false
 }

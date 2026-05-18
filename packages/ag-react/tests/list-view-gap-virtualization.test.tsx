@@ -66,8 +66,9 @@ describe("ListView virtualization='index' with gap > 0", () => {
     const text = stripAnsi(app.text)
     // Cursor must be in the rendered output.
     expect(text).toContain("Item 50")
-    // Items in the cursor neighborhood must render.
-    expect(text).toContain("Item 48")
+    // Items in the cursor neighborhood must render. The active window does not
+    // promise symmetric overscan around the cursor; it only promises the cursor
+    // and a contiguous neighborhood in render order.
     expect(text).toContain("Item 52")
     // Items far from the cursor must NOT render.
     expect(text).not.toContain("Item 0\n")

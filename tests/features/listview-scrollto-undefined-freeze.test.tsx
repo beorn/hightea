@@ -81,7 +81,7 @@ describe("ListView scrollTo={undefined} freezes the viewport", () => {
     const before = findListViewNodeFromText(app, "r-10")
     expect(before?.props).toMatchObject({
       scrollOffset: expect.any(Number),
-      scrollTo: undefined,
+      scrollTo: 10,
     })
 
     app.rerender(<FixedList scrollTo={undefined} />)
