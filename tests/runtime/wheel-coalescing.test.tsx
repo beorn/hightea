@@ -80,4 +80,45 @@ describe("runtime wheel coalescing", () => {
       handle.unmount()
     }
   })
+
+  test("mouse move stream renders without waiting for the input queue to become stable", async () => {
+    using term = createTermless({ cols: 24, rows: 6 })
+
+    function App(): React.ReactElement {
+      const [moves, setMoves] = useState(0)
+      return (
+        <Box width={24} height={6} onMouseMove={() => setMoves((prev) => prev + 1)}>
+          <Text>moves={moves}</Text>
+        </Box>
+      )
+    }
+
+    const handle = await run(<App />, term, { mouse: true, selection: false })
+    await settle()
+
+    try {
+      await term.mouse.move(2, 0)
+      let remaining = 12
+      const emitLater = () => {
+        if (remaining <= 0) return
+        remaining--
+        void term.mouse.move(2 + (remaining % 3), 0).then(() => {
+          setImmediate(emitLater)
+        })
+      }
+      setImmediate(emitLater)
+
+      await immediate()
+      await immediate()
+      await immediate()
+
+      expect(term.screen).toContainText("moves=")
+      expect(term.screen).not.toContainText("moves=0")
+
+      await settle(120)
+      expect(term.screen).toContainText("moves=13")
+    } finally {
+      handle.unmount()
+    }
+  })
 })

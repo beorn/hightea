@@ -232,6 +232,10 @@ function isWheelEvent(event: NamespacedEvent): event is NamespacedEvent & {
   )
 }
 
+function isMouseEvent(event: NamespacedEvent): boolean {
+  return event.event === "mouse"
+}
+
 function canCoalesceWheelEvent(prev: NamespacedEvent, next: NamespacedEvent): boolean {
   if (!isWheelEvent(prev) || !isWheelEvent(next)) return false
   const a = prev.data
@@ -4021,12 +4025,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         // 10, or OS auto-repeat buffering "jjjjj...") coalesce into ONE
         // render cycle instead of N.
         //
-        // Wheel streams are different from key-repeat bursts: terminal
-        // trackpads can keep producing packets while the user is actively
-        // moving. Waiting for the queue to become stable before rendering
-        // makes the viewport lag behind the fingers. For wheel batches we do
-        // one event-loop yield to collect already-ready packets, then render
-        // immediately; later packets form the next frame.
+        // Pointer streams are different from key-repeat bursts: terminal
+        // trackpads and mouse drags can keep producing packets while the
+        // user is actively moving. Waiting for the queue to become stable
+        // before rendering makes the viewport/selection lag behind the
+        // fingers. For mouse batches we do one event-loop yield to collect
+        // already-ready packets, then render immediately; later packets form
+        // the next frame.
         //
         // Safety: bounded by maxDrainSpins to prevent pathological stalls
         // if an event source is producing faster than we can drain. Under
@@ -4037,8 +4042,8 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const yieldToEventLoop = () => new Promise<void>((resolve) => setImmediate(resolve))
         // First mandatory yield — lets events already in-flight land.
         await yieldToEventLoop()
-        const wheelBatch = eventQueue.some(isWheelEvent)
-        if (!wheelBatch) {
+        const pointerBatch = eventQueue.some(isMouseEvent)
+        if (!pointerBatch) {
           let prevLen = eventQueue.length
           while (drainSpins < maxDrainSpins) {
             // eslint-disable-next-line no-await-in-loop -- intentional: sequential yields drain the async iterator pipeline
