@@ -711,11 +711,13 @@ function MeasuredItem({
   // constrain the child — it simply provides a node for measurement.
   return (
     <Box flexDirection="column" flexShrink={0}>
-      <MeasuredItemSizeObserver
-        itemKey={itemKey}
-        measureItem={measureItem}
-        measureLayout={measureLayout}
-      />
+      {measureLayout && (
+        <MeasuredItemSizeObserver
+          itemKey={itemKey}
+          measureItem={measureItem}
+          measureLayout={measureLayout}
+        />
+      )}
       {children}
     </Box>
   )

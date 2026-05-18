@@ -1041,6 +1041,7 @@ describe("ListView trackpad flick replay through termless", () => {
         const scrollRectInvalidates = layoutInvalidateEdgeCount("scrollRect")
         const screenRectInvalidates = layoutInvalidateEdgeCount("screenRect")
         const boxRectInvalidates = layoutInvalidateEdgeCount("boxRect")
+        const boxSizeInvalidates = layoutInvalidateEdgeCount("boxSize")
         expect(
           scrollRectInvalidates + screenRectInvalidates,
           getPassHistogram()
@@ -1059,6 +1060,15 @@ describe("ListView trackpad flick replay through termless", () => {
             )
             .join(" | "),
         ).toBeLessThanOrEqual(60)
+        expect(
+          boxSizeInvalidates,
+          getPassHistogram()
+            .byCause.map(
+              (entry) =>
+                `${entry.cause}: ${entry.topEdges.map((edge) => `${edge.edge}=${edge.count}`).join(", ")}`,
+            )
+            .join(" | "),
+        ).toBeLessThanOrEqual(80)
       } finally {
         handle.unmount()
       }
