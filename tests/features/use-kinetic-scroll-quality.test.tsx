@@ -328,7 +328,7 @@ describe("useKineticScroll — input cadence detection", () => {
     )
   })
 
-  test("same-turn continuous packets use the minimum cadence interval for acceleration", async () => {
+  test("same-turn continuous packets preserve packet mass without self-acceleration", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -352,12 +352,8 @@ describe("useKineticScroll — input cadence detection", () => {
     const afterBurst = apiRef.current!.getScrollFloat()
     expect(
       afterBurst,
-      "batched trackpad packets are real signal and should still get dense-stream acceleration",
-    ).toBeGreaterThan(16)
-    expect(
-      afterBurst,
-      "acceleration remains bounded by the configured multiplier",
-    ).toBeLessThanOrEqual(1 + 31 * 0.435 * 3)
+      "same-turn packets are real input, but queued delivery must not manufacture extra speed",
+    ).toBeCloseTo(1 + 31 * 0.435, 3)
   })
 
   test("continuous cadence keeps inertial tail from becoming discrete jumps", async () => {
@@ -445,14 +441,17 @@ describe("useKineticScroll — input cadence detection", () => {
     apiRef.current!.onWheel({ deltaY: 60 })
 
     const afterBurst = apiRef.current!.getScrollFloat()
-    expect(afterBurst, "coalesced packets still move the viewport").toBeGreaterThan(38)
+    expect(
+      afterBurst,
+      "coalesced packets still move the viewport and retain prior cadence acceleration",
+    ).toBeGreaterThan(30)
     expect(
       afterBurst,
       "virtual packet acceleration must stay below the configured ceiling",
     ).toBeLessThanOrEqual(2 + 60 * 0.435 * 3)
   })
 
-  test("coalesced continuous bursts still accelerate dense virtual packets", async () => {
+  test("first coalesced continuous burst preserves packet mass without self-acceleration", async () => {
     const apiRef: HarnessRef = { current: null }
     const r = createRenderer({ cols: 30, rows: 8 })
     r(
@@ -475,12 +474,8 @@ describe("useKineticScroll — input cadence detection", () => {
     const afterBurst = apiRef.current!.getScrollFloat()
     expect(
       afterBurst,
-      "a coalesced trackpad burst should keep the dense-stream acceleration signal",
-    ).toBeGreaterThan(38)
-    expect(
-      afterBurst,
-      "virtual packet acceleration stays bounded by the configured ceiling",
-    ).toBeLessThanOrEqual(1 + 60 * 0.435 * 3)
+      "a coalesced packet's magnitude is signal, but its virtual sub-packets have no extra cadence",
+    ).toBeCloseTo(1 + 60 * 0.435, 3)
   })
 
   test("coalesced continuous bursts commit one position update per runtime wheel event", async () => {
@@ -756,6 +751,31 @@ describe("useKineticScroll — input cadence detection", () => {
         `post-input drain sped up after a one-packet tail: ${postInputMoves.join(", ")}`,
       ).toBeLessThanOrEqual(2.001)
     }
+  })
+
+  test("same-turn trackpad packet bursts do not self-accelerate", async () => {
+    const apiRef: HarnessRef = { current: null }
+    const r = createRenderer({ cols: 30, rows: 8 })
+    r(
+      <TestHarness
+        apiRef={apiRef}
+        options={{
+          maxScroll: 1000,
+          enableInputCadenceDetection: true,
+          enableMomentum: false,
+          continuousWheelMultiplier: 0.5,
+          continuousWheelAcceleration: 3,
+        }}
+      />,
+    )
+    await settle()
+
+    // A busy render turn can deliver many real trackpad packets with the same
+    // timestamp. That batch should keep its packet-count signal, but it must
+    // not be interpreted as an impossibly-fast sub-millisecond flick.
+    apiRef.current!.onWheel({ deltaY: 40, timeStamp: performance.now() })
+
+    expect(apiRef.current!.getScrollFloat()).toBeCloseTo(20, 3)
   })
 
   test("cadence detection disabled by default — old behaviour preserved", async () => {

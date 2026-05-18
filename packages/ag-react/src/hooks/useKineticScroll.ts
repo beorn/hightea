@@ -129,12 +129,6 @@ const CONTINUOUS_ACCEL_REFERENCE_INTERVAL_MS = 100
 const CONTINUOUS_ACCEL_TAU = 3
 const CONTINUOUS_ACCEL_GAIN = 0.8
 const CONTINUOUS_ACCEL_MIN_INTERVAL_MS = 6
-/** Synthetic cadence for packets that arrive in the same JS turn. Packet
- * count already carries speed for a coalesced terminal read; using a tiny
- * near-zero interval would double-count that burst as both "many packets" and
- * "impossibly high frequency", creating first-frame speed spikes. */
-const CONTINUOUS_ACCEL_SAME_TURN_INTERVAL_MS = 50
-const CONTINUOUS_ACCEL_SAME_TURN_ACCEL_AFTER_PACKETS = 12
 
 export interface UseKineticScrollOptions {
   /**
@@ -363,7 +357,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const continuousAccelLastTickTimeRef = useRef(0)
   const continuousAccelIntervalsRef = useRef<number[]>([])
   const continuousAccelDirectionRef = useRef<-1 | 1 | 0>(0)
-  const continuousAccelSameTurnStreakRef = useRef(0)
   // Same-direction compounding carryover (rows/sec), set when a wheel flick
   // interrupts an in-flight coast. Pure additive — no multiplier.
   const pendingBoostVelocityRef = useRef(0)
@@ -486,11 +479,10 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     continuousAccelLastTickTimeRef.current = 0
     continuousAccelIntervalsRef.current = []
     continuousAccelDirectionRef.current = 0
-    continuousAccelSameTurnStreakRef.current = 0
   }, [])
 
   const resolveContinuousAccelerationMultiplier = useCallback(
-    (now: number, direction: -1 | 1, effectiveIntervalMs?: number): number => {
+    (now: number, direction: -1 | 1): number => {
       const maxMultiplier = Math.max(1, continuousWheelAcceleration)
       if (maxMultiplier <= 1) return 1
 
@@ -500,30 +492,20 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       }
 
       const last = continuousAccelLastTickTimeRef.current
-      const dt = last > 0 ? (effectiveIntervalMs ?? now - last) : Number.POSITIVE_INFINITY
+      const dt = last > 0 ? now - last : Number.POSITIVE_INFINITY
       if (!Number.isFinite(dt) || dt > CONTINUOUS_ACCEL_STREAK_TIMEOUT_MS) {
         continuousAccelLastTickTimeRef.current = now
         continuousAccelIntervalsRef.current = []
-        continuousAccelSameTurnStreakRef.current = 0
         return 1
       }
       continuousAccelLastTickTimeRef.current = now
 
       if (dt < CONTINUOUS_ACCEL_MIN_INTERVAL_MS) {
-        continuousAccelSameTurnStreakRef.current += 1
-        if (
-          continuousAccelSameTurnStreakRef.current <= CONTINUOUS_ACCEL_SAME_TURN_ACCEL_AFTER_PACKETS
-        ) {
-          return 1
-        }
-      } else {
-        continuousAccelSameTurnStreakRef.current = 0
+        return 1
       }
 
       const intervals = continuousAccelIntervalsRef.current
-      intervals.push(
-        dt < CONTINUOUS_ACCEL_MIN_INTERVAL_MS ? CONTINUOUS_ACCEL_SAME_TURN_INTERVAL_MS : dt,
-      )
+      intervals.push(dt)
       if (intervals.length > CONTINUOUS_ACCEL_HISTORY_SIZE) intervals.shift()
 
       const avgInterval = intervals.reduce((sum, value) => sum + value, 0) / intervals.length
@@ -756,23 +738,20 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
           }
           lastWheelTimeRef.current = sample.t
         }
+        const sampleIsContinuous =
+          enableInputCadenceDetection && cadenceModeRef.current === "continuous"
+        const sampleAccelerationMultiplier = sampleIsContinuous
+          ? resolveContinuousAccelerationMultiplier(sample.t, sampleDir < 0 ? -1 : 1)
+          : 1
         let appliedSampleRows = 0
         let pendingSampleRows = 0
         let pendingSampleIsDiscrete = false
         for (let unit = 0; unit < sampleMagnitude; unit++) {
           const isDiscrete = enableInputCadenceDetection && cadenceModeRef.current === "discrete"
-          const isContinuous =
-            enableInputCadenceDetection && cadenceModeRef.current === "continuous"
+          const isContinuous = sampleIsContinuous
           if (isDiscrete) acceptedDiscrete = true
           if (isContinuous) acceptedContinuous = true
           if (!isContinuous) resetContinuousAcceleration()
-          const sampleAccelerationMultiplier = isContinuous
-            ? resolveContinuousAccelerationMultiplier(
-                sample.t,
-                sampleDir < 0 ? -1 : 1,
-                sampleMagnitude > 1 && unit > 0 ? 0 : undefined,
-              )
-            : 1
           const continuousAccelerationMultiplier = isContinuous ? sampleAccelerationMultiplier : 1
           const stepRows = isDiscrete
             ? WHEEL_STEP_ROWS * wheelMultiplier * DISCRETE_STEP_MULTIPLIER
