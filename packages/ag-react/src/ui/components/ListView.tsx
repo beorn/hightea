@@ -263,6 +263,17 @@ export type VirtualizationStrategy = "none" | "index" | "measured"
  */
 export type FollowPolicy = "none" | "end"
 
+type FollowEndPin =
+  | { kind: "none" }
+  | {
+      kind: "end"
+      snap: "pending" | "settled"
+    }
+
+function followEndPin(snap: "pending" | "settled" = "settled"): FollowEndPin {
+  return { kind: "end", snap }
+}
+
 export interface ListViewProps<T> {
   /** Array of items to render */
   items: T[]
@@ -833,13 +844,13 @@ function ListViewInner<T>(
   // `follow` wins.
   const resolvedFollow: FollowPolicy = follow ?? (stickyBottom ? "end" : "none")
 
-  // `pendingFollowSnapRef` — true when a follow="end" snap-to-bottom
-  // is owed. Set on mount when `follow="end"` and on every transition
-  // back to atEnd via wheel; cleared once the snap is applied (when
-  // maxRow becomes known via layout). This survives the first 1-2
-  // pre-measurement commits where maxRow is 0. Declared early so the
-  // `scrollTo` resolution further down can read it.
-  const pendingFollowSnapRef = useRef<boolean>(false)
+  // `followEndPinRef` is the row-space pin for follow="end". `snap:
+  // "pending"` means a snap-to-bottom is still owed; it is set on mount
+  // when `follow="end"` and on every transition back to atEnd via wheel.
+  // The pending state survives the first 1-2 pre-measurement commits where
+  // maxRow is 0, then becomes `"settled"` once the snap is applied.
+  // Declared early so `scrollTo` resolution further down can read it.
+  const followEndPinRef = useRef<FollowEndPin>({ kind: "none" })
   const followInitialisedRef = useRef<boolean>(false)
   const prevAtBottomRef = useRef<boolean | null>(null)
   const prevMaxScrollRowRef = useRef<number | null>(null)
@@ -849,11 +860,9 @@ function ListViewInner<T>(
   const prevViewportWidthRef = useRef<number | null>(null)
   const followWidthReflowRef = useRef<boolean>(false)
   const prevResolvedFollowRef = useRef<FollowPolicy>(resolvedFollow)
-  const followActiveRef = useRef<boolean>(resolvedFollow === "end")
   if (!followInitialisedRef.current) {
     followInitialisedRef.current = true
-    pendingFollowSnapRef.current = resolvedFollow === "end"
-    followActiveRef.current = resolvedFollow === "end"
+    followEndPinRef.current = resolvedFollow === "end" ? followEndPin("pending") : { kind: "none" }
   }
 
   // ── Term context for cache capture width ─────────────────────────
@@ -928,8 +937,7 @@ function ListViewInner<T>(
     if (
       !wheelGestureActiveRef.current &&
       (!isWheelDrivenRef.current ||
-        followActiveRef.current ||
-        pendingFollowSnapRef.current ||
+        followEndPinRef.current.kind === "end" ||
         activeWheelAvgMeasuredHeightRef.current === undefined)
     ) {
       activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
@@ -1065,10 +1073,9 @@ function ListViewInner<T>(
       }
       const wheelDirection = event.deltaY < 0 ? "up" : "down"
       const shouldSeedWheelHandoff =
-        !isWheelDrivenRef.current || followActiveRef.current || pendingFollowSnapRef.current
+        !isWheelDrivenRef.current || followEndPinRef.current.kind === "end"
       if (wheelDirection === "up") {
-        followActiveRef.current = false
-        pendingFollowSnapRef.current = false
+        followEndPinRef.current = { kind: "none" }
       }
       isWheelDrivenRef.current = true
       if (shouldSeedWheelHandoff) {
@@ -1096,7 +1103,7 @@ function ListViewInner<T>(
   //
   // - clamps frac to [0, 1]
   // - kills any in-flight kinetic momentum (user is taking explicit control)
-  // - clears `pendingFollowSnapRef` UNLESS we landed at the end (then
+  // - clears `followEndPinRef` UNLESS we landed at the end (then
   //   re-arm follow="end" so subsequent appends keep the tail visible)
   const scrollToFrac = useCallback(
     (frac: number, opts?: { rearmFollowAtEnd?: boolean }) => {
@@ -1117,11 +1124,9 @@ function ListViewInner<T>(
         clampedFrac >= 1 - 1 / Math.max(1, maxRow) &&
         resolvedFollow === "end"
       ) {
-        pendingFollowSnapRef.current = true
-        followActiveRef.current = true
+        followEndPinRef.current = followEndPin("pending")
       } else {
-        pendingFollowSnapRef.current = false
-        followActiveRef.current = false
+        followEndPinRef.current = { kind: "none" }
       }
     },
     [physics, resolvedFollow],
@@ -1174,7 +1179,10 @@ function ListViewInner<T>(
   //   4. activeCursor (nav mode default — viewport follows cursor)
   //   5. undefined (passive list with no scroll position opinion)
   const followEndPendingScrollTarget =
-    resolvedFollow === "end" && pendingFollowSnapRef.current && items.length > 0
+    resolvedFollow === "end" &&
+    followEndPinRef.current.kind === "end" &&
+    followEndPinRef.current.snap === "pending" &&
+    items.length > 0
       ? items.length - 1
       : undefined
   const scrollTo =
@@ -1464,8 +1472,7 @@ function ListViewInner<T>(
   // measurement corrections that would visibly reverse the scroll.
   const wheelViewportOwned =
     isWheelDrivenRef.current &&
-    !followActiveRef.current &&
-    !pendingFollowSnapRef.current &&
+    followEndPinRef.current.kind !== "end" &&
     scrollRow !== null &&
     activeScrollDirectionRef.current !== null
   const wheelMeasurementSnapshotActive = wheelInputActive || wheelViewportOwned
@@ -1623,7 +1630,7 @@ function ListViewInner<T>(
     resolvedVirtualization === "index" &&
     scrollRow === null &&
     !isWheelDrivenRef.current &&
-    !pendingFollowSnapRef.current
+    !(followEndPinRef.current.kind === "end" && followEndPinRef.current.snap === "pending")
   const rowsAboveViewport = resolveRowsAboveViewport({
     virtualization: resolvedVirtualization,
     layoutScrollOffset: innerScrollState?.offset,
@@ -1656,8 +1663,7 @@ function ListViewInner<T>(
     },
     [physics],
   )
-  const followOwnsViewport =
-    resolvedFollow === "end" && (followActiveRef.current || pendingFollowSnapRef.current)
+  const followOwnsViewport = resolvedFollow === "end" && followEndPinRef.current.kind === "end"
   const followPosition: ScrollPosition = { kind: "end" }
   const followPinnedTopRow = followOwnsViewport
     ? resolveScrollPositionTop(followPosition, contentGeometry, {
@@ -2356,8 +2362,7 @@ function ListViewInner<T>(
         // Calling scrollBy means the user is taking explicit control of
         // the viewport — clear any pending follow="end" snap so the
         // viewport doesn't jump back to the tail on next render.
-        pendingFollowSnapRef.current = false
-        followActiveRef.current = false
+        followEndPinRef.current = { kind: "none" }
       },
       scrollToTop() {
         scrollAnchoring.suppressOnce()
@@ -2366,8 +2371,7 @@ function ListViewInner<T>(
         if (scrollBehavior === "smooth") physics.animateToFloat(0)
         else physics.setScrollFloat(0)
         setScrollRow(0)
-        pendingFollowSnapRef.current = false
-        followActiveRef.current = false
+        followEndPinRef.current = { kind: "none" }
       },
       scrollToBottom() {
         const maxRow = maxScrollRowRef.current
@@ -2381,8 +2385,7 @@ function ListViewInner<T>(
         // pending-snap path takes over and subsequent appends keep the
         // tail visible. No-op when `follow !== "end"`.
         if (resolvedFollow === "end") {
-          pendingFollowSnapRef.current = true
-          followActiveRef.current = true
+          followEndPinRef.current = followEndPin("pending")
         }
       },
       getHistoryBuffer(): HistoryBuffer | null {
@@ -2575,7 +2578,7 @@ function ListViewInner<T>(
   //
   // Initialised to a sentinel so the first effect run unconditionally
   // emits the initial at-bottom value to onAtBottomChange.
-  // `pendingFollowSnapRef` is declared earlier (next to `resolvedFollow`)
+  // `followEndPinRef` is declared earlier (next to `resolvedFollow`)
   // because `scrollTo` resolution reads it before this effect block.
   // Snapshot the row-space measurements that the effect needs. The
   // effect closes over `scrollRow` (state) but reads `maxScrollRowRef` /
@@ -2592,11 +2595,11 @@ function ListViewInner<T>(
       // items append, the boundary moved — `scrollableRows` leaps ahead
       // while `rowsAboveViewport` lags one layout cycle behind, and the
       // at-edge render gate (`effectiveRowsAbove >= scrollableRows`)
-      // toggles between true/false on each commit until the cursor
-      // catches up. That manifests as a flickering bottom indicator
-      // during streaming chat append. Clearing on append removes the
-      // stale cue — the user has new content to see, the "you hit the
-      // end" cue from before is no longer accurate.
+      // toggles between true/false on each commit until the cursor catches
+      // up. That manifests as a flickering bottom indicator during
+      // streaming chat append. Clearing on append removes the stale cue —
+      // the user has new content to see, the "you hit the end" cue from
+      // before is no longer accurate.
       setBumpedEdge(null)
     }
     prevItemCountRef.current = activeItems.length
@@ -2639,15 +2642,16 @@ function ListViewInner<T>(
     // Auto-follow: when `follow="end"` is engaged, snap scrollRow to
     // maxRow when:
     //   1. PENDING SNAP from initial mount or wheel-back-to-bottom.
-    //      `pendingFollowSnapRef` survives the first 1-2 pre-measurement
+    //      `followEndPinRef` survives the first 1-2 pre-measurement
     //      commits where maxRow is still 0 — once layout produces a
     //      real maxRow, the snap fires and the flag clears.
     //   2. ITEMS GREW while previously at-end. Keeps the appended tail
     //      visible regardless of whether scrollRow was previously null
     //      (the legacy gate required wheel-driving mode — follow="end"
     //      owns the viewport unconditionally while atEnd holds).
-    const wasAtEndPrev = prevAtBottomRef.current === true || followActiveRef.current
-    const pendingSnap = pendingFollowSnapRef.current
+    const wasAtEndPrev = prevAtBottomRef.current === true || followEndPinRef.current.kind === "end"
+    const pendingSnap =
+      followEndPinRef.current.kind === "end" && followEndPinRef.current.snap === "pending"
     const prevViewportWidth = prevViewportWidthRef.current
     const viewportWidthChanged =
       prevViewportWidth !== null &&
@@ -2662,7 +2666,7 @@ function ListViewInner<T>(
     // (viewportSize not yet measured) and `scrollableRows` collapses
     // to a phantom small number. Without this gate, the snap fires
     // with a tiny `maxRow` and the viewport freezes near the top with
-    // `pendingFollowSnap` already cleared.
+    // the follow-end pin already settled.
     const viewportReady = !isHeightIndependent || (viewportSize?.h ?? 0) > 0
     // User-wheel-vs-auto-follow race guard: if the user is actively
     // wheel-driving (scrollRow !== null) and has scrolled BELOW the
@@ -2679,7 +2683,7 @@ function ListViewInner<T>(
     // maxRow by a few rows due to the in-flight grow).
     const prevMaxRow = prevMaxScrollRowRef.current
     const userScrolledAway =
-      !followActiveRef.current &&
+      followEndPinRef.current.kind !== "end" &&
       scrollRow !== null &&
       prevMaxRow !== null &&
       scrollRow < prevMaxRow - 0.5
@@ -2722,8 +2726,7 @@ function ListViewInner<T>(
       activeWheelAvgMeasuredHeightRef.current = undefined
       physics.setScrollFloat(targetRow)
       setScrollRow(targetRow)
-      pendingFollowSnapRef.current = false
-      followActiveRef.current = true
+      followEndPinRef.current = followEndPin("settled")
     } else if (shouldTrackActiveBottom) {
       const targetRow = Math.round(
         resolveScrollPositionTop({ kind: "end" }, contentGeometry, {
@@ -2767,10 +2770,17 @@ function ListViewInner<T>(
         : activeUpwardScrollAwayFromEnd
           ? false
           : computedAtEnd
-    followActiveRef.current =
+    const keepFollowEndPinned =
       resolvedFollow === "end" &&
       !activeUpwardScrollAwayFromEnd &&
-      (followActiveRef.current || atBottom)
+      (followEndPinRef.current.kind === "end" || atBottom)
+    followEndPinRef.current = keepFollowEndPinned
+      ? followEndPin(
+          followEndPinRef.current.kind === "end" && followEndPinRef.current.snap === "pending"
+            ? "pending"
+            : "settled",
+        )
+      : { kind: "none" }
 
     // Edge-triggered transition callback. Fires on the initial commit
     // unconditionally (sentinel `null`) and on every subsequent change.
@@ -2886,15 +2896,13 @@ function ListViewInner<T>(
     if (previous === resolvedFollow) return
 
     if (resolvedFollow === "end") {
-      pendingFollowSnapRef.current = true
-      followActiveRef.current = true
+      followEndPinRef.current = followEndPin("pending")
       return
     }
 
     if (previous === "end") {
       const targetRow = Math.max(0, Math.min(scrollableRows, Math.round(followDisengageTopRow)))
-      pendingFollowSnapRef.current = false
-      followActiveRef.current = false
+      followEndPinRef.current = { kind: "none" }
       isWheelDrivenRef.current = true
       physics.nudgeScrollFloat(targetRow)
       setScrollRow((prev) => (prev === targetRow ? prev : targetRow))
@@ -3014,8 +3022,8 @@ function ListViewInner<T>(
       showScrollbar,
       showScrollToBottomButton,
       scrollGestureUiActive,
-      pendingFollowSnapRef.current,
-      followActiveRef.current,
+      followEndPinRef.current.kind,
+      followEndPinRef.current.kind === "end" ? followEndPinRef.current.snap : "none",
       prevAtBottomRef.current,
       containerNode ? 1 : 0,
     ].join(":")
@@ -3087,8 +3095,7 @@ function ListViewInner<T>(
       showScrollbar,
       showScrollToBottomButton,
       scrollGestureUiActive,
-      pendingFollowSnap: pendingFollowSnapRef.current,
-      followActive: followActiveRef.current,
+      pin: followEndPinRef.current,
       prevAtBottom: prevAtBottomRef.current,
       hasContainerNode: containerNode !== null,
     })
