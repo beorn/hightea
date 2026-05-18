@@ -48,14 +48,14 @@ export function resolveListViewBoxScrollTo({
     : undefined
 }
 
-export interface ActiveScrollWindowInput {
+export interface GestureScrollWindowInput {
   startIndex: number
   endIndex: number
   previousStartIndex: number
   previousEndIndex?: number
   anchorFirstIndex?: number
   anchorLastIndex?: number
-  activeScrollDirection: "up" | "down" | null
+  gestureDirection: "up" | "down" | null
   edgeBufferItems?: number
   renderScrollRow?: number | null
   previousRenderScrollRow?: number | null
@@ -65,47 +65,20 @@ export interface ActiveScrollWindowInput {
   visibleTopToleranceRows?: number
 }
 
-export interface ActiveScrollWindowResult {
+export interface GestureScrollWindowResult {
   startIndex: number
   endIndex: number
   clamped: boolean
 }
 
-export interface ActiveLeadingSpacerInput {
-  leadingHeight: number
-  activeScrollDirection: "up" | "down" | null
-  renderScrollRow?: number | null
-  previousRenderScrollRow?: number | null
-  previousLeadingHeight?: number | null
-  visibleTopToleranceRows?: number
-}
-
-export interface ActiveLeadingSpacerResult {
-  leadingHeight: number
-  carryRows: number
-  clamped: boolean
-}
-
-export function resolveActiveLeadingSpacer({
-  leadingHeight,
-}: ActiveLeadingSpacerInput): ActiveLeadingSpacerResult {
-  // Active wheel scrolling is owned by absolute row-space (`renderScrollRow`).
-  // A virtual-window rebase may legitimately change the viewport's row
-  // *inside that new window* by many rows while the absolute content row still
-  // moves smoothly in one direction. Clamping the leading spacer to preserve
-  // the relative visible row pins the viewport to each new item top and skips
-  // the bottom of tall items during upward flicks.
-  return { leadingHeight, carryRows: 0, clamped: false }
-}
-
-export function resolveActiveScrollWindow({
+export function resolveGestureScrollWindow({
   startIndex,
   endIndex,
   previousStartIndex,
   previousEndIndex,
   anchorFirstIndex,
   anchorLastIndex,
-  activeScrollDirection,
+  gestureDirection,
   edgeBufferItems = 4,
   renderScrollRow,
   previousRenderScrollRow,
@@ -113,7 +86,7 @@ export function resolveActiveScrollWindow({
   previousLeadingHeight,
   visibleTopClampedStartIndex,
   visibleTopToleranceRows = 0.5,
-}: ActiveScrollWindowInput): ActiveScrollWindowResult {
+}: GestureScrollWindowInput): GestureScrollWindowResult {
   const previousEnd = previousEndIndex ?? previousStartIndex
   const previousWindowKnown =
     previousEndIndex !== undefined && previousEndIndex > previousStartIndex
@@ -126,7 +99,7 @@ export function resolveActiveScrollWindow({
   const canKeepPreviousStartForDown =
     previousWindowStillCoversAnchor && anchorLastIndex < previousEnd - edgeBufferItems
   if (
-    activeScrollDirection !== null &&
+    gestureDirection !== null &&
     previousWindowKnown &&
     renderScrollRow != null &&
     previousRenderScrollRow != null &&
@@ -137,14 +110,14 @@ export function resolveActiveScrollWindow({
     const nextVisibleTopRow = renderScrollRow - leadingHeight
     const visibleTopDelta = nextVisibleTopRow - previousVisibleTopRow
     const movedOpposite =
-      activeScrollDirection === "up"
+      gestureDirection === "up"
         ? visibleTopDelta > visibleTopToleranceRows
         : visibleTopDelta < -visibleTopToleranceRows
     if (movedOpposite) {
       const previousWindowCanStillPaintContent =
-        activeScrollDirection === "up" ? previousLeadingHeight <= renderScrollRow : true
+        gestureDirection === "up" ? previousLeadingHeight <= renderScrollRow : true
       const clampedStart =
-        activeScrollDirection === "up"
+        gestureDirection === "up"
           ? previousWindowCanStillPaintContent
             ? previousStartIndex
             : (visibleTopClampedStartIndex ?? previousStartIndex)
@@ -152,7 +125,7 @@ export function resolveActiveScrollWindow({
             ? previousStartIndex
             : Math.min(startIndex, visibleTopClampedStartIndex ?? previousStartIndex)
       const clampedEnd =
-        activeScrollDirection === "up" && clampedStart !== previousStartIndex
+        gestureDirection === "up" && clampedStart !== previousStartIndex
           ? Math.max(endIndex, clampedStart + 1)
           : Math.max(endIndex, previousEnd, clampedStart + 1)
       return {
@@ -164,7 +137,7 @@ export function resolveActiveScrollWindow({
   }
 
   if (
-    activeScrollDirection === "down" &&
+    gestureDirection === "down" &&
     startIndex > previousStartIndex &&
     canKeepPreviousStartForDown
   ) {
@@ -174,14 +147,14 @@ export function resolveActiveScrollWindow({
       clamped: true,
     }
   }
-  if (activeScrollDirection === "up" && startIndex > previousStartIndex) {
+  if (gestureDirection === "up" && startIndex > previousStartIndex) {
     return {
       startIndex: previousStartIndex,
       endIndex: Math.max(endIndex, previousStartIndex + 1),
       clamped: true,
     }
   }
-  if (activeScrollDirection === "down" && startIndex < previousStartIndex) {
+  if (gestureDirection === "down" && startIndex < previousStartIndex) {
     return {
       startIndex: previousStartIndex,
       endIndex: Math.max(endIndex, previousStartIndex + 1),

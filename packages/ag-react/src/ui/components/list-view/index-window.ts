@@ -58,7 +58,7 @@ export interface ResolveTrailingSpacerFillEndInput {
   overscan: number
   trailingSpacerVisible: boolean
   rowSpaceAtEnd: boolean
-  activeScrollDirection?: "up" | "down" | null
+  gestureDirection?: "up" | "down" | null
   renderScrollRow?: number | null
   previousRenderScrollRow?: number | null
 }
@@ -81,7 +81,7 @@ export function resolveTrailingSpacerFillEnd({
   overscan,
   trailingSpacerVisible,
   rowSpaceAtEnd,
-  activeScrollDirection,
+  gestureDirection,
   renderScrollRow,
   previousRenderScrollRow,
 }: ResolveTrailingSpacerFillEndInput): number {
@@ -93,8 +93,8 @@ export function resolveTrailingSpacerFillEnd({
   const previousEnd = Math.max(0, Math.min(previousEndIndex, itemCount))
   if (
     previousEnd > clampedEnd &&
-    !rowMovedInActiveDirection({
-      activeScrollDirection,
+    !rowMovedInGestureDirection({
+      gestureDirection,
       renderScrollRow,
       previousRenderScrollRow,
     })
@@ -111,19 +111,19 @@ export function resolveTrailingSpacerFillEnd({
   return Math.max(clampedEnd, Math.min(itemCount, baseEnd + fillItems))
 }
 
-function rowMovedInActiveDirection({
-  activeScrollDirection,
+function rowMovedInGestureDirection({
+  gestureDirection,
   renderScrollRow,
   previousRenderScrollRow,
 }: {
-  activeScrollDirection?: "up" | "down" | null
+  gestureDirection?: "up" | "down" | null
   renderScrollRow?: number | null
   previousRenderScrollRow?: number | null
 }): boolean {
-  if (activeScrollDirection === undefined || activeScrollDirection === null) return true
+  if (gestureDirection === undefined || gestureDirection === null) return true
   if (renderScrollRow == null || previousRenderScrollRow == null) return true
   const toleranceRows = 0.01
-  if (activeScrollDirection === "up") {
+  if (gestureDirection === "up") {
     return renderScrollRow < previousRenderScrollRow - toleranceRows
   }
   return renderScrollRow > previousRenderScrollRow + toleranceRows

@@ -14,9 +14,8 @@ export interface ScrollAnchoringOptions {
   currentTopRow: number
   viewportHeight: number
   followOwnsViewport: boolean
-  activeScrollDirection?: "up" | "down" | null
-  maxActiveCorrectionRows?: number
-  maxOppositeActiveCorrectionRows?: number
+  gestureDirection?: "up" | "down" | null
+  correctionBudgetRows?: number
   modelVersion?: unknown
   onApplyTopRow: (row: number) => void
   toleranceRows?: number
@@ -66,12 +65,12 @@ export function shouldApplyVisibleContentAnchoring({
 }
 
 const DEFAULT_TOLERANCE_ROWS = 0.5
-export function resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight: number): number {
+export function resolveGestureAnchorCorrectionBudgetRows(contentViewportHeight: number): number {
   void contentViewportHeight
   return 0
 }
 
-export function resolveActiveScrollMeasuredHeightFallback({
+export function resolveHeightModelSnapshotFallback({
   wheelGestureActive,
   wheelDriven,
   snapshotAvgMeasuredHeight,
@@ -93,9 +92,8 @@ export function useScrollAnchoring({
   currentTopRow,
   viewportHeight,
   followOwnsViewport,
-  activeScrollDirection = null,
-  maxActiveCorrectionRows,
-  maxOppositeActiveCorrectionRows,
+  gestureDirection = null,
+  correctionBudgetRows,
   modelVersion,
   onApplyTopRow,
   toleranceRows = DEFAULT_TOLERANCE_ROWS,
@@ -114,7 +112,7 @@ export function useScrollAnchoring({
     enabled &&
     !suppressRef.current &&
     !followOwnsViewport &&
-    (activeScrollDirection === null || modelChangedSinceAnchor)
+    (gestureDirection === null || modelChangedSinceAnchor)
       ? resolveMaintainedTopRow({
           anchor: anchorRef.current,
           geometry,
@@ -126,9 +124,8 @@ export function useScrollAnchoring({
   const maintainedTopRow = resolveDirectionalMaintainedTopRow({
     row: rawMaintainedTopRow,
     currentTopRow,
-    activeScrollDirection,
-    maxActiveCorrectionRows,
-    maxOppositeActiveCorrectionRows,
+    gestureDirection,
+    correctionBudgetRows,
     toleranceRows,
   })
 
@@ -176,28 +173,24 @@ export function useScrollAnchoring({
 export function resolveDirectionalMaintainedTopRow({
   row,
   currentTopRow,
-  activeScrollDirection,
-  maxActiveCorrectionRows,
-  allowActiveAnchorCorrection,
+  gestureDirection,
+  correctionBudgetRows,
+  allowGestureAnchorCorrection,
   toleranceRows,
 }: {
   row: number | null
   currentTopRow: number
-  activeScrollDirection: "up" | "down" | null
-  maxActiveCorrectionRows?: number
-  maxOppositeActiveCorrectionRows?: number
-  allowActiveAnchorCorrection?: boolean
+  gestureDirection: "up" | "down" | null
+  correctionBudgetRows?: number
+  allowGestureAnchorCorrection?: boolean
   toleranceRows: number
 }): number | null {
-  if (row === null || activeScrollDirection === null) return row
-  if (allowActiveAnchorCorrection === false) return null
-  if (activeScrollDirection === "up" && row > currentTopRow + toleranceRows) return null
-  if (activeScrollDirection === "down" && row < currentTopRow - toleranceRows) return null
-  if (
-    maxActiveCorrectionRows !== undefined &&
-    Math.abs(row - currentTopRow) > maxActiveCorrectionRows
-  ) {
-    return currentTopRow + Math.sign(row - currentTopRow) * maxActiveCorrectionRows
+  if (row === null || gestureDirection === null) return row
+  if (allowGestureAnchorCorrection === false) return null
+  if (gestureDirection === "up" && row > currentTopRow + toleranceRows) return null
+  if (gestureDirection === "down" && row < currentTopRow - toleranceRows) return null
+  if (correctionBudgetRows !== undefined && Math.abs(row - currentTopRow) > correctionBudgetRows) {
+    return currentTopRow + Math.sign(row - currentTopRow) * correctionBudgetRows
   }
   return row
 }

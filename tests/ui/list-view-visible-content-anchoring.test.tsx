@@ -19,8 +19,8 @@ import {
 import {
   resolveRowsAboveViewport,
   resolveDirectionalMaintainedTopRow,
-  resolveActiveAnchorCorrectionBudgetRows,
-  resolveActiveScrollMeasuredHeightFallback,
+  resolveGestureAnchorCorrectionBudgetRows,
+  resolveHeightModelSnapshotFallback,
   shouldApplyVisibleContentAnchoring,
 } from "../../packages/ag-react/src/ui/components/list-view/use-scroll-anchoring"
 import {
@@ -28,10 +28,7 @@ import {
   createContentGeometry,
   resolveScrollPositionTop,
 } from "../../packages/ag-react/src/ui/components/list-view/scroll-position"
-import {
-  resolveActiveLeadingSpacer,
-  resolveActiveScrollWindow,
-} from "../../packages/ag-react/src/ui/components/list-view/scroll-authority"
+import { resolveGestureScrollWindow } from "../../packages/ag-react/src/ui/components/list-view/scroll-authority"
 import { createHeightModel } from "../../packages/ag-react/src/ui/components/list-view/height-model"
 
 interface Item {
@@ -305,7 +302,7 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 532,
         currentTopRow: 493,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
       }),
     ).toBeNull()
@@ -313,7 +310,7 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 480,
         currentTopRow: 493,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
       }),
     ).toBe(480)
@@ -328,9 +325,8 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 4523,
         currentTopRow: 4520,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxOppositeActiveCorrectionRows: 4,
       }),
     ).toBeNull()
 
@@ -338,9 +334,8 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 4530,
         currentTopRow: 4520,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxOppositeActiveCorrectionRows: 4,
       }),
     ).toBeNull()
   })
@@ -355,10 +350,9 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 4628,
         currentTopRow: 4624,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxOppositeActiveCorrectionRows: 4,
-        allowActiveAnchorCorrection: false,
+        allowGestureAnchorCorrection: false,
       }),
     ).toBeNull()
 
@@ -366,10 +360,10 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 4620,
         currentTopRow: 4624,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxActiveCorrectionRows: 28,
-        allowActiveAnchorCorrection: false,
+        correctionBudgetRows: 28,
+        allowGestureAnchorCorrection: false,
       }),
     ).toBeNull()
   })
@@ -385,9 +379,9 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 3962,
         currentTopRow: 4612,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxActiveCorrectionRows: 60,
+        correctionBudgetRows: 60,
       }),
     ).toBe(4552)
 
@@ -395,9 +389,9 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 4580,
         currentTopRow: 4612,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxActiveCorrectionRows: 60,
+        correctionBudgetRows: 60,
       }),
     ).toBe(4580)
   })
@@ -408,16 +402,16 @@ describe("ListView maintainVisibleContentPosition", () => {
     // A cap larger than the viewport turns measurement reflow into an extra
     // high-speed scroll source, which users see as a frozen frame followed by
     // a skip.
-    const budget = resolveActiveAnchorCorrectionBudgetRows(112)
+    const budget = resolveGestureAnchorCorrectionBudgetRows(112)
     expect(budget).toBe(0)
 
     expect(
       resolveDirectionalMaintainedTopRow({
         row: 3962,
         currentTopRow: 4612,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         toleranceRows: 0.5,
-        maxActiveCorrectionRows: budget,
+        correctionBudgetRows: budget,
       }),
     ).toBe(4612)
   })
@@ -427,14 +421,14 @@ describe("ListView maintainVisibleContentPosition", () => {
     // advance upward while the anchor still has buffer; clamping here pins
     // upward flicks to item tops and skips the bottoms of tall items.
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 830,
         endIndex: 888,
         previousStartIndex: 831,
         previousEndIndex: 889,
         anchorFirstIndex: 856,
         anchorLastIndex: 863,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
       }),
     ).toEqual({ startIndex: 830, endIndex: 888, clamped: false })
   })
@@ -447,14 +441,14 @@ describe("ListView maintainVisibleContentPosition", () => {
     // previous leading spacer still covers the row-space viewport, keep
     // that window instead of recentering the index slice.
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 815,
         endIndex: 923,
         previousStartIndex: 861,
         previousEndIndex: 969,
         anchorFirstIndex: 819,
         anchorLastIndex: 846,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 3003,
         previousRenderScrollRow: 3007,
         leadingHeight: 2825.333333333344,
@@ -466,14 +460,14 @@ describe("ListView maintainVisibleContentPosition", () => {
 
   test("active upward scroll advances instead of carrying spacer debt into blank space", () => {
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 787,
         endIndex: 921,
         previousStartIndex: 788,
         previousEndIndex: 921,
         anchorFirstIndex: 788,
         anchorLastIndex: 817,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 2731,
         previousRenderScrollRow: 2734,
         leadingHeight: 2725,
@@ -485,14 +479,14 @@ describe("ListView maintainVisibleContentPosition", () => {
 
   test("active upward scroll advances when the previous window no longer paints content", () => {
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 787,
         endIndex: 921,
         previousStartIndex: 788,
         previousEndIndex: 921,
         anchorFirstIndex: 788,
         anchorLastIndex: 817,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 2729,
         previousRenderScrollRow: 2734,
         leadingHeight: 2725,
@@ -507,14 +501,14 @@ describe("ListView maintainVisibleContentPosition", () => {
     // item below the viewport into the mounted slice. A long flick trace grew a
     // 60-row transcript window past 200 mounted rows, creating measurement churn.
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 708,
         endIndex: 908,
         previousStartIndex: 709,
         previousEndIndex: 921,
         anchorFirstIndex: 709,
         anchorLastIndex: 738,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 2457,
         previousRenderScrollRow: 2458,
         leadingHeight: 2454,
@@ -524,46 +518,20 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toEqual({ startIndex: 708, endIndex: 908, clamped: true })
   })
 
-  test("active upward scroll does not carry spacer debt between rebased windows", () => {
-    expect(
-      resolveActiveLeadingSpacer({
-        leadingHeight: 2454,
-        activeScrollDirection: "up",
-        renderScrollRow: 2457,
-        previousRenderScrollRow: 2458,
-        previousLeadingHeight: 2458,
-        visibleTopToleranceRows: 0.01,
-      }),
-    ).toEqual({ leadingHeight: 2454, carryRows: 0, clamped: false })
-  })
-
-  test("active upward spacer carry does not introduce blank top rows", () => {
-    expect(
-      resolveActiveLeadingSpacer({
-        leadingHeight: 2458,
-        activeScrollDirection: "up",
-        renderScrollRow: 2457,
-        previousRenderScrollRow: 2458,
-        previousLeadingHeight: 2458,
-        visibleTopToleranceRows: 0.01,
-      }),
-    ).toEqual({ leadingHeight: 2458, carryRows: 0, clamped: false })
-  })
-
   test("active upward scroll keeps the buffered window before visible-top clamping", () => {
     // When the previous window still covers the row-space viewport anchor,
     // moving the start index upward by even one item can make
     // renderRow-leadingHeight move opposite the wheel direction. Keep the
     // buffered window until the anchor reaches its edge.
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 285,
         endIndex: 361,
         previousStartIndex: 286,
         previousEndIndex: 361,
         anchorFirstIndex: 335,
         anchorLastIndex: 355,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 335,
         previousRenderScrollRow: 335,
         leadingHeight: 285,
@@ -574,28 +542,28 @@ describe("ListView maintainVisibleContentPosition", () => {
 
   test("active upward scroll advances the window when the anchor reaches the buffer edge", () => {
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 830,
         endIndex: 888,
         previousStartIndex: 831,
         previousEndIndex: 889,
         anchorFirstIndex: 834,
         anchorLastIndex: 842,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
       }),
     ).toEqual({ startIndex: 830, endIndex: 888, clamped: false })
   })
 
   test("active downward scroll keeps the rendered window stable while the anchor has buffer", () => {
     expect(
-      resolveActiveScrollWindow({
+      resolveGestureScrollWindow({
         startIndex: 832,
         endIndex: 890,
         previousStartIndex: 831,
         previousEndIndex: 889,
         anchorFirstIndex: 856,
         anchorLastIndex: 863,
-        activeScrollDirection: "down",
+        gestureDirection: "down",
       }),
     ).toEqual({ startIndex: 831, endIndex: 890, clamped: true })
   })
@@ -608,7 +576,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     // wheel packet; otherwise the viewport rebases by hundreds of rows when
     // the gesture timer expires.
     expect(
-      resolveActiveScrollMeasuredHeightFallback({
+      resolveHeightModelSnapshotFallback({
         wheelGestureActive: true,
         wheelDriven: true,
         snapshotAvgMeasuredHeight: 4.75,
@@ -617,7 +585,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(4.75)
 
     expect(
-      resolveActiveScrollMeasuredHeightFallback({
+      resolveHeightModelSnapshotFallback({
         wheelGestureActive: false,
         wheelDriven: true,
         snapshotAvgMeasuredHeight: 4.75,
@@ -626,7 +594,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(4.75)
 
     expect(
-      resolveActiveScrollMeasuredHeightFallback({
+      resolveHeightModelSnapshotFallback({
         wheelGestureActive: false,
         wheelDriven: false,
         snapshotAvgMeasuredHeight: 4.75,
@@ -635,7 +603,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(5.25)
 
     expect(
-      resolveActiveScrollMeasuredHeightFallback({
+      resolveHeightModelSnapshotFallback({
         wheelGestureActive: true,
         wheelDriven: true,
         snapshotAvgMeasuredHeight: undefined,
@@ -649,7 +617,7 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 480,
         currentTopRow: 493,
-        activeScrollDirection: "down",
+        gestureDirection: "down",
         toleranceRows: 0.5,
       }),
     ).toBeNull()
@@ -657,7 +625,7 @@ describe("ListView maintainVisibleContentPosition", () => {
       resolveDirectionalMaintainedTopRow({
         row: 532,
         currentTopRow: 493,
-        activeScrollDirection: "down",
+        gestureDirection: "down",
         toleranceRows: 0.5,
       }),
     ).toBe(532)

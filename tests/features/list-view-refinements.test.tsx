@@ -250,7 +250,7 @@ describe("Refinement 3: viewport-anchored windowing", () => {
         overscan: 50,
         trailingSpacerVisible: false,
         rowSpaceAtEnd: false,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
         renderScrollRow: 4372,
         previousRenderScrollRow: 4372,
       }),

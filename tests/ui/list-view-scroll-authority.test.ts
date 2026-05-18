@@ -1,7 +1,6 @@
 import { describe, expect, test } from "vitest"
 import {
-  resolveActiveLeadingSpacer,
-  resolveActiveScrollWindow,
+  resolveGestureScrollWindow,
   resolveListViewBoxScrollTo,
   resolveListViewRenderScrollRow,
 } from "../../packages/ag-react/src/ui/components/list-view/scroll-authority"
@@ -69,11 +68,11 @@ describe("ListView scroll authority", () => {
     let previousStartIndex = latestLogStarts[0]!
 
     for (const startIndex of latestLogStarts) {
-      const window = resolveActiveScrollWindow({
+      const window = resolveGestureScrollWindow({
         startIndex,
         endIndex: 1271,
         previousStartIndex,
-        activeScrollDirection: "up",
+        gestureDirection: "up",
       })
       resolved.push(window.startIndex)
       previousStartIndex = window.startIndex
@@ -82,22 +81,5 @@ describe("ListView scroll authority", () => {
     expect(resolved).toEqual([
       1218, 1217, 1216, 1215, 1214, 1213, 1212, 1212, 1210, 1209, 1208, 1208, 1207,
     ])
-  })
-
-  test("active upward flick does not pin the viewport to each rebased window top", () => {
-    const resolved = resolveActiveLeadingSpacer({
-      activeScrollDirection: "up",
-      renderScrollRow: 2952,
-      previousRenderScrollRow: 2954,
-      previousLeadingHeight: 2954,
-      leadingHeight: 2940,
-      visibleTopToleranceRows: 0.01,
-    })
-
-    expect(resolved).toEqual({
-      leadingHeight: 2940,
-      carryRows: 0,
-      clamped: false,
-    })
   })
 })

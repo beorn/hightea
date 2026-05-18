@@ -70,8 +70,7 @@ import {
   resolveTrailingSpacerFillEnd,
 } from "./list-view/index-window"
 import {
-  resolveActiveLeadingSpacer,
-  resolveActiveScrollWindow,
+  resolveGestureScrollWindow,
   resolveListViewBoxScrollTo,
   resolveListViewRenderScrollRow,
 } from "./list-view/scroll-authority"
@@ -81,8 +80,8 @@ import {
   type ScrollPosition,
 } from "./list-view/scroll-position"
 import {
-  resolveActiveAnchorCorrectionBudgetRows,
-  resolveActiveScrollMeasuredHeightFallback,
+  resolveGestureAnchorCorrectionBudgetRows,
+  resolveHeightModelSnapshotFallback,
   resolveRowsAboveViewport,
   shouldApplyVisibleContentAnchoring,
   useScrollAnchoring,
@@ -923,8 +922,8 @@ function ListViewInner<T>(
   // gesture so `scrollRow` flips from null → integer. Reset to null by
   // `moveTo` when the cursor takes over.
   const isWheelDrivenRef = useRef(false)
-  const activeScrollDirectionRef = useRef<"up" | "down" | null>(null)
-  const pendingWheelScrollDirectionRef = useRef<"up" | "down" | null>(null)
+  const gestureDirectionRef = useRef<"up" | "down" | null>(null)
+  const pendingWheelGestureDirectionRef = useRef<"up" | "down" | null>(null)
   const committingWheelScrollRef = useRef(false)
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -1001,12 +1000,12 @@ function ListViewInner<T>(
       const scrolledDirection =
         meta?.direction === -1 ? "up" : meta?.direction === 1 ? "down" : null
       if (scrolledDirection !== null) {
-        activeScrollDirectionRef.current = scrolledDirection
+        gestureDirectionRef.current = scrolledDirection
       } else if (
         committingWheelScrollRef.current &&
-        pendingWheelScrollDirectionRef.current !== null
+        pendingWheelGestureDirectionRef.current !== null
       ) {
-        activeScrollDirectionRef.current = pendingWheelScrollDirectionRef.current
+        gestureDirectionRef.current = pendingWheelGestureDirectionRef.current
       }
       setScrollRow((prev) => (prev === offset ? prev : offset))
     },
@@ -1048,7 +1047,7 @@ function ListViewInner<T>(
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = false
       wheelMeasurementSnapshotAvgHeightRef.current = undefined
-      activeScrollDirectionRef.current = null
+      gestureDirectionRef.current = null
       setScrollRow(null)
       physics.reset()
     },
@@ -1084,13 +1083,13 @@ function ListViewInner<T>(
       }
       markWheelGestureActive()
       scrollAnchoring.suppressOnce()
-      pendingWheelScrollDirectionRef.current = wheelDirection
+      pendingWheelGestureDirectionRef.current = wheelDirection
       committingWheelScrollRef.current = true
       try {
         physics.onWheel(event)
       } finally {
         committingWheelScrollRef.current = false
-        pendingWheelScrollDirectionRef.current = null
+        pendingWheelGestureDirectionRef.current = null
       }
     },
     [markWheelGestureActive, physics],
@@ -1474,7 +1473,7 @@ function ListViewInner<T>(
     isWheelDrivenRef.current &&
     followEndPinRef.current.kind !== "end" &&
     scrollRow !== null &&
-    activeScrollDirectionRef.current !== null
+    gestureDirectionRef.current !== null
   const wheelMeasurementSnapshotActive = wheelInputActive || wheelViewportOwned
   const wheelDirectionGuardActive = wheelInputActive || wheelViewportOwned
   const measureRenderedItems = !(isHeightIndependent && wheelMeasurementSnapshotActive)
@@ -1550,7 +1549,7 @@ function ListViewInner<T>(
   // until that exact item has a measured height.
   const liveAvgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportSize?.w)
   liveAvgMeasuredHeightRef.current = liveAvgMeasuredHeight
-  const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
+  const avgMeasuredHeight = resolveHeightModelSnapshotFallback({
     wheelGestureActive: wheelInputActive,
     wheelDriven: wheelViewportOwned,
     snapshotAvgMeasuredHeight: wheelMeasurementSnapshotAvgHeightRef.current,
@@ -1705,10 +1704,9 @@ function ListViewInner<T>(
     wheelGestureActive: wheelMeasurementSnapshotActive,
   })
   const correctionBudgetRows =
-    wheelDirectionGuardActive && activeScrollDirectionRef.current !== null
-      ? resolveActiveAnchorCorrectionBudgetRows(contentViewportHeight)
+    wheelDirectionGuardActive && gestureDirectionRef.current !== null
+      ? resolveGestureAnchorCorrectionBudgetRows(contentViewportHeight)
       : undefined
-  const oppositeCorrectionBudgetRows = correctionBudgetRows !== undefined ? 0 : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
@@ -1721,9 +1719,8 @@ function ListViewInner<T>(
     currentTopRow: baseTopRow,
     viewportHeight: contentViewportHeight,
     followOwnsViewport: false,
-    activeScrollDirection: wheelDirectionGuardActive ? activeScrollDirectionRef.current : null,
-    maxActiveCorrectionRows: correctionBudgetRows,
-    maxOppositeActiveCorrectionRows: oppositeCorrectionBudgetRows,
+    gestureDirection: wheelDirectionGuardActive ? gestureDirectionRef.current : null,
+    correctionBudgetRows,
     modelVersion: heightModelVersion,
     onApplyTopRow: applyAnchoredTopRow,
   })
@@ -1786,7 +1783,7 @@ function ListViewInner<T>(
   // Compute the index window for "index" virtualization mode.
   let indexWindowStart: number
   let indexWindowEnd: number
-  let activeScrollWindowClamped = false
+  let gestureScrollWindowClamped = false
   const indexEstAsNumber =
     typeof adjustedEstimateHeight === "number" ? adjustedEstimateHeight : adjustedEstimateHeight(0)
   const safeEstHeight = Math.max(1, indexEstAsNumber)
@@ -1963,7 +1960,7 @@ function ListViewInner<T>(
   if (
     resolvedVirtualization === "index" &&
     wheelDirectionGuardActive &&
-    activeScrollDirectionRef.current !== null &&
+    gestureDirectionRef.current !== null &&
     indexWindowPrevRef.current.endIndex > indexWindowPrevRef.current.startIndex
   ) {
     const candidateLeadingHeight = toPhysicalRows(heightModel.rowOfIndex(indexWindowStart))
@@ -1973,7 +1970,7 @@ function ListViewInner<T>(
     const previousLeadingHeight = indexWindowPrevRef.current.leadingHeight
     if (renderScrollRow !== null && previousRenderScrollRow !== null) {
       const previousVisibleTopRow = previousRenderScrollRow - previousLeadingHeight
-      if (activeScrollDirectionRef.current === "up") {
+      if (gestureDirectionRef.current === "up") {
         const maxVisibleTopRow = previousVisibleTopRow + visibleTopToleranceRows
         const minLeadingHeight = Math.max(0, renderScrollRow - maxVisibleTopRow)
         const firstNonReversingStart = firstIndexAtOrAfterRow(heightModel, minLeadingHeight)
@@ -1989,14 +1986,14 @@ function ListViewInner<T>(
           lastIndexAtOrBeforeRow(heightModel, maxLeadingHeight) ?? undefined
       }
     }
-    const monotonicWindow = resolveActiveScrollWindow({
+    const monotonicWindow = resolveGestureScrollWindow({
       startIndex: indexWindowStart,
       endIndex: indexWindowEnd,
       previousStartIndex: indexWindowPrevRef.current.startIndex,
       previousEndIndex: indexWindowPrevRef.current.endIndex,
       anchorFirstIndex: viewportAnchorFirst,
       anchorLastIndex: viewportAnchorLast,
-      activeScrollDirection: activeScrollDirectionRef.current,
+      gestureDirection: gestureDirectionRef.current,
       renderScrollRow,
       previousRenderScrollRow,
       leadingHeight: candidateLeadingHeight,
@@ -2006,7 +2003,7 @@ function ListViewInner<T>(
     })
     indexWindowStart = monotonicWindow.startIndex
     indexWindowEnd = monotonicWindow.endIndex
-    activeScrollWindowClamped = monotonicWindow.clamped
+    gestureScrollWindowClamped = monotonicWindow.clamped
 
     const filledEnd = resolveTrailingSpacerFillEnd({
       endIndex: indexWindowEnd,
@@ -2016,13 +2013,13 @@ function ListViewInner<T>(
       overscan,
       trailingSpacerVisible: trailingSpacerVisibleBeforeRowEnd,
       rowSpaceAtEnd: !rowSpaceIsBeforeEnd(renderScrollRow, scrollableRows),
-      activeScrollDirection: activeScrollDirectionRef.current,
+      gestureDirection: gestureDirectionRef.current,
       renderScrollRow,
       previousRenderScrollRow,
     })
     if (filledEnd !== indexWindowEnd) {
       indexWindowEnd = filledEnd
-      activeScrollWindowClamped = true
+      gestureScrollWindowClamped = true
     }
 
     if (renderScrollRow !== null) {
@@ -2035,13 +2032,13 @@ function ListViewInner<T>(
             : previousRenderScrollRow - previousLeadingHeight
         const forcedVisibleTopRow = renderScrollRow - forcedLeadingHeight
         const forcedWindowMovesOpposite =
-          activeScrollDirectionRef.current === "up" &&
+          gestureDirectionRef.current === "up" &&
           previousVisibleTopRow !== null &&
           forcedVisibleTopRow > previousVisibleTopRow + visibleTopToleranceRows
         if (!forcedWindowMovesOpposite) {
           indexWindowStart = lastNonBlankStart
           indexWindowEnd = Math.max(indexWindowEnd, lastNonBlankStart + 1)
-          activeScrollWindowClamped = true
+          gestureScrollWindowClamped = true
         }
       }
     }
@@ -2076,29 +2073,9 @@ function ListViewInner<T>(
   //   sumHeights(end, n)   = (totalRows - prefixSum(end) - (n-1)*gap)
   //                          + max(0, n-end-1)*gap
   //                        = (sum of heights[end..n)) + (n-end-1)*gap
-  let indexLeadingSpacer = usingIndexWindow
+  const indexLeadingSpacer = usingIndexWindow
     ? toPhysicalRows(heightModel.rowOfIndex(indexWindowStart))
     : 0
-  let indexLeadingSpacerCarryRows = 0
-  if (
-    usingIndexWindow &&
-    wheelDirectionGuardActive &&
-    activeScrollDirectionRef.current !== null &&
-    renderScrollRow !== null &&
-    indexWindowPrevRef.current.renderScrollRow !== null
-  ) {
-    const activeLeadingSpacer = resolveActiveLeadingSpacer({
-      leadingHeight: indexLeadingSpacer,
-      activeScrollDirection: activeScrollDirectionRef.current,
-      renderScrollRow,
-      previousRenderScrollRow: indexWindowPrevRef.current.renderScrollRow,
-      previousLeadingHeight: indexWindowPrevRef.current.leadingHeight,
-      visibleTopToleranceRows: 0.01,
-    })
-    indexLeadingSpacer = activeLeadingSpacer.leadingHeight
-    indexLeadingSpacerCarryRows = activeLeadingSpacer.carryRows
-    if (activeLeadingSpacer.clamped) activeScrollWindowClamped = true
-  }
   // Trailing spacer math is delegated to a pure helper so the
   // (totalRows - prefixSum - totalGapAccount + trailingInternalGaps) algebra
   // is unit-testable. The helper also clamps to >= 0 — Yoga rejects negative
@@ -2108,7 +2085,7 @@ function ListViewInner<T>(
         0,
         toPhysicalRows(
           computeIndexTrailingSpacer(heightModel, indexWindowEnd, activeItems.length, gap),
-        ) - indexLeadingSpacerCarryRows,
+        ),
       )
     : 0
 
@@ -2692,16 +2669,14 @@ function ListViewInner<T>(
       scrollRow < prevMaxRow - 0.5
     const activeDownwardScrollReachedPreviousEnd =
       wheelGestureActiveRef.current &&
-      activeScrollDirectionRef.current === "down" &&
+      gestureDirectionRef.current === "down" &&
       scrollRow !== null &&
       prevMaxRow !== null &&
       maxRow > prevMaxRow &&
       scrollRow >= prevMaxRow - 0.5 &&
       rowsChanged
     const activeUpwardScrollAwayFromEnd =
-      wheelGestureActiveRef.current &&
-      activeScrollDirectionRef.current === "up" &&
-      scrollRow !== null
+      wheelGestureActiveRef.current && gestureDirectionRef.current === "up" && scrollRow !== null
     const shouldSnap =
       resolvedFollow === "end" &&
       viewportReady &&
@@ -3005,14 +2980,13 @@ function ListViewInner<T>(
       wheelInputActive ? 1 : 0,
       wheelMeasurementSnapshotActive ? 1 : 0,
       wheelDirectionGuardActive ? 1 : 0,
-      activeScrollDirectionRef.current ?? "null",
+      gestureDirectionRef.current ?? "null",
       correctionBudgetRows ?? "null",
-      oppositeCorrectionBudgetRows ?? "null",
       scrollAnchoring.maintainedTopRow ?? "null",
       declarativeScrollRow ?? "null",
       scrollAuthority,
       boxScrollTo ?? "null",
-      activeScrollWindowClamped ? 1 : 0,
+      gestureScrollWindowClamped ? 1 : 0,
       trailingSpacerVisibleBeforeRowEnd ? 1 : 0,
       isScrolling ? 1 : 0,
       scrollableRows,
@@ -3072,14 +3046,13 @@ function ListViewInner<T>(
       wheelInputActive,
       wheelMeasurementSnapshotActive,
       wheelDirectionGuardActive,
-      gestureDirection: activeScrollDirectionRef.current,
+      gestureDirection: gestureDirectionRef.current,
       correctionBudgetRows,
-      oppositeCorrectionBudgetRows,
       maintainedTopRow: scrollAnchoring.maintainedTopRow,
       declarativeScrollRow,
       scrollAuthority,
       boxScrollTo,
-      activeScrollWindowClamped,
+      gestureScrollWindowClamped,
       trailingSpacerVisibleBeforeRowEnd,
       kineticScrolling: isScrolling,
       virtualizerRowsAboveViewport,
@@ -3129,7 +3102,6 @@ function ListViewInner<T>(
     layoutOwnsRowBaseline,
     isScrolling,
     correctionBudgetRows,
-    oppositeCorrectionBudgetRows,
     outerViewportSize,
     viewportInsetRows,
     contentViewportHeight,
@@ -3141,7 +3113,7 @@ function ListViewInner<T>(
     rowsAboveViewport,
     scrollAnchoring.maintainedTopRow,
     scrollAuthority,
-    activeScrollWindowClamped,
+    gestureScrollWindowClamped,
     declarativeScrollRow,
     boxScrollTo,
     scrollOffset,
