@@ -61,7 +61,7 @@ import { CacheBackendContext, StdoutContext, TermContext } from "../../context"
 import { renderStringSync } from "../../render-string"
 import {
   createHeightModel,
-  shouldFreezeHeightModelForWheel,
+  shouldKeepHeightModelSnapshot,
   type HeightModel,
 } from "./list-view/height-model"
 import {
@@ -929,7 +929,7 @@ function ListViewInner<T>(
   const wheelGestureActiveRef = useRef(false)
   const wheelGestureActiveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const liveAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
-  const activeWheelAvgMeasuredHeightRef = useRef<number | undefined>(undefined)
+  const wheelMeasurementSnapshotAvgHeightRef = useRef<number | undefined>(undefined)
   const [, rerenderOnWheelGestureIdle] = useReducer((value: number) => value + 1, 0)
 
   const markWheelGestureActive = useCallback(() => {
@@ -938,9 +938,9 @@ function ListViewInner<T>(
       !wheelGestureActiveRef.current &&
       (!isWheelDrivenRef.current ||
         followEndPinRef.current.kind === "end" ||
-        activeWheelAvgMeasuredHeightRef.current === undefined)
+        wheelMeasurementSnapshotAvgHeightRef.current === undefined)
     ) {
-      activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
+      wheelMeasurementSnapshotAvgHeightRef.current = liveAvgMeasuredHeightRef.current
     }
     wheelGestureActiveRef.current = true
     if (wheelGestureActiveTimerRef.current !== null) {
@@ -1047,7 +1047,7 @@ function ListViewInner<T>(
       setCursorSilently(next)
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = false
-      activeWheelAvgMeasuredHeightRef.current = undefined
+      wheelMeasurementSnapshotAvgHeightRef.current = undefined
       activeScrollDirectionRef.current = null
       setScrollRow(null)
       physics.reset()
@@ -1114,7 +1114,7 @@ function ListViewInner<T>(
       const target = clampedFrac * maxRow
       scrollAnchoring.suppressOnce()
       isWheelDrivenRef.current = true
-      activeWheelAvgMeasuredHeightRef.current =
+      wheelMeasurementSnapshotAvgHeightRef.current =
         clampedFrac >= 1 - 1 / Math.max(1, maxRow) ? undefined : liveAvgMeasuredHeightRef.current
       physics.setScrollFloat(target)
       setScrollRow(Math.round(target))
@@ -1553,7 +1553,7 @@ function ListViewInner<T>(
   const avgMeasuredHeight = resolveActiveScrollMeasuredHeightFallback({
     wheelGestureActive: wheelInputActive,
     wheelDriven: wheelViewportOwned,
-    snapshotAvgMeasuredHeight: activeWheelAvgMeasuredHeightRef.current,
+    snapshotAvgMeasuredHeight: wheelMeasurementSnapshotAvgHeightRef.current,
     liveAvgMeasuredHeight,
   })
   const heightModelVersion = [
@@ -1593,7 +1593,7 @@ function ListViewInner<T>(
   // tracked across renders, deferred to Phase 3 if profiling shows it.
   const viewportWidthForHeightModel = viewportSize?.w ?? null
   const previousHeightModelConfig = heightModelConfigRef.current
-  const freezeHeightModelForWheel = shouldFreezeHeightModelForWheel({
+  const heightModelSnapshotActive = shouldKeepHeightModelSnapshot({
     wheelGestureActive: wheelMeasurementSnapshotActive,
     itemCount: activeItems.length,
     currentItemCount: heightModel.itemCount,
@@ -1604,7 +1604,7 @@ function ListViewInner<T>(
     estimateKey: virtualizerEstimateAsNumber,
     previousEstimateKey: previousHeightModelConfig?.estimateKey ?? null,
   })
-  if (!freezeHeightModelForWheel) {
+  if (!heightModelSnapshotActive) {
     heightModel.update({
       itemCount: activeItems.length,
       gap,
@@ -2352,8 +2352,11 @@ function ListViewInner<T>(
         const next = Math.max(0, Math.min(maxRow, seed + rows))
         if (next === seed) return
         scrollAnchoring.suppressOnce()
-        if (!isWheelDrivenRef.current || activeWheelAvgMeasuredHeightRef.current === undefined) {
-          activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
+        if (
+          !isWheelDrivenRef.current ||
+          wheelMeasurementSnapshotAvgHeightRef.current === undefined
+        ) {
+          wheelMeasurementSnapshotAvgHeightRef.current = liveAvgMeasuredHeightRef.current
         }
         isWheelDrivenRef.current = true
         if (scrollBehavior === "smooth") physics.animateToFloat(next)
@@ -2367,7 +2370,7 @@ function ListViewInner<T>(
       scrollToTop() {
         scrollAnchoring.suppressOnce()
         isWheelDrivenRef.current = true
-        activeWheelAvgMeasuredHeightRef.current = liveAvgMeasuredHeightRef.current
+        wheelMeasurementSnapshotAvgHeightRef.current = liveAvgMeasuredHeightRef.current
         if (scrollBehavior === "smooth") physics.animateToFloat(0)
         else physics.setScrollFloat(0)
         setScrollRow(0)
@@ -2377,7 +2380,7 @@ function ListViewInner<T>(
         const maxRow = maxScrollRowRef.current
         scrollAnchoring.suppressOnce()
         isWheelDrivenRef.current = true
-        activeWheelAvgMeasuredHeightRef.current = undefined
+        wheelMeasurementSnapshotAvgHeightRef.current = undefined
         if (scrollBehavior === "smooth") physics.animateToFloat(maxRow)
         else physics.setScrollFloat(maxRow)
         setScrollRow(maxRow)
@@ -2723,7 +2726,7 @@ function ListViewInner<T>(
         }).topRow,
       )
       isWheelDrivenRef.current = true
-      activeWheelAvgMeasuredHeightRef.current = undefined
+      wheelMeasurementSnapshotAvgHeightRef.current = undefined
       physics.setScrollFloat(targetRow)
       setScrollRow(targetRow)
       followEndPinRef.current = followEndPin("settled")
@@ -2998,7 +3001,7 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline ? 1 : 0,
       anchoringEnabled ? 1 : 0,
       wheelGestureActiveRef.current ? 1 : 0,
-      freezeHeightModelForWheel ? 1 : 0,
+      heightModelSnapshotActive ? 1 : 0,
       wheelInputActive ? 1 : 0,
       wheelMeasurementSnapshotActive ? 1 : 0,
       wheelDirectionGuardActive ? 1 : 0,
@@ -3065,7 +3068,7 @@ function ListViewInner<T>(
       layoutOwnsRowBaseline,
       anchoringEnabled,
       wheelGestureActive: wheelGestureActiveRef.current,
-      heightModelSnapshotActive: freezeHeightModelForWheel,
+      heightModelSnapshotActive,
       wheelInputActive,
       wheelMeasurementSnapshotActive,
       wheelDirectionGuardActive,
@@ -3122,7 +3125,7 @@ function ListViewInner<T>(
     innerScrollState?.offset,
     innerScrollState?.viewportHeight,
     anchoringEnabled,
-    freezeHeightModelForWheel,
+    heightModelSnapshotActive,
     layoutOwnsRowBaseline,
     isScrolling,
     correctionBudgetRows,

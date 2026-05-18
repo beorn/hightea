@@ -69,7 +69,7 @@ export interface HeightModelOptions {
   gap?: number
 }
 
-export interface HeightModelUpdateFreezeInput {
+export interface HeightModelSnapshotInput {
   wheelGestureActive: boolean
   itemCount: number
   currentItemCount: number
@@ -120,7 +120,7 @@ function rebuild(self: Internals): void {
   }
 }
 
-export function shouldFreezeHeightModelForWheel({
+export function shouldKeepHeightModelSnapshot({
   wheelGestureActive,
   itemCount,
   currentItemCount,
@@ -130,7 +130,7 @@ export function shouldFreezeHeightModelForWheel({
   previousViewportWidth,
   estimateKey,
   previousEstimateKey,
-}: HeightModelUpdateFreezeInput): boolean {
+}: HeightModelSnapshotInput): boolean {
   return (
     wheelGestureActive &&
     itemCount === currentItemCount &&

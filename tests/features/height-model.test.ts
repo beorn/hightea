@@ -7,7 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { createHeightModel, shouldFreezeHeightModelForWheel } from "@silvery/ag-react"
+import { createHeightModel, shouldKeepHeightModelSnapshot } from "@silvery/ag-react"
 import type { HeightModel } from "@silvery/ag-react"
 // Touch the type so it isn't pruned by the linter — semi-public surface check.
 const _typeCheck: HeightModel | null = null
@@ -211,9 +211,9 @@ describe("HeightModel", () => {
     expect(m.prefixSum(100)).toBe(12)
   })
 
-  test("wheel gesture freezes measurement-only height-model rebuilds", () => {
+  test("wheel gesture keeps the height-model snapshot for measurement-only rebuilds", () => {
     expect(
-      shouldFreezeHeightModelForWheel({
+      shouldKeepHeightModelSnapshot({
         wheelGestureActive: true,
         itemCount: 100,
         currentItemCount: 100,
@@ -227,7 +227,7 @@ describe("HeightModel", () => {
     ).toBe(true)
 
     expect(
-      shouldFreezeHeightModelForWheel({
+      shouldKeepHeightModelSnapshot({
         wheelGestureActive: true,
         itemCount: 101,
         currentItemCount: 100,
@@ -241,7 +241,7 @@ describe("HeightModel", () => {
     ).toBe(false)
 
     expect(
-      shouldFreezeHeightModelForWheel({
+      shouldKeepHeightModelSnapshot({
         wheelGestureActive: true,
         itemCount: 100,
         currentItemCount: 100,
