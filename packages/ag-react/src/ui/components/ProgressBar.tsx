@@ -11,7 +11,7 @@
  * ```
  */
 import React, { useEffect, useState } from "react"
-import { useBoxRect } from "../../hooks/useLayout"
+import { useBoxSize } from "../../hooks/useLayout"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 
@@ -64,9 +64,10 @@ export function ProgressBar({
   // post-layout width to compute the string content; flex props can't
   // express "expand to fill, then build a character string from the resolved
   // cell count" without a new fill primitive (out of scope for Phase 5).
-  // Consumers may pass `width` to bypass this read entirely.
-  const layoutRect = useBoxRect()
-  const contentWidth = widthProp ? 0 : layoutRect.width
+  // Consumers may pass `width` to bypass this read entirely. The hook observes
+  // only dimensions, so scroll-position-only rect changes do not wake it.
+  const { width: measuredWidth } = useBoxSize()
+  const contentWidth = widthProp ? 0 : measuredWidth
   const [bouncePos, setBouncePos] = useState(0)
   const [bounceDir, setBounceDir] = useState(1)
 

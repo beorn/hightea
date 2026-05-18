@@ -14,7 +14,7 @@
  * ```
  *
  * Internals: the outer `<Box>` always renders (it's the node being
- * measured); `useBoxRect()` reads its size. On the first paint the rect
+ * measured); `useBoxSize()` reads its size. On the first paint the size
  * is `{0,0,0,0}` and `MeasuredBox` renders nothing. After layout commits,
  * the second paint delivers the real rect to the render function.
  *
@@ -28,7 +28,7 @@
  */
 import React from "react"
 import { Box, type BoxProps } from "../../components/Box"
-import { useBoxRect, type Rect } from "../../hooks/useLayout"
+import { useBoxSize, type Rect } from "../../hooks/useLayout"
 
 export type MeasuredBoxRect = Pick<Rect, "width" | "height">
 
@@ -53,7 +53,7 @@ export function MeasuredBox({ children, ...boxProps }: MeasuredBoxProps): React.
 
 /**
  * Inner consumer that reads its enclosing Box's rect. Lives in its own
- * component so `useBoxRect()` reads the outer Box (the node we want to
+ * component so `useBoxSize()` reads the outer Box (the node we want to
  * measure) rather than the box being constructed.
  *
  * Returns null until measurement is available — width > 0 is the gate
@@ -66,7 +66,7 @@ function MeasuredInner({
 }: {
   children: MeasuredBoxRenderFn | React.ReactNode
 }): React.ReactElement | null {
-  const rect = useBoxRect()
+  const rect = useBoxSize()
   if (rect.width <= 0) return null
   if (typeof children === "function") {
     return <>{(children as MeasuredBoxRenderFn)({ width: rect.width, height: rect.height })}</>

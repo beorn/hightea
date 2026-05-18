@@ -11,7 +11,7 @@
  * ```
  */
 import React from "react"
-import { useBoxRect } from "../../hooks/useLayout"
+import { useBoxSize } from "../../hooks/useLayout"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 
@@ -30,7 +30,7 @@ export interface DividerProps {
   titleColor?: string
   /** Whether the centered title is bold. Defaults to true. */
   titleBold?: boolean
-  /** Width (default: 100% via useBoxRect) */
+  /** Width (default: 100% via useBoxSize) */
   width?: number
 }
 
@@ -57,8 +57,9 @@ export function Divider({
   // which requires the parent's resolved cell width at render time. Without a
   // dedicated "fill remaining row" layout primitive, this is genuinely (c) per
   // the use-layout-rect-callers audit — the consumer may pass `width` to opt
-  // out, but the auto-fill path needs the post-layout width signal.
-  const { width: contentWidth } = useBoxRect()
+  // out, but the auto-fill path needs the post-layout width signal. It uses
+  // a dimensions-only read so scroll-position changes do not re-render it.
+  const { width: contentWidth } = useBoxSize()
   const totalWidth = widthProp ?? (contentWidth > 0 ? contentWidth : DEFAULT_WIDTH)
 
   if (!title) {

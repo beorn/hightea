@@ -30,7 +30,7 @@ import { type JSX, useContext, useEffect, useLayoutEffect, useMemo, useRef } fro
 import { StdoutContext } from "../../context"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
-import { useBoxRect, useScreenRect } from "../../hooks/useLayout"
+import { useBoxSize, useScreenRect } from "../../hooks/useLayout"
 import { useWindowSize } from "../../hooks/useWindowSize"
 import {
   encodeKittyImage,
@@ -173,8 +173,8 @@ export function Image({
   sourceRect,
   virtualPlacement,
 }: ImageProps): JSX.Element {
-  const parentRect = useBoxRect()
-  const effectiveWidth = requestedWidth ?? parentRect.width
+  const parentSize = useBoxSize()
+  const effectiveWidth = requestedWidth ?? parentSize.width
   const effectiveHeight = requestedHeight ?? Math.max(1, Math.floor(effectiveWidth / 2))
 
   return (

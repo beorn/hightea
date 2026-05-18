@@ -67,12 +67,11 @@
  * - Typing with selection: Replaces selected text
  */
 import { forwardRef, useCallback, useImperativeHandle, useRef } from "react"
-import { useBoxRect } from "../../hooks/useLayout"
+import { useBoxSize } from "../../hooks/useLayout"
 import { useFocusable } from "../../hooks/useFocusable"
 import { Box } from "../../components/Box"
 import { Text } from "../../components/Text"
 import { useTextArea } from "./useTextArea"
-import { getWrappedLines } from "@silvery/create/text-cursor"
 import type { WrappedLine } from "@silvery/create/text-cursor"
 import type { SilveryMouseEvent } from "@silvery/ag-term/mouse-events"
 
@@ -277,11 +276,12 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // wrap can't be expressed as a flex prop because the wrap algorithm runs
   // inside the React component, not the layout engine. This is the canonical
   // (c) caller per docs/audit/use-layout-rect-callers.md: TextArea is the
-  // primary text-wrap primitive; everything else routes through it.
-  const { width: parentWidth } = useBoxRect()
+  // primary text-wrap primitive; everything else routes through it. The
+  // dimensions-only read avoids scroll-position-only re-renders.
+  const { width: parentWidth } = useBoxSize()
 
   // When borderStyle is set, TextArea renders a Box with border + paddingX.
-  // useBoxRect reads from the parent's NodeContext, so we must subtract
+  // useBoxSize reads from the parent's NodeContext, so we must subtract
   // border (1+1) and padding (1+1) to get the actual content area width.
   const contentWidth = borderStyleProp ? Math.max(1, parentWidth - 4) : parentWidth
 

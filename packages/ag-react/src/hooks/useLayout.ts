@@ -63,6 +63,12 @@ import {
 export type { Rect }
 
 const EMPTY_RECT: Rect = { x: 0, y: 0, width: 0, height: 0 }
+const EMPTY_SIZE: BoxSize = { width: 0, height: 0 }
+
+export interface BoxSize {
+  width: number
+  height: number
+}
 
 /**
  * Get the inner content dimensions of a node (border-box minus padding and border).
@@ -245,6 +251,47 @@ export function useBoxRect(): Rect {
     warnUseBoxRectDeprecation()
   }
   return useReactiveRect((committed, node) => deriveInnerRect(node, committed), "boxRectCommitted")
+}
+
+/**
+ * Internal dimensions-only variant of the deferred box rect read.
+ *
+ * This is for framework primitives that build width/height-derived text
+ * (Divider, ProgressBar, TextArea wrapping) but do not care where their
+ * parent sits on screen. It subscribes to the same committed boxRect signal
+ * as `useBoxRect()`, but only re-renders when the derived inner
+ * `{width,height}` changes. Scrolling and virtual-window spacer movement
+ * often change x/y without changing dimensions; full-rect subscriptions wake
+ * these primitives on every such frame and steal scroll budget.
+ */
+export function useBoxSize(): BoxSize {
+  const node = useContext(NodeContext)
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0)
+  const prevRef = useRef<BoxSize | null>(null)
+
+  useLayoutEffect(() => {
+    if (!node) return
+
+    markObservedLayoutSignal(node, "boxRect")
+    const signals = getLayoutSignals(node)
+
+    const dispose = effect(() => {
+      const rect = deriveInnerRect(node, signals.boxRectCommitted())
+      const next = rect ? { width: rect.width, height: rect.height } : EMPTY_SIZE
+      const prev = prevRef.current
+      if (!prev || prev.width !== next.width || prev.height !== next.height) {
+        prevRef.current = next
+        forceUpdate()
+      }
+    })
+
+    return dispose
+  }, [node])
+
+  if (!node) return EMPTY_SIZE
+  markObservedLayoutSignal(node, "boxRect")
+  const rect = deriveInnerRect(node, getLayoutSignals(node).boxRectCommitted())
+  return rect ? { width: rect.width, height: rect.height } : EMPTY_SIZE
 }
 
 const useBoxRectWarnedCallSites = new Set<string>()

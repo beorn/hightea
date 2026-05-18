@@ -27,6 +27,7 @@ import {
   useScreenRectInFlight,
   useOnScreenRectCommitted,
 } from "silvery"
+import { useBoxSize } from "../../packages/ag-react/src/hooks/useLayout"
 import type { Rect } from "@silvery/ag/types"
 
 describe("useBoxRectInFlight / useOnBoxRectCommitted", () => {
@@ -121,6 +122,37 @@ describe("useBoxRectInFlight / useOnBoxRectCommitted", () => {
     if (!lastObservedRect) throw new Error("expected at least one observed rect")
     expect(lastObservedRect.width).toBe(30)
     expect(lastObservedRect.height).toBeGreaterThan(0)
+  })
+
+  test("useBoxSize does not re-render on y-only box movement", () => {
+    const r = createRenderer({ cols: 60, rows: 8 })
+    let renderCount = 0
+
+    const WidthOnlyProbe = React.memo(function WidthOnlyProbe() {
+      renderCount++
+      const { width } = useBoxSize()
+      return <Text>width={width}</Text>
+    })
+
+    function App({ spacerHeight }: { spacerHeight: number }): React.ReactElement {
+      return (
+        <Box width={40} flexDirection="column">
+          <Box height={spacerHeight} flexShrink={0} />
+          <Box flexDirection="column">
+            <WidthOnlyProbe />
+          </Box>
+        </Box>
+      )
+    }
+
+    const app = r(<App spacerHeight={1} />)
+    expect(app.text).toContain("width=40")
+    const rendersAfterMeasurement = renderCount
+
+    app.rerender(<App spacerHeight={2} />)
+
+    expect(app.text).toContain("width=40")
+    expect(renderCount).toBe(rendersAfterMeasurement)
   })
 })
 
