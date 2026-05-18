@@ -49,6 +49,7 @@ import {
   useVirtualizer,
 } from "../../hooks/useVirtualizer"
 import { makeMeasureKey } from "../../hooks/useVirtualizer"
+import { useBoxSize } from "../../hooks/useLayout"
 import { useScrollState } from "../../hooks/useScrollState"
 import { useInput } from "../../hooks/useInput"
 import { useHover } from "../../hooks/useHover"
@@ -703,32 +704,45 @@ function MeasuredItem({
   measureLayout: boolean
   children: React.ReactNode
 }): React.ReactElement {
-  // Use a ref to always have the latest key/measureItem without re-subscribing.
-  // This avoids creating a new onLayout callback on every render.
-  const keyRef = useRef(itemKey)
-  keyRef.current = itemKey
-  const measureRef = useRef(measureItem)
-  measureRef.current = measureItem
-
-  const handleLayout = useCallback((rect: { width: number; height: number }) => {
-    if (rect.height > 0) {
-      // Forward width so the virtualizer keys the cache by `(id, width)`.
-      // Round to integer columns — a fractional width won't differ
-      // meaningfully from the integer one for cache hit purposes, and
-      // floating-point keys produce noisy duplicates after resize churn.
-      const w = rect.width > 0 ? Math.round(rect.width) : undefined
-      measureRef.current(keyRef.current, rect.height, w)
-    }
-  }, [])
-
-  // Render children inside a transparent wrapper Box with onLayout.
+  // Render children inside a transparent wrapper Box with a size-only
+  // observer. Full `onLayout` observes x/y too; during scroll every measured
+  // row moves on screen even when width/height did not change.
   // The Box inherits the parent's column layout direction and doesn't
   // constrain the child — it simply provides a node for measurement.
   return (
-    <Box flexDirection="column" flexShrink={0} onLayout={measureLayout ? handleLayout : undefined}>
+    <Box flexDirection="column" flexShrink={0}>
+      <MeasuredItemSizeObserver
+        itemKey={itemKey}
+        measureItem={measureItem}
+        measureLayout={measureLayout}
+      />
       {children}
     </Box>
   )
+}
+
+function MeasuredItemSizeObserver({
+  itemKey,
+  measureItem,
+  measureLayout,
+}: {
+  itemKey: string | number
+  measureItem: (key: string | number, height: number, width?: number) => boolean
+  measureLayout: boolean
+}): null {
+  const { width, height } = useBoxSize()
+
+  useLayoutEffect(() => {
+    if (!measureLayout || height <= 0) return
+    // Forward width so the virtualizer keys the cache by `(id, width)`.
+    // Round to integer columns — a fractional width won't differ
+    // meaningfully from the integer one for cache hit purposes, and
+    // floating-point keys produce noisy duplicates after resize churn.
+    const w = width > 0 ? Math.round(width) : undefined
+    measureItem(itemKey, height, w)
+  }, [height, itemKey, measureItem, measureLayout, width])
+
+  return null
 }
 
 // =============================================================================

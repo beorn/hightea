@@ -372,6 +372,36 @@ function FlickList({
   )
 }
 
+function FixedHeightFlickList({
+  items,
+  listRef,
+}: {
+  items: readonly RowItem[]
+  listRef: React.RefObject<ListViewHandle | null>
+}): React.ReactElement {
+  return (
+    <Box flexDirection="column" flexGrow={1} minHeight={0}>
+      <ListView<RowItem>
+        ref={listRef}
+        items={[...items]}
+        height={100}
+        estimateHeight={1}
+        getKey={(item) => item.id}
+        follow="end"
+        virtualization="index"
+        enableInputCadenceDetection
+        viewportBottomInset={5}
+        scrollbarVisibility="always"
+        renderItem={(item) => (
+          <Box height={item.height} flexShrink={0}>
+            <Text>{item.label}</Text>
+          </Box>
+        )}
+      />
+    </Box>
+  )
+}
+
 function MutableHeightFlickList({
   listRef,
   mutateRef,
@@ -991,6 +1021,47 @@ describe("ListView trackpad flick replay through termless", () => {
             )
             .join(" | "),
         ).toBeLessThanOrEqual(20)
+        expect(
+          boxRectInvalidates,
+          getPassHistogram()
+            .byCause.map(
+              (entry) =>
+                `${entry.cause}: ${entry.topEdges.map((edge) => `${edge.edge}=${edge.count}`).join(", ")}`,
+            )
+            .join(" | "),
+        ).toBeLessThanOrEqual(60)
+      } finally {
+        handle.unmount()
+      }
+    },
+    20_000,
+  )
+
+  test.skipIf(process.env.SILVERY_INSTRUMENT !== "1")(
+    "does not emit boxRect invalidations for measured row y-only movement",
+    async () => {
+      using term = createTermless({ cols: 302, rows: 117 })
+      const listRef = React.createRef<ListViewHandle>()
+      const items = makeVariableRows(1271)
+      const handle: RunHandle = await run(
+        <FixedHeightFlickList items={items} listRef={listRef} />,
+        term,
+        {
+          mouse: true,
+        },
+      )
+      try {
+        await settle(120)
+        act(() => {
+          listRef.current?.scrollToBottom()
+        })
+        await settle(120)
+
+        resetPassHistogram()
+        await term.mouse.trackpadFlick(USER_LOG_20260517_SLIP_UP_FLICK_PACKETS)
+        await settle(800)
+
+        const boxRectInvalidates = layoutInvalidateEdgeCount("boxRect")
         expect(
           boxRectInvalidates,
           getPassHistogram()

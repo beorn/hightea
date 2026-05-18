@@ -548,6 +548,9 @@ function _checkDescendantOverflow(
 export function notifyLayoutSubscribers(node: AgNode): void {
   // Notify if content rect, screen rect, or render rect changed
   const contentChanged = !rectEqual(node.prevLayout, node.boxRect)
+  const sizeChanged =
+    (node.prevLayout?.width ?? 0) !== (node.boxRect?.width ?? 0) ||
+    (node.prevLayout?.height ?? 0) !== (node.boxRect?.height ?? 0)
   const screenChanged = !rectEqual(node.prevScrollRect, node.scrollRect)
   const renderChanged = !rectEqual(node.prevScreenRect, node.screenRect)
 
@@ -577,6 +580,14 @@ export function notifyLayoutSubscribers(node: AgNode): void {
           logPass({
             cause: "layout-invalidate",
             edge: "boxRect",
+            nodeId: ident,
+            producerPhase: "layout",
+          })
+        }
+        if (sizeChanged && hasObservedLayoutSignal(node, "boxSize")) {
+          logPass({
+            cause: "layout-invalidate",
+            edge: "boxSize",
             nodeId: ident,
             producerPhase: "layout",
           })

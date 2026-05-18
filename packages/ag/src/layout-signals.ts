@@ -58,7 +58,7 @@ type WritableSignal<T> = {
   (value: T): void
 }
 
-export type ObservedLayoutSignalKey = "boxRect" | "scrollRect" | "screenRect"
+export type ObservedLayoutSignalKey = "boxRect" | "boxSize" | "scrollRect" | "screenRect"
 
 const permanentlyObservedLayoutSignals = new WeakMap<AgNode, Set<ObservedLayoutSignalKey>>()
 const observedLayoutSignals = new WeakMap<AgNode, Set<ObservedLayoutSignalKey>>()

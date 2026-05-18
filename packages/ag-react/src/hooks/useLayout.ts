@@ -272,7 +272,7 @@ export function useBoxSize(): BoxSize {
   useLayoutEffect(() => {
     if (!node) return
 
-    markObservedLayoutSignal(node, "boxRect")
+    markObservedLayoutSignal(node, "boxSize")
     const signals = getLayoutSignals(node)
 
     const dispose = effect(() => {
@@ -289,7 +289,7 @@ export function useBoxSize(): BoxSize {
   }, [node])
 
   if (!node) return EMPTY_SIZE
-  markObservedLayoutSignal(node, "boxRect")
+  markObservedLayoutSignal(node, "boxSize")
   const rect = deriveInnerRect(node, getLayoutSignals(node).boxRectCommitted())
   return rect ? { width: rect.width, height: rect.height } : EMPTY_SIZE
 }
