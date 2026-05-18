@@ -907,6 +907,9 @@ function ListViewInner<T>(
   // virtualizer's measurement is consumed via `rowsAboveViewport`; the
   // ref is updated every render below.
   const rowsAboveViewportRef = useRef(0)
+  // Latest visually authoritative top row. On wheel handoff this may be
+  // follow=end or declarative scroll, not the kinetic hook's stale float.
+  const visualTopRowRef = useRef(0)
   // Mark the viewport as wheel-driven on the first wheel event of a
   // gesture so `scrollRow` flips from null → integer. Reset to null by
   // `moveTo` when the cursor takes over.
@@ -1061,11 +1064,17 @@ function ListViewInner<T>(
         return
       }
       const wheelDirection = event.deltaY < 0 ? "up" : "down"
+      const shouldSeedWheelHandoff =
+        !isWheelDrivenRef.current || followActiveRef.current || pendingFollowSnapRef.current
       if (wheelDirection === "up") {
         followActiveRef.current = false
         pendingFollowSnapRef.current = false
       }
       isWheelDrivenRef.current = true
+      if (shouldSeedWheelHandoff) {
+        const seed = Math.max(0, Math.min(maxRow, visualTopRowRef.current))
+        physics.nudgeScrollFloat(seed)
+      }
       markWheelGestureActive()
       scrollAnchoring.suppressOnce()
       pendingWheelScrollDirectionRef.current = wheelDirection
@@ -1725,6 +1734,7 @@ function ListViewInner<T>(
   })
   const renderScrollRow = renderScroll.row
   const scrollAuthority = renderScroll.authority
+  visualTopRowRef.current = renderScrollRow ?? rowsAboveViewport
 
   // ── Viewport-anchored windowing (height-independent / "index" mode) ──
   //
