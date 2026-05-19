@@ -65,10 +65,6 @@ export function shouldApplyVisibleContentAnchoring({
 }
 
 const DEFAULT_TOLERANCE_ROWS = 0.5
-export function resolveGestureAnchorCorrectionBudgetRows(contentViewportHeight: number): number {
-  void contentViewportHeight
-  return 0
-}
 
 export function resolveHeightModelSnapshotFallback({
   wheelGestureActive,

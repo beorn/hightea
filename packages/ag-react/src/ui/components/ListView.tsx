@@ -86,7 +86,6 @@ import {
   resolveTrailingSpacerFillEnd,
 } from "./list-view/index-window"
 import {
-  detectGestureRenderScrollViolation,
   resolveGestureScrollWindow,
   resolveListViewBoxScrollTo,
   resolveListViewRenderScrollRow,
@@ -98,7 +97,6 @@ import {
   type ScrollPosition,
 } from "./list-view/scroll-position"
 import {
-  resolveGestureAnchorCorrectionBudgetRows,
   resolveHeightModelSnapshotFallback,
   resolveRowsAboveViewport,
   shouldApplyVisibleContentAnchoring,
@@ -1746,10 +1744,6 @@ function ListViewInner<T>(
     followOwnsViewport: followPinnedTopRow !== null,
     wheelGestureActive: wheelMeasurementSnapshotActive,
   })
-  const correctionBudgetRows =
-    wheelDirectionGuardActive && gestureDirectionRef.current !== null
-      ? resolveGestureAnchorCorrectionBudgetRows(contentViewportHeight)
-      : undefined
   const scrollAnchoring = useScrollAnchoring({
     // Wheel/trackpad gestures keep their active direction threaded into
     // anchoring so measurement churn may preserve visible content without
@@ -1763,7 +1757,6 @@ function ListViewInner<T>(
     viewportHeight: contentViewportHeight,
     followOwnsViewport: false,
     gestureDirection: wheelDirectionGuardActive ? gestureDirectionRef.current : null,
-    correctionBudgetRows,
     modelVersion: heightModelVersion,
     onApplyTopRow: applyAnchoredTopRow,
   })
@@ -2184,48 +2177,6 @@ function ListViewInner<T>(
       : hiddenAfter
   const viewportOffsetWithinWindowRows =
     renderScrollRow === null ? null : renderScrollRow - effectiveLeadingHeight
-  const currentWindowGestureDirection = wheelDirectionGuardActive
-    ? gestureDirectionRef.current
-    : null
-  const previousIndexWindow = indexWindowPrevRef.current
-  const previousRenderScrollRow =
-    currentWindowGestureDirection !== null &&
-    previousIndexWindow.gestureDirection === currentWindowGestureDirection &&
-    previousIndexWindow.renderScrollRow !== null
-      ? previousIndexWindow.renderScrollRow
-      : null
-  const renderScrollViolation = detectGestureRenderScrollViolation({
-    gestureDirection: currentWindowGestureDirection,
-    previousRenderScrollRow,
-    renderScrollRow,
-  })
-  if (renderScrollViolation !== null && process?.env?.SILVERY_STRICT) {
-    const msg =
-      `[SILVERY_STRICT] ListView renderScrollRow moved opposite active ` +
-      `${renderScrollViolation.gestureDirection} gesture`
-    if (process.env.SILVERY_STRICT === "2") throw new Error(msg)
-    listLog.warn?.(msg, {
-      previousRenderScrollRow: renderScrollViolation.previousRenderScrollRow,
-      renderScrollRow: renderScrollViolation.renderScrollRow,
-      deltaRows: renderScrollViolation.deltaRows,
-      toleranceRows: renderScrollViolation.toleranceRows,
-      viewportOffsetWithinWindowRows,
-      previousViewportOffsetWithinWindowRows:
-        previousIndexWindow.renderScrollRow === null
-          ? null
-          : previousIndexWindow.renderScrollRow - previousIndexWindow.leadingHeight,
-      effectiveLeadingHeight,
-      previousLeadingHeight: previousIndexWindow.leadingHeight,
-      startIndex: indexWindowStart,
-      previousStartIndex: previousIndexWindow.startIndex,
-      endIndex: indexWindowEnd,
-      previousEndIndex: previousIndexWindow.endIndex,
-      scrollRow,
-      scrollAuthority,
-      gestureScrollWindowClamped,
-    })
-  }
-
   // Update prev-window ref AFTER computing the spacer sums (so the
   // hasLeadingSpacer flag matches what's about to render).
   // `hasInterstitial` mirrors the render path: a single gap-Box (when
@@ -2238,7 +2189,7 @@ function ListViewInner<T>(
     hasInterstitial: renderSeparator !== undefined || gap > 0,
     leadingHeight: effectiveLeadingHeight,
     renderScrollRow,
-    gestureDirection: currentWindowGestureDirection,
+    gestureDirection: wheelDirectionGuardActive ? gestureDirectionRef.current : null,
   }
 
   // ── Surface / search registration ────────────────────────────────
@@ -3115,7 +3066,6 @@ function ListViewInner<T>(
       wheelMeasurementSnapshotActive ? 1 : 0,
       wheelDirectionGuardActive ? 1 : 0,
       gestureDirectionRef.current ?? "null",
-      correctionBudgetRows ?? "null",
       scrollAnchoring.maintainedTopRow ?? "null",
       declarativeScrollRow ?? "null",
       scrollAuthority,
@@ -3182,7 +3132,6 @@ function ListViewInner<T>(
       wheelMeasurementSnapshotActive,
       wheelDirectionGuardActive,
       gestureDirection: gestureDirectionRef.current,
-      correctionBudgetRows,
       maintainedTopRow: scrollAnchoring.maintainedTopRow,
       declarativeScrollRow,
       scrollAuthority,
@@ -3238,7 +3187,6 @@ function ListViewInner<T>(
     heightModelSnapshotActive,
     layoutOwnsRowBaseline,
     isScrolling,
-    correctionBudgetRows,
     outerViewportSize,
     viewportInsetRows,
     contentViewportHeight,
