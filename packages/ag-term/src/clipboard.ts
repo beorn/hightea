@@ -19,6 +19,8 @@
  * Supported by: Ghostty, Kitty, WezTerm, iTerm2, xterm, foot, tmux
  */
 
+import { ProtocolError } from "@silvery/ansi"
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -251,8 +253,13 @@ export function requestClipboard(stdout: NodeJS.WriteStream): void {
 /**
  * Parse an OSC 52 clipboard response and decode the base64 content.
  *
- * Returns the decoded clipboard text, or null if the input is not
- * an OSC 52 clipboard response.
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input is NOT an OSC 52 clipboard response (no prefix, or a
+ *   query marker `?` rather than a response). Callers in a discriminator
+ *   chain treat this as "next parser please."
+ * - `throw ProtocolError` — input HAS the OSC 52 prefix (we committed to
+ *   this protocol) but is malformed (e.g., missing terminator). Loud
+ *   failure is required by bead 15127 acceptance line 22.
  *
  * Handles both BEL (\x07) and ST (ESC \) terminators.
  */
@@ -262,7 +269,8 @@ export function parseClipboardResponse(input: string): string | null {
 
   const contentStart = prefixIdx + OSC52_PREFIX.length
 
-  // Reject the query marker — it's not a response
+  // Reject the query marker — it's not a response (but it IS valid OSC 52
+  // input, so silent skip is correct, not a ProtocolError).
   if (input[contentStart] === "?") return null
 
   // Find terminator: BEL (\x07) or ST (ESC \)
@@ -270,7 +278,15 @@ export function parseClipboardResponse(input: string): string | null {
   if (contentEnd === -1) {
     contentEnd = input.indexOf(`${ESC}\\`, contentStart)
   }
-  if (contentEnd === -1) return null
+  if (contentEnd === -1) {
+    // We committed to OSC 52 (prefix matched) — missing terminator is a
+    // protocol violation, not a "next parser please" condition.
+    throw new ProtocolError({
+      parser: "parseClipboardResponse",
+      input,
+      reason: "missing terminator (expected BEL or ST after OSC 52 base64 payload)",
+    })
+  }
 
   const base64 = input.slice(contentStart, contentEnd)
   return Buffer.from(base64, "base64").toString("utf-8")

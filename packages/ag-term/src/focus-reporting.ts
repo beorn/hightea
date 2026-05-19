@@ -34,6 +34,14 @@ export function disableFocusReporting(write: (data: string) => void): void {
 /**
  * Parse a focus event from terminal input.
  *
+ * Return semantics (see ProtocolError in @silvery/ansi for the full contract):
+ * - `null` — input contains neither `CSI I` nor `CSI O` markers (not a
+ *   focus event). Discriminator-chain "next parser please" signal.
+ *
+ * The bead 15127 audit listed this parser for review, but there is no
+ * "committed but malformed" branch — the marker either appears in the
+ * input or it doesn't. No ProtocolError throw needed.
+ *
  * @param input Raw terminal input string
  * @returns Parsed focus event, or null if not a focus sequence
  */

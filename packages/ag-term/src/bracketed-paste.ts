@@ -14,6 +14,8 @@
  * Supported by: Ghostty, Kitty, WezTerm, iTerm2, Alacritty, xterm, tmux, foot
  */
 
+import { ProtocolError } from "@silvery/ansi"
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -57,8 +59,14 @@ export interface BracketedPasteResult {
 /**
  * Detect and extract bracketed paste content from raw terminal input.
  *
- * Returns the paste content if the input contains a complete bracketed paste
- * sequence (PASTE_START ... PASTE_END), or null if no paste markers are found.
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input contains no PASTE_START marker (this is not bracketed
+ *   paste input). Discriminator-chain "next parser please" signal.
+ * - `throw ProtocolError` — input HAS PASTE_START (we committed to
+ *   bracketed paste) but no PASTE_END follows. This indicates either a
+ *   stream-split paste (caller should buffer and retry on the next chunk)
+ *   or a protocol violation. Loud failure surfaces the gap; the dispatch
+ *   layer catches and decides whether to buffer or log.
  */
 export function parseBracketedPaste(input: string): BracketedPasteResult | null {
   const startIdx = input.indexOf(PASTE_START)
@@ -66,7 +74,15 @@ export function parseBracketedPaste(input: string): BracketedPasteResult | null 
 
   const contentStart = startIdx + PASTE_START.length
   const endIdx = input.indexOf(PASTE_END, contentStart)
-  if (endIdx === -1) return null
+  if (endIdx === -1) {
+    // PASTE_START found but no PASTE_END — protocol violation OR mid-stream
+    // split. Throwing surfaces it; the dispatch boundary may catch and buffer.
+    throw new ProtocolError({
+      parser: "parseBracketedPaste",
+      input,
+      reason: "PASTE_START present but no PASTE_END terminator in chunk",
+    })
+  }
 
   return {
     type: "paste",

@@ -131,11 +131,12 @@ describe("bracketed paste parsing", () => {
     })
   })
 
-  test("returns null for incomplete sequence", () => {
+  test("throws ProtocolError for incomplete sequence (PASTE_START only)", () => {
+    // PASTE_START present but no PASTE_END — the parser committed to
+    // bracketed paste and must fail loudly. Dispatch boundary (input-owner
+    // and renderer) catches and logs. Bead 15127 protocol-loud-errors.
     const input = `${PASTE_START}incomplete`
-    const result = parseBracketedPaste(input)
-
-    expect(result).toBeNull()
+    expect(() => parseBracketedPaste(input)).toThrow(/PASTE_END/)
   })
 
   test("returns null for no paste markers", () => {

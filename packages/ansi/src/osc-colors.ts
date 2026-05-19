@@ -2,6 +2,8 @@
  * OSC 10/11/12 Terminal Color Queries — pure ANSI protocol.
  */
 
+import { ProtocolError } from "./protocol-error"
+
 const ESC = "\x1b"
 const BEL = "\x07"
 
@@ -18,17 +20,43 @@ function normalizeHexChannel(hex: string): string {
   }
 }
 
-function parseOscColorResponse(input: string, oscCode: number): string | null {
+/**
+ * Parse an OSC 10/11/12 color query response.
+ *
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input does not contain the OSC `oscCode` prefix (not for us).
+ * - `throw ProtocolError` — prefix matched (we committed to this protocol)
+ *   but the response is malformed: missing terminator, body is not a valid
+ *   `rgb:RRRR/GGGG/BBBB` spec, etc.
+ *
+ * Exported for testing and so callers in chained-discriminator pipelines
+ * can dispatch raw input through the parser directly. Most users should
+ * use {@link queryForegroundColor} / {@link queryBackgroundColor} /
+ * {@link queryCursorColor} which wrap this with the write+read cycle.
+ */
+export function parseOscColorResponse(input: string, oscCode: number): string | null {
   const prefix = `${ESC}]${oscCode};`
   const prefixIdx = input.indexOf(prefix)
   if (prefixIdx === -1) return null
   const bodyStart = prefixIdx + prefix.length
   let bodyEnd = input.indexOf(BEL, bodyStart)
   if (bodyEnd === -1) bodyEnd = input.indexOf(`${ESC}\\`, bodyStart)
-  if (bodyEnd === -1) return null
+  if (bodyEnd === -1) {
+    throw new ProtocolError({
+      parser: "parseOscColorResponse",
+      input,
+      reason: `OSC ${oscCode} prefix present but missing terminator (expected BEL or ST)`,
+    })
+  }
   const body = input.slice(bodyStart, bodyEnd)
   const match = RGB_BODY_RE.exec(body)
-  if (!match) return null
+  if (!match) {
+    throw new ProtocolError({
+      parser: "parseOscColorResponse",
+      input,
+      reason: `OSC ${oscCode} body is not a valid rgb:RRRR/GGGG/BBBB spec (body=${JSON.stringify(body)})`,
+    })
+  }
   return `#${normalizeHexChannel(match[1]!)}${normalizeHexChannel(match[2]!)}${normalizeHexChannel(match[3]!)}`
 }
 
@@ -41,6 +69,8 @@ async function queryOscColor(
   write(`${ESC}]${oscCode};?${BEL}`)
   const data = await read(timeoutMs)
   if (data == null) return null
+  // ProtocolError surfaces malformed responses — callers of the async
+  // queryX wrappers see them as a rejected promise and can log + retry.
   return parseOscColorResponse(data, oscCode)
 }
 

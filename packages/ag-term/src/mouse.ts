@@ -60,6 +60,17 @@ export interface ParseMouseOptions {
 /**
  * Parse an SGR mouse sequence.
  *
+ * Return semantics (see ProtocolError in @silvery/ansi for the full contract):
+ * - `null` — input does not match the SGR mouse shape `CSI < B;X;Y [Mm]`.
+ *   No "committed but malformed" branch exists here: either the full SGR
+ *   shape matches (parse succeeds) or it doesn't (null = next-parser-please).
+ *
+ * The bead 15127 audit listed this parser for review, but the regex-based
+ * shape match means there's no place where the parser commits to "this is
+ * a mouse event" and then fails on body validation — both happen at the
+ * same point. Loud-error tightening here would require a stricter
+ * sub-grammar (e.g. validating button-code ranges), tracked separately.
+ *
  * @returns ParsedMouse or null if not a valid mouse sequence
  */
 export function parseMouseSequence(input: string, options?: ParseMouseOptions): ParsedMouse | null {

@@ -326,8 +326,14 @@ describe("parseBracketedPaste", () => {
     expect(parseBracketedPaste("just some text")).toBeNull()
   })
 
-  test("returns null for incomplete paste (start only)", () => {
-    expect(parseBracketedPaste(`${PASTE_START}partial content`)).toBeNull()
+  test("throws ProtocolError for incomplete paste (PASTE_START only)", () => {
+    // PASTE_START found but no PASTE_END — the parser committed to bracketed
+    // paste and must fail loudly so the dispatch boundary can decide whether
+    // to buffer (stream-split paste) or log + drop (protocol violation).
+    // See @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
+    expect(() => parseBracketedPaste(`${PASTE_START}partial content`)).toThrow(
+      /PASTE_END/,
+    )
   })
 
   test("handles multiline pasted content", () => {
@@ -433,8 +439,12 @@ describe("parseClipboardResponse", () => {
     expect(parseClipboardResponse("\x1b]52;c;?\x07")).toBeNull()
   })
 
-  test("returns null for unterminated response", () => {
+  test("throws ProtocolError for unterminated response", () => {
+    // OSC 52 prefix present (we committed to this protocol) but no BEL/ST
+    // terminator. The parser must fail loudly so the dispatch boundary
+    // surfaces the malformed terminal output.
+    // See @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
     const base64 = Buffer.from("hello").toString("base64")
-    expect(parseClipboardResponse(`\x1b]52;c;${base64}`)).toBeNull()
+    expect(() => parseClipboardResponse(`\x1b]52;c;${base64}`)).toThrow(/terminator/i)
   })
 })

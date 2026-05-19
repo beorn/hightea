@@ -328,8 +328,12 @@ describe("parseOsc5522Response", () => {
     expect(parseOsc5522Response("random text")).toBeNull()
   })
 
-  test("returns null for unterminated sequence", () => {
-    expect(parseOsc5522Response(`${ESC}]5522;type=read`)).toBeNull()
+  test("throws ProtocolError for unterminated sequence", () => {
+    // OSC 5522 prefix present (we committed to this protocol) but no ST
+    // terminator. The parser must fail loudly so the dispatch boundary
+    // surfaces the malformed terminal output.
+    // See @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
+    expect(() => parseOsc5522Response(`${ESC}]5522;type=read`)).toThrow(/terminator|ST/i)
   })
 
   test("handles 5522 prefix embedded in larger input", () => {

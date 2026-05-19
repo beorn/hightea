@@ -18,6 +18,11 @@
  * @module
  */
 
+import { isProtocolError, ProtocolError } from "@silvery/ansi"
+import { createLogger } from "loggily"
+
+const log = createLogger("silvery:advanced-clipboard")
+
 // ============================================================================
 // Constants
 // ============================================================================
@@ -178,6 +183,12 @@ interface ParsedResponse {
  *
  * Format: ESC ] 5522 ; metadata ; payload ST
  * Metadata: colon-separated key=value pairs
+ *
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — input does NOT contain the OSC 5522 prefix (not for us).
+ * - `throw ProtocolError` — prefix matched (we committed to OSC 5522)
+ *   but the response is missing its ST terminator. Loud failure makes
+ *   the gap visible to the dispatcher boundary.
  */
 export function parseOsc5522Response(input: string): ParsedResponse | null {
   // Find OSC 5522 prefix
@@ -188,7 +199,13 @@ export function parseOsc5522Response(input: string): ParsedResponse | null {
 
   // Find ST terminator (ESC \)
   const stIdx = input.indexOf(ST, afterPrefix)
-  if (stIdx === -1) return null
+  if (stIdx === -1) {
+    throw new ProtocolError({
+      parser: "parseOsc5522Response",
+      input,
+      reason: "OSC 5522 prefix present but missing ST terminator",
+    })
+  }
 
   const body = input.slice(afterPrefix, stIdx)
 
@@ -234,12 +251,32 @@ export function parseOsc5522Response(input: string): ParsedResponse | null {
  * sends available MIME types when the user pastes.
  *
  * Format: ESC ] 5522 ; type=read:status=DATA:mime=<b64mime> ; <b64data> ST
+ *
+ * Return semantics (see {@link ProtocolError} for the full contract):
+ * - `null` — not an OSC 5522 response, OR not a `type=read status=DATA`
+ *   message (e.g. it's a DONE notification, a write response, or some
+ *   other valid 5522 message that just isn't paste DATA). Discriminator
+ *   chain "next-please."
+ * - `throw ProtocolError` — DATA message identified (the dispatcher
+ *   committed to it being a paste data chunk) but the mime field or
+ *   payload is missing. Loud failure surfaces the malformed terminal
+ *   output to the dispatch boundary.
+ *
+ * Note: a `ProtocolError` from {@link parseOsc5522Response} also bubbles
+ * through this function (we deliberately do not catch it here — let the
+ * single dispatch boundary handle it consistently).
  */
 export function parsePasteData(input: string): ClipboardEntry | null {
   const parsed = parseOsc5522Response(input)
   if (!parsed) return null
   if (parsed.type !== "read" || parsed.status !== "DATA") return null
-  if (!parsed.mime || parsed.payload === undefined) return null
+  if (!parsed.mime || parsed.payload === undefined) {
+    throw new ProtocolError({
+      parser: "parsePasteData",
+      input,
+      reason: "OSC 5522 type=read status=DATA missing required mime or payload field",
+    })
+  }
 
   const mime = fromBase64(parsed.mime)
   const isText = mime.startsWith("text/")
@@ -304,14 +341,40 @@ export function createAdvancedClipboard(options: AdvancedClipboardOptions): Adva
     inputUnsub = onData((data: string) => {
       if (pasteHandlers.size === 0) return
 
-      // Try to parse paste data from the input
-      const entry = parsePasteData(data)
+      // The parsers may throw ProtocolError on malformed OSC 5522 input
+      // (prefix matched but missing ST terminator, or DATA message without
+      // mime/payload). This is a dispatch boundary — log + continue, never
+      // crash the app on protocol-format problems.
+      // Bead: @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
+      let entry: ClipboardEntry | null = null
+      try {
+        entry = parsePasteData(data)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          log.debug?.(
+            `parsePasteData flagged malformed OSC 5522 input: ${err.reason} (len=${err.inputLength})`,
+          )
+        } else {
+          throw err
+        }
+      }
       if (entry) {
         pendingEntries.push(entry)
       }
 
       // Check for DONE signal — flush accumulated entries to handlers
-      const parsed = parseOsc5522Response(data)
+      let parsed: ParsedResponse | null = null
+      try {
+        parsed = parseOsc5522Response(data)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          log.debug?.(
+            `parseOsc5522Response flagged malformed input: ${err.reason} (len=${err.inputLength})`,
+          )
+        } else {
+          throw err
+        }
+      }
       if (parsed?.type === "read" && parsed.status === "DONE") {
         if (pendingEntries.length > 0) {
           const entries = pendingEntries

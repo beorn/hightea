@@ -282,6 +282,13 @@ export type {
 } from "./theme/detect"
 
 // =============================================================================
+// Protocol Error — structured loud-failure for parsers
+// =============================================================================
+
+export { ProtocolError, isProtocolError } from "./protocol-error"
+export type { ProtocolErrorContext } from "./protocol-error"
+
+// =============================================================================
 // OSC Protocol — Terminal color queries
 // =============================================================================
 
