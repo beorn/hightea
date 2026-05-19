@@ -480,11 +480,11 @@ export interface ListViewProps<T> {
   virtualization?: VirtualizationStrategy
 
   /**
-   * Item count threshold below which the default strategy is `"none"`
-   * (render every item). Above this threshold ListView switches to its
-   * size-aware default. Lifted into a prop so consumers with cheap items
-   * can raise the bar (e.g. 500 trivial Text rows) and consumers with
-   * expensive items can lower it. Default: 100.
+   * Item count threshold at or below which the default strategy is
+   * `"none"` (render every item). Above this threshold ListView switches
+   * to its size-aware default. Lifted into a prop so consumers with
+   * expensive items can lower the bar. Default: 10,000 — mount-all is
+   * the common case; only very large lists virtualize by default.
    */
   virtualizationThreshold?: number
 
@@ -683,9 +683,15 @@ const DEFAULT_SCROLL_PADDING = 2
 /** Item-count cutoff for the small-list-renders-all default. Below this,
  * the default `virtualization` is `"none"` (no windowing) regardless of
  * `height`. Most lists in real apps are well below this — the default
- * exists so callers don't have to opt out of windowing for their 30-row
- * settings panel. */
-const DEFAULT_VIRTUALIZATION_THRESHOLD = 100
+ * makes mount-all the common-case shape, so first paint shows the full
+ * list immediately instead of waiting on virtualization-window settle.
+ * Consumers with cheap items can leave the bar high; consumers with
+ * expensive items can lower it via `virtualizationThreshold`.
+ *
+ * Raised from 100 → 10,000 in 15332 Wave 3 (W7). The old 100 made
+ * silvercode chat with >100 messages virtualize by default, which
+ * delayed last-message visibility at resume time. */
+const DEFAULT_VIRTUALIZATION_THRESHOLD = 10_000
 /** Default row-count budget for index-window expansion. The index window
  * grows until either `maxRendered` (item count) or this (estimated total
  * rows) is hit. Tall items hit the row budget first, short items hit the
