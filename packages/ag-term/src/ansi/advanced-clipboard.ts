@@ -132,21 +132,42 @@ function osc5522(metadata: string, payload?: string): string {
 /**
  * Generate chunked wdata sequences for a single MIME entry.
  *
- * Each chunk is at most chunkSize bytes before base64 encoding.
- * An empty wdata with just the mime signals end of data for that type.
+ * Each chunk is at most chunkSize bytes before base64 encoding. When the
+ * payload spans more than one chunk, every non-final chunk carries the
+ * Kitty continuation flag `m=1` in its metadata; the final data chunk
+ * carries `m=0`. Single-chunk payloads omit the `m=` flag entirely for
+ * back-compat with terminals that don't speak the chunking extension.
+ * An empty wdata with just `type=wdata` (no mime, no payload) signals
+ * end of data for that MIME type.
+ *
+ * @see https://sw.kovidgoyal.net/kitty/clipboard/
  */
 function* generateChunks(entry: ClipboardEntry, chunkSize: number): Generator<string> {
   const mimeB64 = toBase64(entry.mime)
   const raw = entryDataToBuffer(entry.data)
 
   if (raw.length === 0) {
-    // Even empty data sends one chunk then a terminator
+    // Empty payload — single chunk, no m= flag (back-compat single-chunk path)
     yield osc5522(`type=wdata:mime=${mimeB64}`, "")
+  } else if (raw.length <= chunkSize) {
+    // Single-chunk happy path — no m= flag, identical wire format to the
+    // pre-chunking implementation so terminals that ignore unknown keys are
+    // unaffected.
+    const b64 = bytesToBase64(new Uint8Array(raw))
+    yield osc5522(`type=wdata:mime=${mimeB64}`, b64)
   } else {
+    // Multi-chunk payload — emit m=1 on every non-final chunk and m=0 on
+    // the final data chunk. The empty-wdata terminator below still signals
+    // end-of-data for the MIME type.
+    const totalChunks = Math.ceil(raw.length / chunkSize)
+    let chunkIndex = 0
     for (let offset = 0; offset < raw.length; offset += chunkSize) {
       const chunk = raw.subarray(offset, offset + chunkSize)
       const b64 = bytesToBase64(new Uint8Array(chunk))
-      yield osc5522(`type=wdata:mime=${mimeB64}`, b64)
+      const isFinal = chunkIndex === totalChunks - 1
+      const more = isFinal ? "0" : "1"
+      yield osc5522(`type=wdata:m=${more}:mime=${mimeB64}`, b64)
+      chunkIndex++
     }
   }
 
@@ -176,6 +197,11 @@ interface ParsedResponse {
   status?: string
   mime?: string
   payload?: string
+  /**
+   * Kitty multi-chunk continuation flag. `"1"` = more chunks follow,
+   * `"0"` = this is the final data chunk. Absent on single-chunk payloads.
+   */
+  more?: string
 }
 
 /**
@@ -233,6 +259,9 @@ export function parseOsc5522Response(input: string): ParsedResponse | null {
         break
       case "mime":
         result.mime = value
+        break
+      case "m":
+        result.more = value
         break
     }
   }

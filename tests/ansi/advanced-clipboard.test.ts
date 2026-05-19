@@ -209,16 +209,19 @@ describe("chunking", () => {
     // Verify write start
     expect(written[0]).toBe(`${ESC}]5522;type=write${ST}`)
 
-    // Verify the data chunks reconstruct to original
+    // Verify the data chunks reconstruct to original. With multi-chunk
+    // payloads each non-final chunk carries `m=1` in its metadata, so we
+    // accept either prefix shape and just grab the base64 payload via the
+    // public response parser.
     const mimeB64 = toBase64("text/plain")
     let reconstructed = ""
     for (let i = 1; i < written.length - 1; i++) {
-      const line = written[i]!
-      // Extract payload after the semicolon separator
-      const prefix = `${ESC}]5522;type=wdata:mime=${mimeB64};`
-      expect(line.startsWith(prefix)).toBe(true)
-      const payload = line.slice(prefix.length, -ST.length)
-      reconstructed += fromBase64(payload)
+      const parsed = parseOsc5522Response(written[i]!)
+      expect(parsed).not.toBeNull()
+      expect(parsed!.type).toBe("wdata")
+      expect(parsed!.mime).toBe(mimeB64)
+      expect(parsed!.payload).toBeDefined()
+      reconstructed += fromBase64(parsed!.payload!)
     }
     expect(reconstructed).toBe(text)
 
@@ -268,6 +271,144 @@ describe("chunking", () => {
 
     // write start + 2 chunks + end = 4
     expect(written).toHaveLength(4)
+  })
+
+  // --------------------------------------------------------------------------
+  // Kitty multi-chunk DCS continuation flag (m=1)
+  // --------------------------------------------------------------------------
+  // Per kitty's clipboard protocol, when wdata is split across multiple OSC
+  // sequences for a single MIME entry, every chunk EXCEPT the last carries
+  // m=1 in its metadata; the final data chunk carries m=0 (or omits m).
+  // The trailing empty wdata still signals end-of-data for the MIME type.
+  // See https://sw.kovidgoyal.net/kitty/clipboard/
+
+  test("multi-chunk payload emits m=1 on every non-final chunk", () => {
+    const chunkSize = 8
+    const { clipboard, written } = createTestClipboard({ supported: true, chunkSize })
+
+    // 20 bytes → ceil(20/8) = 3 data chunks
+    const text = "A".repeat(20)
+    clipboard.copyText(text)
+
+    // write start + 3 data chunks + 1 end = 5
+    expect(written).toHaveLength(5)
+
+    const mimeB64 = toBase64("text/plain")
+
+    // First two data chunks (indices 1 and 2) MUST carry m=1
+    expect(written[1]).toContain(`type=wdata:m=1:mime=${mimeB64}`)
+    expect(written[2]).toContain(`type=wdata:m=1:mime=${mimeB64}`)
+
+    // Final data chunk (index 3) MUST carry m=0 (or omit m)
+    expect(written[3]).toContain(`type=wdata:m=0:mime=${mimeB64}`)
+    expect(written[3]).not.toContain("m=1")
+
+    // End marker (index 4) is the empty-wdata terminator (unchanged)
+    expect(written[4]).toBe(`${ESC}]5522;type=wdata${ST}`)
+  })
+
+  test("single-chunk payload does NOT emit m=1 (back-compat)", () => {
+    const { clipboard, written } = createTestClipboard({ supported: true })
+
+    // Default 4096-byte chunk; small payload → single chunk
+    clipboard.copyText("Hello")
+
+    // write start + 1 data chunk + 1 end = 3
+    expect(written).toHaveLength(3)
+
+    const mimeB64 = toBase64("text/plain")
+    const dataB64 = toBase64("Hello")
+
+    // Single-chunk happy path: metadata is `type=wdata:mime=...` (no m= flag)
+    expect(written[1]).toBe(`${ESC}]5522;type=wdata:mime=${mimeB64};${dataB64}${ST}`)
+    expect(written[1]).not.toContain("m=1")
+    expect(written[1]).not.toContain("m=0")
+  })
+
+  test("empty payload still emits a single chunk without m= (back-compat)", () => {
+    const { clipboard, written } = createTestClipboard({ supported: true })
+
+    clipboard.copyText("")
+
+    expect(written).toHaveLength(3)
+    const mimeB64 = toBase64("text/plain")
+    expect(written[1]).toBe(`${ESC}]5522;type=wdata:mime=${mimeB64};${ST}`)
+    expect(written[1]).not.toContain("m=")
+  })
+
+  test("two-chunk payload: first chunk m=1, second m=0", () => {
+    const chunkSize = 10
+    const { clipboard, written } = createTestClipboard({ supported: true, chunkSize })
+
+    // 15 bytes → 2 chunks (10 + 5)
+    clipboard.copyText("B".repeat(15))
+
+    // write start + 2 data chunks + 1 end = 4
+    expect(written).toHaveLength(4)
+
+    const mimeB64 = toBase64("text/plain")
+    expect(written[1]).toContain(`type=wdata:m=1:mime=${mimeB64}`)
+    expect(written[2]).toContain(`type=wdata:m=0:mime=${mimeB64}`)
+  })
+
+  test("10MB payload: encode → decode roundtrip via parseOsc5522Response", () => {
+    // Tests the bead's headline acceptance: 10MB clipboard data round-trips
+    // correctly through generateChunks + parseOsc5522Response. We reconstruct
+    // by concatenating the base64 payloads from every non-terminator wdata
+    // chunk; m= flag tells us which chunks are mid-stream vs final.
+
+    const chunkSize = 4096 // default
+    const { clipboard, written } = createTestClipboard({ supported: true, chunkSize })
+
+    // 10 MB of varied content (not a single repeated byte — exercises base64
+    // boundary alignment and reassembly correctness on non-trivial data).
+    const size = 10 * 1024 * 1024
+    const bytes = new Uint8Array(size)
+    for (let i = 0; i < size; i++) {
+      // Deterministic pseudo-random pattern. Keep within 7-bit ASCII so we
+      // can compare as a Buffer round-trip without unicode normalization.
+      bytes[i] = (i * 2654435761) & 0x7f
+    }
+    const expectedBuf = Buffer.from(bytes)
+
+    clipboard.copy([{ mime: "application/octet-stream", data: bytes }])
+
+    const expectedChunks = Math.ceil(size / chunkSize)
+    // write start + expectedChunks data chunks + 1 end marker
+    expect(written).toHaveLength(1 + expectedChunks + 1)
+    expect(written[0]).toBe(`${ESC}]5522;type=write${ST}`)
+
+    // Walk every data chunk (skip start at index 0 and end at last index),
+    // parse it with the public response parser, reassemble, and verify.
+    const reassembled: Buffer[] = []
+    let sawFinalFlag = false
+    for (let i = 1; i < written.length - 1; i++) {
+      const parsed = parseOsc5522Response(written[i]!)
+      expect(parsed).not.toBeNull()
+      expect(parsed!.type).toBe("wdata")
+      expect(parsed!.payload).toBeDefined()
+
+      // Non-final chunks: m=1. Final data chunk: m=0 (or absent).
+      const raw = written[i]!
+      const isLast = i === written.length - 2
+      if (isLast) {
+        expect(raw).toContain("m=0")
+        expect(raw).not.toContain("m=1")
+        sawFinalFlag = true
+      } else {
+        expect(raw).toContain("m=1")
+      }
+
+      reassembled.push(Buffer.from(parsed!.payload!, "base64"))
+    }
+    expect(sawFinalFlag).toBe(true)
+
+    const actual = Buffer.concat(reassembled)
+    expect(actual.length).toBe(expectedBuf.length)
+    expect(actual.equals(expectedBuf)).toBe(true)
+
+    // Trailing terminator: empty wdata, no payload
+    expect(written[written.length - 1]).toBe(`${ESC}]5522;type=wdata${ST}`)
   })
 })
 
