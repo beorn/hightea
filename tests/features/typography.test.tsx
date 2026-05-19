@@ -356,6 +356,44 @@ describe("Block elements", () => {
     expect(buffer.getCell(codeCol, 0).attrs.italic).toBeFalsy()
   })
 
+  // Tracking: @km/silvery/15087-markdown-code-block-char-wrap-default.
+  // Long code lines wrap mid-identifier (CSS `word-break: break-all`)
+  // instead of spilling off the right edge — terminal can't honor
+  // horizontal scroll like an IDE, so character wrap is the predictable
+  // default for fenced code.
+  test("CodeBlock defaults to wrap='hard' (long identifier wraps mid-token)", () => {
+    const longId = "getPolygonIntervalForBandWithFloatingPointPrecision"
+    // 20-wide container — the bar │ + space prefix leaves ~17 cols for body.
+    const app = render(
+      <Box width={20}>
+        <CodeBlock>{longId}</CodeBlock>
+      </Box>,
+    )
+    // All characters of the identifier must appear in the rendered text.
+    // (no truncation, no spill). The hard-wrap path slices by display
+    // width and re-emits the remainder on the next line.
+    expect(app.text).toContain("getPolygonIntervalForBandWithFloatingPointPrecision".slice(0, 5))
+    // The identifier is 51 chars — must span multiple rendered rows.
+    const linesWithContent = app.text.split("\n").filter((l) => l.trim().length > 0).length
+    expect(linesWithContent).toBeGreaterThan(1)
+    // Hard-wrap doesn't insert ellipsis — fully visible content.
+    expect(app.text).not.toContain("…")
+    // All identifier characters preserved on screen.
+    const joined = app.text.replace(/[│\s]/g, "")
+    for (const ch of "abcdefghijklmnopqrstuvwxyz") {
+      if (longId.includes(ch)) {
+        expect(joined, `char '${ch}' missing from rendered output`).toContain(ch)
+      }
+    }
+  })
+
+  test("CodeBlock short content stays on one line", () => {
+    const app = render(<CodeBlock>{"const x = 1"}</CodeBlock>)
+    // Single-line content should not wrap.
+    const linesWithContent = app.text.split("\n").filter((l) => l.includes("const")).length
+    expect(linesWithContent).toBe(1)
+  })
+
   test("CodeBlock │ uses $border-default color", () => {
     const app = render(<CodeBlock>x</CodeBlock>)
     const buffer = app.term.buffer

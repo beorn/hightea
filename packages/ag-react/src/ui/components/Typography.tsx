@@ -209,13 +209,20 @@ export function Blockquote({ children, color }: TypographyProps) {
   )
 }
 
-/** Code block — │ border in $border-default + monospace content. Distinct from Blockquote. */
+/**
+ * Code block — │ border in `$border-default` + monospace content.
+ * Distinct from Blockquote. Body Text defaults to `wrap="hard"` (CSS
+ * `word-break: break-all`): long code lines wrap mid-identifier at
+ * the column boundary rather than spilling off the right edge. Code
+ * fences in a narrow terminal stay fully visible. Tracking:
+ * @km/silvery/15087-markdown-code-block-char-wrap-default.
+ */
 export function CodeBlock({ children, color }: TypographyProps) {
   return (
     <Box>
       <Text color={color ?? "$border-default"}>│ </Text>
       <Box flexShrink={1}>
-        <Text>{children}</Text>
+        <Text wrap="hard">{children}</Text>
       </Box>
     </Box>
   )
