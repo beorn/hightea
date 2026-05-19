@@ -620,16 +620,6 @@ export interface ListViewProps<T> {
   scrollBehavior?: "instant" | "smooth"
 
   /**
-   * Allow scroll position to overshoot past the edge with diminishing
-   * resistance, then spring back on release. Mirrors iOS rubber-band
-   * scrolling. Default `false`. The rendered integer offset still clamps
-   * to `[0, maxScroll]`, so the visible effect at row resolution is
-   * limited; the physics layer is real (momentum decays naturally
-   * instead of clipping at the wall) and benefits canvas/web targets.
-   */
-  enableElasticEdges?: boolean
-
-  /**
    * Discriminate trackpad (continuous) vs mouse-wheel (discrete) input
    * by inter-event cadence. When a stream looks like discrete mouse-wheel
    * clicks (≥50ms gaps + |deltaY|≤1), each event jumps multiple rows
@@ -839,7 +829,6 @@ function ListViewInner<T>(
     continuousWheelMultiplier,
     continuousWheelAcceleration = 1,
     scrollBehavior = "instant",
-    enableElasticEdges = false,
     enableInputCadenceDetection = false,
     follow,
     maintainVisibleContentPosition = true,
@@ -1015,7 +1004,6 @@ function ListViewInner<T>(
     continuousWheelAcceleration,
     enableSameDirCompounding: true,
     enableMomentum: false,
-    enableElasticEdges,
     enableInputCadenceDetection,
     getInitialFloat: () => {
       // Cursor pinned to an endpoint? Seed straight to that edge so the

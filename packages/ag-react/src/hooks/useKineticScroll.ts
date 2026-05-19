@@ -103,18 +103,6 @@ export const SCROLLBAR_FADE_AFTER_MS = 800
  * but not slow." iOS/Android nav transitions use ~250-300ms; <200ms reads as
  * a jump-with-jitter, >400ms reads as sluggish. */
 const DEFAULT_PROGRAMMATIC_SCROLL_MS = 250
-/** Maximum overshoot allowed past an edge when `enableElasticEdges`. Picked
- * small so the rendered scrollOffset (which clamps to [0, maxS]) never sits
- * stuck at a bound while sub-row float is still overshooting. */
-const ELASTIC_BUDGET_ROWS = 3
-/** Resistance coefficient — each unit of current overshoot divides incoming
- * delta by this much more. iOS UIScrollView uses ~0.55 in pixel space; row
- * space is coarser so we use 0.5. Higher = more resistance / stiffer feel. */
-const ELASTIC_RESISTANCE_PER_ROW = 0.5
-/** Spring-back duration when releasing past an edge. Faster than programmatic
- * scroll because the user already feels the resistance and expects snappy
- * settle. */
-const ELASTIC_SPRINGBACK_MS = 200
 /** Inter-event interval (ms) above which a wheel sample looks "discrete"
  * (mouse wheel click). Trackpad streams arrive 8-16ms apart; mouse wheels
  * pause 80-200ms between clicks. 50ms separates the two cleanly. */
@@ -222,16 +210,6 @@ export interface UseKineticScrollOptions {
    */
   onEdgeReached?: (edge: "top" | "bottom") => void
   /**
-   * Allow `scrollFloat` to overshoot past the edge with diminishing-return
-   * resistance, then spring back to the bound on release. Mirrors iOS
-   * UIScrollView and Lenis "rubber band" behavior. Off by default; the
-   * rendered integer `scrollOffset` always clamps to [0, maxScroll], so the
-   * effect is invisible in pure-row terminals — but the physics layer is
-   * real (momentum decays naturally instead of clipping at the wall) and
-   * canvas/web targets can render the actual overshoot.
-   */
-  enableElasticEdges?: boolean
-  /**
    * Discriminate trackpad (continuous) vs mouse-wheel (discrete) input by
    * inter-event cadence. When enabled and a stream looks like discrete
    * mouse-wheel clicks (≥50ms gaps + |deltaY|≤1), each event jumps
@@ -329,7 +307,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
     continuousWheelAcceleration = 1,
     enableSameDirCompounding = false,
     enableMomentum = true,
-    enableElasticEdges = false,
     enableInputCadenceDetection = false,
     onEdgeReached,
     onScroll,
@@ -347,10 +324,9 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   const wheelBufferRef = useRef<Array<{ t: number; rows: number }>>([])
   const wheelGestureFilterRef = useRef(createWheelGestureFilter())
   // Active animation state (mutex — only one runs at a time, all share
-  // `loopRef`). Three flavors:
+  // `loopRef`). Two flavors:
   //   - "momentum"  velocity-driven exponential coast after a wheel release
-  //   - "ease"      cubic ease-out from current to target (programmatic
-  //                 scrollTo + elastic spring-back share this shape)
+  //   - "ease"      cubic ease-out from current to target (programmatic scrollTo)
   type AnimationState =
     | { kind: "momentum"; startPos: number; amplitude: number; startTime: number }
     | {
@@ -359,7 +335,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
         target: number
         startTime: number
         durationMs: number
-        cause: "programmatic" | "spring-back"
+        cause: "programmatic"
       }
   const animRef = useRef<AnimationState | null>(null)
   // Inter-event cadence tracking for trackpad-vs-mousewheel discrimination.
@@ -403,10 +379,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const frac = Number.isFinite(maxS) && maxS > 0 ? Math.max(0, Math.min(1, float / maxS)) : 0
       setScrollFracState((prev) => (Math.abs(prev - frac) < 0.001 ? prev : frac))
       // Rendered offset always clamps to the valid range — Box's scroll
-      // viewport can't render negative or beyond-max offsets. The float
-      // itself is allowed to overshoot when elastic edges are enabled;
-      // that drives the spring-back animation but isn't visible at row
-      // resolution in the terminal.
+      // viewport can't render negative or beyond-max offsets.
       const clampedFloat = Math.max(0, Number.isFinite(maxS) ? Math.min(maxS, float) : float)
       const rendered = Math.round(clampedFloat)
       setScrollOffsetState((prev) => (prev === rendered ? prev : rendered))
@@ -443,31 +416,16 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
   }, [])
 
   const applyWheelRows = useCallback(
-    (rows: number, isDiscrete: boolean): number => {
+    (rows: number, _isDiscrete: boolean): number => {
       if (rows === 0) return 0
       const prev = scrollFloatRef.current
       const maxS = readMaxScroll()
       const rawNext = prev + rows
-      let nextFloat = prev
-      const allowElastic = enableElasticEdges && !isDiscrete
+      let nextFloat: number
       if (rawNext < 0) {
-        if (allowElastic) {
-          const overshootPrev = Math.max(0, -prev)
-          const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
-          const resisted = (rawNext - prev) / resistance
-          nextFloat = Math.max(-ELASTIC_BUDGET_ROWS, prev + resisted)
-        } else {
-          nextFloat = 0
-        }
+        nextFloat = 0
       } else if (Number.isFinite(maxS) && rawNext > maxS) {
-        if (allowElastic) {
-          const overshootPrev = Math.max(0, prev - maxS)
-          const resistance = 1 + overshootPrev * ELASTIC_RESISTANCE_PER_ROW
-          const resisted = (rawNext - prev) / resistance
-          nextFloat = Math.min(maxS + ELASTIC_BUDGET_ROWS, prev + resisted)
-        } else {
-          nextFloat = maxS
-        }
+        nextFloat = maxS
       } else {
         nextFloat = rawNext
       }
@@ -485,7 +443,7 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       }
       return appliedRows
     },
-    [enableElasticEdges, readMaxScroll, updatePosition],
+    [readMaxScroll, updatePosition],
   )
 
   const resetContinuousAcceleration = useCallback(() => {
@@ -561,9 +519,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       updatePosition(pos)
       return true
     }
-    // Ease-out cubic: 1 - (1-t)^3. Used by both programmatic scrollTo and
-    // elastic spring-back. Pure displacement interpolation — no edge
-    // bouncing or velocity carryover.
+    // Ease-out cubic: 1 - (1-t)^3. Used by programmatic scrollTo.
+    // Pure displacement interpolation — no edge bouncing or velocity carryover.
     const elapsed = performance.now() - a.startTime
     const t = a.durationMs > 0 ? Math.min(1, elapsed / a.durationMs) : 1
     if (t >= 1) {
@@ -598,26 +555,6 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
       const oldest = buf[0]
       if (oldest === undefined || now - oldest.t <= WHEEL_VELOCITY_WINDOW_MS) break
       buf.shift()
-    }
-    // Elastic spring-back: when the user releases past an edge, return to
-    // the bound with ease-out before any velocity-driven momentum runs.
-    // Spring-back is mutually exclusive with momentum — we don't compound.
-    const cur = scrollFloatRef.current
-    const maxSCheck = readMaxScroll()
-    if (cur < 0 || (Number.isFinite(maxSCheck) && cur > maxSCheck)) {
-      const target = cur < 0 ? 0 : maxSCheck
-      wheelBufferRef.current = []
-      pendingBoostVelocityRef.current = 0
-      animRef.current = {
-        kind: "ease",
-        startPos: cur,
-        target,
-        startTime: performance.now(),
-        durationMs: ELASTIC_SPRINGBACK_MS,
-        cause: "spring-back",
-      }
-      startAnimationLoop()
-      return
     }
     if (buf.length < 2) {
       wheelBufferRef.current = []
@@ -770,12 +707,8 @@ export function useKineticScroll(options: UseKineticScrollOptions = {}): UseKine
                 ? continuousWheelMultiplier * continuousAccelerationMultiplier
                 : wheelMultiplier)
           const rows = sampleDir * stepRows
-          if (enableElasticEdges && !isDiscrete) {
-            appliedSampleRows += applyWheelRows(rows, isDiscrete)
-          } else {
-            pendingSampleRows += rows
-            pendingSampleIsDiscrete = isDiscrete
-          }
+          pendingSampleRows += rows
+          pendingSampleIsDiscrete = isDiscrete
         }
         if (pendingSampleRows !== 0) {
           appliedSampleRows += applyWheelRows(pendingSampleRows, pendingSampleIsDiscrete)
