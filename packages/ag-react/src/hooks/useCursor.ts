@@ -51,7 +51,26 @@ export interface CursorState {
   visible: boolean
   /** Terminal cursor shape (DECSCUSR) */
   shape?: CursorShape
+  /**
+   * Identity of the `useCursor` instance that last wrote this state. Set
+   * automatically by the hook on each store write. Used by the
+   * clear-on-unmount + clear-on-hide branches to skip the clear when
+   * THIS instance no longer owns the state — preventing the last-writer-
+   * wins stomp where an inactive sibling instance clears the active
+   * one's cursor. See bead `@km/silvery/13011-usecursor-race`. Optional
+   * because legacy external writes (Ink compat, direct store pokes) may
+   * omit it.
+   */
+  owner?: number
 }
+
+/**
+ * Unique-id counter for `useCursor` instances. Module-level so the
+ * counter is shared across ALL instances in the process — guarantees
+ * uniqueness regardless of CursorProvider scope. Wraps at MAX_SAFE_INTEGER
+ * (practically infinite for terminal-UI lifetimes).
+ */
+let cursorInstanceIdCounter = 0
 
 // ============================================================================
 // Cursor Accessors — imperative interface for non-React consumers
@@ -187,6 +206,16 @@ export function useCursor(position: CursorPosition): void {
   const set = store ? store.setCursorState.bind(store) : globalSetCursorState
   const get = store ? store.accessors.getCursorState : globalGetCursorState
 
+  // Per-instance identity — stamped on every store write so the clear-
+  // on-unmount + clear-on-hide branches can detect "we don't own the
+  // cursor anymore" and skip the clear. Fixes the multi-instance race
+  // documented in `@km/silvery/13011-usecursor-race`.
+  const instanceIdRef = useRef<number>(0)
+  if (instanceIdRef.current === 0) {
+    cursorInstanceIdCounter += 1
+    instanceIdRef.current = cursorInstanceIdCounter
+  }
+
   // Compute content area offset from the parent node's border + padding.
   // useScrollRect provides the node's border-box rect, but cursor
   // col/row are relative to the content area (inside border + padding).
@@ -241,6 +270,7 @@ export function useCursor(position: CursorPosition): void {
       y: scrollRect.y + contentOffsetYRef.current + rowRef.current,
       visible: true,
       shape: shapeRef.current,
+      owner: instanceIdRef.current,
     })
   }, [hasNode, scrollRect.x, scrollRect.y, scrollRect.width, scrollRect.height, scrollRect])
 
@@ -248,32 +278,54 @@ export function useCursor(position: CursorPosition): void {
   // position from the last known screen rect. This handles the common case
   // where typing moves the cursor within a component but the component's
   // layout position stays the same (e.g., TextInput cursor moves on keystroke).
+  // Write + clear-on-hide in ONE useLayoutEffect — keeps the two
+  // operations on the same effect-ordering tier (no cross-tier race
+  // where a previous useEffect cleanup nukes the just-written state
+  // from a later useLayoutEffect). Owner check guards the clear so an
+  // inactive sibling never stomps the active one. Tracking:
+  // @km/silvery/13011-usecursor-race.
+  const owns = (): boolean => {
+    const current = getRef.current()
+    if (!current) return false
+    // Legacy writes (Ink compat, direct store pokes) may omit owner —
+    // treat any owner-less state as "anyone may clear" to preserve
+    // backwards compat for non-useCursor writers.
+    if (current.owner === undefined) return true
+    return current.owner === instanceIdRef.current
+  }
+  const ownsRef = useRef(owns)
+  ownsRef.current = owns
+
   useLayoutEffect(() => {
     const rect = lastRectRef.current
-    if (!rect || !visible) return
-    set({
-      x: rect.x + contentOffsetX + col,
-      y: rect.y + contentOffsetY + row,
-      visible: true,
-      shape,
-    })
+    if (!rect) return
+    if (visible) {
+      set({
+        x: rect.x + contentOffsetX + col,
+        y: rect.y + contentOffsetY + row,
+        visible: true,
+        shape,
+        owner: instanceIdRef.current,
+      })
+    } else if (ownsRef.current()) {
+      // Hiding — clear only if we still own the cursor (another sibling
+      // may have already overwritten it).
+      set(null)
+    }
   }, [col, row, contentOffsetX, contentOffsetY, shape, visible, set])
 
-  // On unmount or when visible becomes false, clear cursor state
+  // Unmount-only cleanup. Empty deps → cleanup fires ONLY when the
+  // component unmounts (not on every visible-prop change). Owner check
+  // prevents an inactive sibling's unmount from clearing the active
+  // sibling's cursor.
   useEffect(() => {
-    if (!visible) {
-      // If we are hiding, clear state now
-      const current = getRef.current()
-      if (current) {
+    return () => {
+      if (ownsRef.current()) {
         setRef.current(null)
       }
     }
-
-    return () => {
-      // On unmount, clear cursor state
-      setRef.current(null)
-    }
-  }, [visible])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional unmount-only
+  }, [])
 }
 
 // ============================================================================
