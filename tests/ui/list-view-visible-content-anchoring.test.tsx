@@ -19,7 +19,6 @@ import {
 import {
   resolveRowsAboveViewport,
   resolveDirectionalMaintainedTopRow,
-  resolveGestureAnchorCorrectionBudgetRows,
   resolveHeightModelSnapshotFallback,
   shouldApplyVisibleContentAnchoring,
 } from "../../packages/ag-react/src/ui/components/list-view/use-scroll-anchoring"
@@ -396,25 +395,12 @@ describe("ListView maintainVisibleContentPosition", () => {
     ).toBe(4580)
   })
 
-  test("active wheel anchor correction budget is frame-sized, not viewport-sized", () => {
-    // Latest silvercode trace hit the active-wheel anchor cap with no wheel
-    // input in that render interval: viewport=112 rows, correction=-224 rows.
-    // A cap larger than the viewport turns measurement reflow into an extra
-    // high-speed scroll source, which users see as a frozen frame followed by
-    // a skip.
-    const budget = resolveGestureAnchorCorrectionBudgetRows(112)
-    expect(budget).toBe(0)
-
-    expect(
-      resolveDirectionalMaintainedTopRow({
-        row: 3962,
-        currentTopRow: 4612,
-        gestureDirection: "up",
-        toleranceRows: 0.5,
-        correctionBudgetRows: budget,
-      }),
-    ).toBe(4612)
-  })
+  // active-wheel-anchor-budget test removed in 15332 Wave 2.
+  // resolveGestureAnchorCorrectionBudgetRows always returned 0, making the
+  // anchor-correction branch a no-op; the resolver was deleted in silvery
+  // 659f7ef00 along with the ListView consumer (correctionBudgetRows is no
+  // longer passed). If active-wheel-anchor capping returns, re-introduce
+  // the resolver + test together.
 
   test("active upward scroll allows absolute row-space to own window advance", () => {
     // Active wheel scrolling is owned by renderScrollRow. The window may

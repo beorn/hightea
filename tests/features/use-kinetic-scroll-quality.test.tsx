@@ -1,10 +1,11 @@
 /**
- * Quality-tier scroll features — covers three opt-in extensions on top of
+ * Quality-tier scroll features — covers two opt-in extensions on top of
  * the core `useKineticScroll` physics:
  *
  *   1. `animateToFloat`            — programmatic smooth scroll (cubic ease-out)
- *   2. `enableElasticEdges`        — rubber-band overscroll + spring-back
- *   3. `enableInputCadenceDetection` — trackpad vs mouse-wheel branching
+ *   2. `enableInputCadenceDetection` — trackpad vs mouse-wheel branching
+ *
+ * (enableElasticEdges was removed in 15332 Wave 2 — see silvery 733cc09c8.)
  *
  * Bead context: @km/silvery/scroll-animated-scroll-to,
  * @km/silvery/scroll-elastic-edge-bounce,
@@ -123,75 +124,12 @@ describe("useKineticScroll — animated scrollTo", () => {
   })
 })
 
-describe("useKineticScroll — elastic edges", () => {
-  test("wheel past top edge overshoots with resistance when elastic enabled", async () => {
-    const apiRef: HarnessRef = { current: null }
-    const r = createRenderer({ cols: 30, rows: 8 })
-    r(<TestHarness apiRef={apiRef} options={{ maxScroll: 100, enableElasticEdges: true }} />)
-    await settle()
-
-    // Already at top — push further up. Five upward wheels.
-    for (let i = 0; i < 5; i++) {
-      apiRef.current!.onWheel({ deltaY: -1 })
-      await settle(20)
-    }
-    const overshoot = apiRef.current!.scrollFloat
-    expect(overshoot, "elastic overshoot goes below 0").toBeLessThan(0)
-    // Resistance bounds the overshoot — never below -ELASTIC_BUDGET_ROWS (3).
-    expect(overshoot, "overshoot stays within budget").toBeGreaterThanOrEqual(-3)
-  })
-
-  test("disabled elastic clamps to bound (regression — default off)", async () => {
-    const apiRef: HarnessRef = { current: null }
-    const r = createRenderer({ cols: 30, rows: 8 })
-    r(<TestHarness apiRef={apiRef} options={{ maxScroll: 100 }} />)
-    await settle()
-
-    for (let i = 0; i < 5; i++) {
-      apiRef.current!.onWheel({ deltaY: -1 })
-      await settle(20)
-    }
-    expect(apiRef.current!.scrollFloat, "without elastic, hard-clamps at 0").toBe(0)
-  })
-
-  test("spring-back returns to bound after wheel release", async () => {
-    const apiRef: HarnessRef = { current: null }
-    const r = createRenderer({ cols: 30, rows: 8 })
-    r(<TestHarness apiRef={apiRef} options={{ maxScroll: 100, enableElasticEdges: true }} />)
-    await settle()
-
-    // Push past bottom edge.
-    apiRef.current!.setScrollFloat(100)
-    await settle(10)
-    for (let i = 0; i < 5; i++) {
-      apiRef.current!.onWheel({ deltaY: 1 })
-      await settle(20)
-    }
-    expect(apiRef.current!.scrollFloat, "overshot past 100").toBeGreaterThan(100)
-
-    // Wait for release timeout (~60ms) + spring-back (200ms) + slack.
-    await settle(350)
-    // Land within a tenth of a row — the state-dedup threshold in
-    // `updatePosition` (Math.abs < 0.001) intentionally swallows sub-row
-    // drift on the final tick, so the state value can sit ~ε below maxS
-    // even though the ref has been written to exact maxS.
-    expect(apiRef.current!.scrollFloat, "spring-back lands at maxScroll").toBeCloseTo(100, 1)
-  })
-
-  test("rendered scrollOffset always clamps even when float overshoots", async () => {
-    const apiRef: HarnessRef = { current: null }
-    const r = createRenderer({ cols: 30, rows: 8 })
-    r(<TestHarness apiRef={apiRef} options={{ maxScroll: 100, enableElasticEdges: true }} />)
-    await settle()
-
-    for (let i = 0; i < 5; i++) {
-      apiRef.current!.onWheel({ deltaY: -1 })
-      await settle(20)
-    }
-    expect(apiRef.current!.scrollFloat).toBeLessThan(0)
-    expect(apiRef.current!.scrollOffset, "rendered offset never goes negative").toBe(0)
-  })
-})
+// useKineticScroll — elastic edges tests removed in 15332 Wave 2.
+// enableElasticEdges + ELASTIC_BUDGET_ROWS + ELASTIC_RESISTANCE_PER_ROW
+// + ELASTIC_SPRINGBACK_MS + the spring-back animation case were all
+// deleted in silvery 733cc09c8. scrollFloat is now always clamped to
+// [0, maxScroll] in applyWheelRows; rubber-band overscroll is no longer
+// a feature. If overscroll returns, re-add option + tests together.
 
 describe("useKineticScroll — input cadence detection", () => {
   test("discrete cadence (large gaps + |deltaY|=1) jumps in larger steps", async () => {
