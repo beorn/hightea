@@ -289,7 +289,14 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // wrap algorithm only breaks when a logical line exceeds wrapWidth; at
   // ~10^6 cols, no realistic input wraps. Buffer scrolls horizontally as
   // the cursor moves (CSS overflow on the parent flex line).
-  const effectiveWrapWidth = wrap === "off" ? 1_000_000 : contentWidth
+  //
+  // Pre-layout (parentWidth = 0) also treats as wrap-off. Without this guard
+  // useTextArea would clamp to wrapWidth=1 and wrap "line1\nline2" to per-char
+  // visual rows (10 rows for 2 logical lines) — cRow then never reaches 0,
+  // so Up/Ctrl-P never crosses the top boundary and onEdge('top') never fires
+  // until layout resolves. See @km/silvery/14763-textarea-onedge-fires.
+  const effectiveWrapWidth =
+    wrap === "off" || contentWidth <= 0 ? 1_000_000 : contentWidth
 
   // ─────────────────────────────────────────────────────────────────────
   // Resolve the visible row count from the CSS-style sizing props.

@@ -49,7 +49,7 @@ function CursorProbe({
 describe("TextArea onEdge", () => {
   // see km-silvery.textarea-onedge-fires-zero-times — Up at top boundary silently clamps without
   // invoking onEdge through createRenderer + TextArea. Tracking bead has fix direction.
-  test.fails("Up at first row fires onEdge('top')", async () => {
+  test("Up at first row fires onEdge('top')", async () => {
     const onEdge = vi.fn<(edge: Edge) => boolean>(() => false)
     const r = createRenderer({ cols: 40, rows: 10 })
     // Two-line content, cursor starts at end (offset = full length, which is on row 1).
@@ -171,7 +171,7 @@ describe("TextArea onEdge", () => {
   })
 
   // see km-silvery.textarea-onedge-fires-zero-times
-  test.fails("Up at row > 0 does NOT fire onEdge (normal cursor movement)", async () => {
+  test("Up at row > 0 does NOT fire onEdge (normal cursor movement)", async () => {
     const onEdge = vi.fn<(edge: Edge) => boolean>(() => false)
     const r = createRenderer({ cols: 40, rows: 10 })
     const app = r(<CursorProbe defaultValue={"line1\nline2\nline3"} onEdge={onEdge} />)

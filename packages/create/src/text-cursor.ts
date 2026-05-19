@@ -85,8 +85,19 @@ function cursorToRowColFromLines(
     }
 
     const nextLine = lines[i + 1]
-    if (cursor === lineEnd && nextLine?.startOffset === cursor) {
-      return { row: i + 1, col: 0 }
+    if (cursor === lineEnd && nextLine) {
+      // Wrap boundary: next visual line starts at the same offset (no
+      // separator char in the buffer) → cursor jumps to start of next.
+      // \n boundary: next visual line starts AFTER cursor (the \n char
+      // occupies the offset between them) → cursor sits at end of THIS
+      // line, just before the \n. Without this branch, position == \n-offset
+      // got pushed into the next line at col 0, breaking Up/Down arithmetic
+      // for buffers like "line1\nline2" where every Up-from-row-1 landed
+      // back on row 1. See @km/silvery/14763-textarea-onedge-fires.
+      if (nextLine.startOffset === cursor) {
+        return { row: i + 1, col: 0 }
+      }
+      return { row: i, col: line.line.length }
     }
   }
 
