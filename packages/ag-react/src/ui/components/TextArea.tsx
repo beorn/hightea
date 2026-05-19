@@ -295,8 +295,7 @@ export const TextArea = forwardRef<TextAreaHandle, TextAreaProps>(function TextA
   // visual rows (10 rows for 2 logical lines) — cRow then never reaches 0,
   // so Up/Ctrl-P never crosses the top boundary and onEdge('top') never fires
   // until layout resolves. See @km/silvery/14763-textarea-onedge-fires.
-  const effectiveWrapWidth =
-    wrap === "off" || contentWidth <= 0 ? 1_000_000 : contentWidth
+  const effectiveWrapWidth = wrap === "off" || contentWidth <= 0 ? 1_000_000 : contentWidth
 
   // ─────────────────────────────────────────────────────────────────────
   // Resolve the visible row count from the CSS-style sizing props.
