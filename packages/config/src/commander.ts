@@ -171,7 +171,16 @@ async function dispatchKindVerb(d: DispatchOpts): Promise<void> {
 
   switch (d.verb) {
     case "list": {
-      for (const { name, value } of reg.entries()) {
+      const entries = [...reg.entries()]
+      if (entries.length === 0) {
+        // Empty-state indicator — without this, `<config> <kind>` (e.g.
+        // `silvercode config acp` when no ai.acp.<name> entries exist)
+        // prints nothing and exits 0, leaving the user unsure whether
+        // the command ran. Bead: @km/code/14604-config-empty-list.
+        process.stdout.write(`(no ${d.kindName} entries configured)\n`)
+        return
+      }
+      for (const { name, value } of entries) {
         const isDefault = reg.default() === name ? " *" : "  "
         const summary = d.mount.describe ? d.mount.describe(value) : ""
         process.stdout.write(`${isDefault} ${name}\t${summary}\n`)
