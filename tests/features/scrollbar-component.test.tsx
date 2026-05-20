@@ -548,3 +548,137 @@ describe("ScrollArea", () => {
     handle.unmount()
   })
 })
+
+/**
+ * Idle track does NOT paint $bg over the underlying cell.
+ *
+ * Bead: @km/silvery/15404-scrollbar-track-bg-renders-as-black-bar-on-idle.
+ *
+ * The Scrollbar's outer Box used to set `backgroundColor="$bg"`
+ * unconditionally. In dark themes `$bg` is near-black; when the consumer
+ * passed `visible={false}` (the idle state for ListView's auto-hide
+ * policy) the 1-column track painted a solid black bar over whatever
+ * cell sat underneath — typically a Border's right edge — and users
+ * read "missing right border" on `km view`.
+ *
+ * Contract: when `visible=false` and the cursor is NOT over the column
+ * and no drag is active, the track must be transparent — cells behind
+ * the Scrollbar survive verbatim. When the user hovers the column (or a
+ * drag is active), the bg paints again so the legacy
+ * scroll-fast-path-shift smear protection still holds for the visible
+ * thumb.
+ */
+describe("Scrollbar idle track bg (regression: 15404)", () => {
+  test("idle (visible=false) does NOT paint $bg over the underlying cell", async () => {
+    using term = createTermless({ cols: 20, rows: 10 })
+    const onChange = vi.fn()
+    const handle = await run(
+      <Box width={20} height={10} position="relative">
+        {/* A bordered Box whose right edge sits at col 19 — same column the
+         * Scrollbar mounts on. With the bug, the Scrollbar's $bg-painted
+         * track masks the right border. With the fix, the border survives. */}
+        <Box width={20} height={10} borderStyle="single">
+          <Text>x</Text>
+        </Box>
+        <Scrollbar
+          trackHeight={10}
+          scrollableRows={20}
+          scrollOffset={5}
+          onScrollOffsetChange={onChange}
+          visible={false}
+        />
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await new Promise((r) => setTimeout(r, 50))
+
+    // The Border's right edge `│` lives at column 19. Sample interior rows
+    // (1..8) — corners at rows 0 and 9 use different glyphs.
+    let borderSurvivors = 0
+    for (let row = 1; row < 9; row++) {
+      if (term.cell(row, 19).char === "│") borderSurvivors++
+    }
+    // All 8 interior border cells must survive (none masked by $bg).
+    expect(borderSurvivors).toBe(8)
+
+    handle.unmount()
+  })
+
+  test("hover reveals chrome — track bg paints while the thumb is visible", async () => {
+    using term = createTermless({ cols: 20, rows: 10 })
+    const onChange = vi.fn()
+    const handle = await run(
+      <Box width={20} height={10} position="relative">
+        <Box width={20} height={10} borderStyle="single">
+          <Text>x</Text>
+        </Box>
+        <Scrollbar
+          trackHeight={10}
+          scrollableRows={20}
+          scrollOffset={5}
+          onScrollOffsetChange={onChange}
+          visible={false}
+        />
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await new Promise((r) => setTimeout(r, 50))
+
+    // Baseline: idle — border survives.
+    const idleBorderCell = term.cell(4, 19)
+    expect(idleBorderCell.char).toBe("│")
+    const idleBg = idleBorderCell.bg
+
+    // Hover the track column at a non-thumb row to arm the reveal.
+    await term.mouse.move(19, 0)
+    await new Promise((r) => setTimeout(r, 50))
+
+    // With hover active, at least one cell in column 19 carries a bg that
+    // differs from idle — proving the track is painting bg when armed.
+    let armedCellWithBg = false
+    for (let row = 0; row < 10; row++) {
+      const cell = term.cell(row, 19)
+      if (cell.bg !== idleBg) {
+        armedCellWithBg = true
+        break
+      }
+    }
+    expect(armedCellWithBg).toBe(true)
+
+    handle.unmount()
+  })
+
+  test("visible=true (always-show) still paints $bg — drag-shift smear protection preserved", async () => {
+    using term = createTermless({ cols: 20, rows: 10 })
+    const onChange = vi.fn()
+    const handle = await run(
+      <Box width={20} height={10} position="relative">
+        <Box width={20} height={10} borderStyle="single">
+          <Text>x</Text>
+        </Box>
+        <Scrollbar
+          trackHeight={10}
+          scrollableRows={20}
+          scrollOffset={5}
+          onScrollOffsetChange={onChange}
+          visible
+        />
+      </Box>,
+      term,
+      { mouse: true, selection: false },
+    )
+    await new Promise((r) => setTimeout(r, 50))
+
+    // With visible=true the track paints unconditionally — the border at
+    // col 19 should NOT survive (it's masked by the track bg + thumb).
+    let borderSurvivors = 0
+    for (let row = 1; row < 9; row++) {
+      if (term.cell(row, 19).char === "│") borderSurvivors++
+    }
+    expect(borderSurvivors).toBeLessThan(8)
+
+    handle.unmount()
+  })
+})
