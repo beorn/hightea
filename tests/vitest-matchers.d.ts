@@ -5,7 +5,7 @@ interface SilveryRetryOptions {
 }
 
 declare module "vitest" {
-  interface Assertion<T = unknown> {
+  interface Assertion<T = any> {
     toContainText(text: string, options?: SilveryRetryOptions): void
     toHaveText(text: string, options?: SilveryRetryOptions): void
     toMatchLines(lines: string[], options?: SilveryRetryOptions): void
@@ -20,7 +20,7 @@ declare module "vitest" {
     toBeInMode(mode: string): void
   }
 
-  interface Matchers<T = unknown> {
+  interface Matchers<T = any> {
     toContainText(text: string, options?: SilveryRetryOptions): void
     toHaveText(text: string, options?: SilveryRetryOptions): void
     toMatchLines(lines: string[], options?: SilveryRetryOptions): void
