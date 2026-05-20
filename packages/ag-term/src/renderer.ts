@@ -53,6 +53,7 @@ import {
   setOnNodeRemoved,
 } from "@silvery/ag-react/reconciler"
 
+import { isProtocolError } from "@silvery/ansi"
 import { createTerm } from "./ansi/index"
 import { bufferToText } from "./buffer.js"
 import { buildMismatchContext, formatMismatchContext } from "@silvery/test/debug-mismatch"
@@ -1296,7 +1297,24 @@ export function render(element: ReactElement, optsOrStore: RenderOptions | Store
       // Check for bracketed paste before splitting into individual keys.
       // Paste content is delivered as a single "paste" event, not individual keystrokes.
       // This mirrors the production path in term-provider.ts.
-      const pasteResult = parseBracketedPaste(data)
+      //
+      // parseBracketedPaste may throw ProtocolError when PASTE_START is found
+      // but PASTE_END is missing in the test input (typically a fixture
+      // mistake or intentional malformed-input test). The test renderer
+      // mirrors the runtime input-owner contract: log + fall through.
+      // Bead: @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
+      let pasteResult: ReturnType<typeof parseBracketedPaste> = null
+      try {
+        pasteResult = parseBracketedPaste(data)
+      } catch (err) {
+        if (isProtocolError(err)) {
+          log.debug?.(
+            `bracketed paste parser flagged malformed input in press(): ${err.reason} (len=${err.inputLength})`,
+          )
+        } else {
+          throw err
+        }
+      }
       if (pasteResult) {
         withActEnvironment(() => {
           act(() => {

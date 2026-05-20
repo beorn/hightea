@@ -41,6 +41,7 @@
  * `stdout.write` is fine. The owner's concern is stdin.
  */
 
+import { isProtocolError } from "@silvery/ansi"
 import { createLogger } from "loggily"
 import { type Key, parseKey } from "./keys"
 import {
@@ -466,7 +467,26 @@ export function createInputOwner(
 
     // Bracketed paste is detected before splitting into individual keys —
     // paste content is one logical event, not a stream of keystrokes.
-    const pasteResult = parseBracketedPaste(chunk)
+    //
+    // The parser may throw ProtocolError when PASTE_START is found but no
+    // PASTE_END follows in this chunk. That commonly indicates a stream-
+    // split paste (the rest arrives in the next TTY read), so we log and
+    // fall through to splitRawInput — preserving the prior "best-effort"
+    // behavior while still emitting a debug-log breadcrumb so chronic
+    // protocol-format problems become visible. Bead reference:
+    // @km/silvery/15127-custom-protocol-implementation/protocol-loud-errors.
+    let pasteResult: ReturnType<typeof parseBracketedPaste> = null
+    try {
+      pasteResult = parseBracketedPaste(chunk)
+    } catch (err) {
+      if (isProtocolError(err)) {
+        log?.debug?.(
+          `bracketed paste parser flagged malformed input: ${err.reason} (parser=${err.parser}, len=${err.inputLength})`,
+        )
+      } else {
+        log?.warn?.(`bracketed paste parser threw: ${String(err)}`)
+      }
+    }
     if (pasteResult) {
       fire(pasteHandlers, { text: pasteResult.content })
       return
