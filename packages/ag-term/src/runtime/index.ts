@@ -153,6 +153,17 @@ export { createTick, createFrameTick, createSecondTick, createAdaptiveTick } fro
 // Demonstrates the opaque-branded-handle + per-scope-accounting pattern.
 export { createScopedTick, type TickHandle } from "./scoped-tick"
 
+// Render-trace — Phase 4 of the Visual Eyes epic. RENDER_DISPATCHED events
+// emitted at the doRender() flush boundary, gated by SILVERY_TRACE_FRAMES.
+// Consumers (e.g. termless frame-trace) read the sidecar JSONL or the
+// in-process bus.
+export {
+  isRenderTraceEnabled,
+  renderTraceDir,
+  recentRenderEvents,
+  type RenderDispatchedEvent,
+} from "./render-trace"
+
 // Stream helpers (re-export from streams module)
 export {
   merge,

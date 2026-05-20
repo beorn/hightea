@@ -368,7 +368,14 @@ const CELL_DEBUG = (() => {
 // diagnostic globals can be skipped entirely — they are only consumed by the
 // STRICT/CELL_DEBUG paths. This is the primary hot-path win: when no
 // instrumentation is active (production), doRender skips ~8 global ops/frame.
-const INSTRUMENTED = STRICT_MODE || CELL_DEBUG !== null
+//
+// SILVERY_TRACE_FRAMES (Phase 4 of the Visual Eyes epic) also turns this on:
+// the render-trace event's `signalDelta` is sourced from the render-phase
+// stats that only populate when instrumentation is active. Opting into
+// frame tracing is an explicit diagnostic choice, so the per-frame cost is
+// expected — production (no env var) still constant-folds the cost away.
+const RENDER_TRACE_ON = ENV?.SILVERY_TRACE_FRAMES != null && ENV.SILVERY_TRACE_FRAMES.trim() !== ""
+const INSTRUMENTED = STRICT_MODE || CELL_DEBUG !== null || RENDER_TRACE_ON
 
 // ============================================================================
 // Types

@@ -23,9 +23,18 @@ import { reconciler, getContainerRoot } from "@silvery/ag-react/reconciler"
 import { createAg, type Ag } from "../ag"
 import { runWithMeasurer } from "../unicode"
 import { createBuffer } from "./create-buffer"
-import { isAnyDirty } from "@silvery/ag/epoch"
+import {
+  isAnyDirty,
+  isDirty,
+  CONTENT_BIT,
+  STYLE_PROPS_BIT,
+  BG_BIT,
+  CHILDREN_BIT,
+  SUBTREE_BIT,
+} from "@silvery/ag/epoch"
 import { commitLayoutSnapshot } from "@silvery/ag/layout-signals"
 import { IncrementalRenderMismatchError } from "../scheduler"
+import { emitRenderDispatched, isRenderTraceEnabled } from "./render-trace"
 import { createSearchState, renderSearchBarPlain, type SearchMatch } from "../search-overlay"
 import {
   applySelectionToBuffer,
@@ -43,11 +52,23 @@ import type { TerminalBuffer } from "../buffer"
 import type { createFiberRoot, createContainer } from "@silvery/ag-react/reconciler"
 import type { TerminalSelectionState } from "@silvery/headless/selection"
 import type { Theme } from "@silvery/ansi"
+import type { AgNode } from "@silvery/ag/types"
 
 type Scrollback = ReturnType<typeof createVirtualScrollback>
 type Container = ReturnType<typeof createContainer>
 type FiberRoot = ReturnType<typeof createFiberRoot>
 type SearchState = ReturnType<typeof createSearchState>
+
+/**
+ * Count all nodes in an AgNode subtree (inclusive of `root`). Used only by
+ * the Phase 4 render-trace fiber hash — called solely when render tracing
+ * is enabled, so the O(N) walk costs nothing on the production hot path.
+ */
+function countAgNodes(root: AgNode): number {
+  let n = 1
+  for (const child of root.children) n += countAgNodes(child)
+  return n
+}
 
 // ---------------------------------------------------------------------------
 // Renderer factory
@@ -223,6 +244,22 @@ export function createRenderer(opts: RendererOptions): Renderer {
     const dimsChanged =
       _lastLayoutDims != null &&
       (dims.cols !== _lastLayoutDims.cols || (!isInline && dims.rows !== _lastLayoutDims.rows))
+
+    // Phase 4 (Visual Eyes epic): capture the root's dirty-bit names BEFORE
+    // the pipeline below consumes the flags. Read-only — no behavior change.
+    // The whole block constant-folds out when render tracing is disabled.
+    const renderTraceDirtyReasons: string[] = []
+    if (isRenderTraceEnabled()) {
+      const bits = rootNode.dirtyBits
+      const epoch = rootNode.dirtyEpoch
+      if (isDirty(bits, epoch, CONTENT_BIT)) renderTraceDirtyReasons.push("content")
+      if (isDirty(bits, epoch, STYLE_PROPS_BIT)) renderTraceDirtyReasons.push("styleProps")
+      if (isDirty(bits, epoch, BG_BIT)) renderTraceDirtyReasons.push("bg")
+      if (isDirty(bits, epoch, CHILDREN_BIT)) renderTraceDirtyReasons.push("children")
+      if (isDirty(bits, epoch, SUBTREE_BIT)) renderTraceDirtyReasons.push("subtree")
+      if (rootNode.layoutNode?.isDirty()) renderTraceDirtyReasons.push("layout")
+    }
+
     if (!rootHasDirty && !dimsChanged && _lastTermBuffer && lastCurrentBuffer) {
       return lastCurrentBuffer
     }
@@ -478,6 +515,41 @@ export function createRenderer(opts: RendererOptions): Renderer {
         `doRender #${_renderCount}: ${renderDuration.toFixed(1)}ms (reconcile=${reconcileMs.toFixed(1)}ms pipeline=${pipelineMs.toFixed(1)}ms ${dims.cols}x${dims.rows})${phaseStr}${detailStr}\n`,
       )
     }
+
+    // Phase 4 (Visual Eyes epic): emit a RENDER_DISPATCHED event at the
+    // flush boundary. Additive-only — reads already-computed state, never
+    // mutates the buffer or tree. No-op (single boolean check) when
+    // SILVERY_TRACE_FRAMES is unset.
+    if (isRenderTraceEnabled()) {
+      // signalDelta from the render-phase stats the pipeline already wrote
+      // to __silvery_content_detail (instrumentation is auto-enabled when
+      // render tracing is on — see opts.instrumented wiring in create-app).
+      const detail = (
+        globalThis as {
+          __silvery_content_detail?: {
+            nodesVisited?: number
+            nodesRendered?: number
+            nodesSkipped?: number
+          }
+        }
+      ).__silvery_content_detail
+      emitRenderDispatched({
+        renderCount: _renderCount,
+        dirtyReasons: renderTraceDirtyReasons,
+        dimsChanged,
+        bufferHeight: termBuffer.height,
+        isRowDirty: (y) => termBuffer.isRowDirty(y),
+        signalDelta: {
+          nodesVisited: detail?.nodesVisited ?? -1,
+          nodesRendered: detail?.nodesRendered ?? -1,
+          nodesSkipped: detail?.nodesSkipped ?? -1,
+          incremental: wasIncremental,
+        },
+        rootNodeCount: countAgNodes(rootNode),
+        rootDirtyEpoch: rootNode.dirtyEpoch,
+      })
+    }
+
     return buf
   }
 

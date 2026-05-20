@@ -1,0 +1,246 @@
+/**
+ * render-trace.ts — Render-boundary instrumentation for the Visual Eyes epic.
+ *
+ * Phase 4 of the Visual Eyes epic. Each silvery render-pass becomes an
+ * observable `RENDER_DISPATCHED` event annotated with WHY it rendered:
+ *
+ *   { ts, reason, dirtyRegions, signalDelta, fiberHash }
+ *
+ * A frame-trace consumer (e.g. termless's `createFrameTracer`) joins these
+ * events onto its numbered frames by timestamp, so a trace frame's metadata
+ * answers "what made this render happen" instead of just "the buffer changed".
+ *
+ * ## Design — additive instrumentation only
+ *
+ * This module emits an event AFTER the existing reconciler-flush + render
+ * pipeline boundary in `renderer.ts`'s `doRender()`. It changes NO rendering
+ * behavior, NO dirty-flag logic, NO pipeline ordering. It only reads state
+ * the renderer already computed and writes it to an opt-in sink.
+ *
+ * ## Zero-cost when disabled
+ *
+ * The whole module is gated by the `SILVERY_TRACE_FRAMES` env var. When
+ * unset, `isRenderTraceEnabled()` is `false`, `emitRenderDispatched()`
+ * returns immediately, and the renderer's call site is a single boolean
+ * check — production rendering pays nothing.
+ *
+ * ## Channel choice — sidecar JSONL + in-process bus
+ *
+ * `SILVERY_TRACE_FRAMES` names a directory (the same dir a termless
+ * frame-trace writes its `index.jsonl` into). silvery appends render
+ * events to `<dir>/render-events.jsonl`, one JSON object per line. termless
+ * reads + joins on `ts`. This is the simplest robust channel for
+ * `bun km view <vault>` — silvery and termless run in one process but are
+ * separate packages with no shared module; a filesystem sidecar needs no
+ * cross-package wiring and survives process boundaries too.
+ *
+ * A process-global in-memory ring buffer (`globalThis.__silvery_render_events`)
+ * is also maintained so a same-process consumer can read events without
+ * touching the filesystem.
+ */
+
+import { appendFileSync, existsSync, mkdirSync } from "node:fs"
+import { join } from "node:path"
+
+/**
+ * A render-boundary event. Emitted once per `doRender()` flush when render
+ * tracing is enabled.
+ */
+export interface RenderDispatchedEvent {
+  /** Event type discriminator. */
+  type: "RENDER_DISPATCHED"
+  /** Wall-clock ms epoch — the join key for frame-trace consumers. */
+  ts: number
+  /** Monotonic render counter from the renderer (1-based). */
+  renderCount: number
+  /**
+   * Why this render ran. Human-readable, derived from the dirty bits that
+   * were set on the root node + dimension changes. E.g.
+   * `"content,subtree"`, `"dims-changed"`, `"initial"`.
+   */
+  reason: string
+  /**
+   * Dirty regions of the produced buffer — contiguous row ranges that the
+   * render pipeline marked dirty. `[]` when nothing was dirty (skip render).
+   */
+  dirtyRegions: { row: number; height: number }[]
+  /**
+   * What the render pipeline did this pass — a compact "signal delta":
+   * how many nodes were visited / rendered / skipped. Sourced from the
+   * render-phase stats the pipeline already computes. This is the
+   * cheapest faithful proxy for "what changed since the last flush" —
+   * the render phase only re-renders nodes whose layout/content signals
+   * actually changed.
+   */
+  signalDelta: {
+    nodesVisited: number
+    nodesRendered: number
+    nodesSkipped: number
+    incremental: boolean
+  }
+  /**
+   * A cheap structural hash of the fiber tree as committed this pass:
+   * `<rootNodeCount>:<rootDirtyEpoch>`. Two renders with the same fiberHash
+   * committed the same tree shape at the same epoch. Not a cryptographic
+   * hash — a fast change-detector.
+   */
+  fiberHash: string
+}
+
+/**
+ * Source values the renderer hands to `emitRenderDispatched`. The renderer
+ * already has all of these in scope at the flush boundary; this module just
+ * shapes them into the event.
+ */
+export interface RenderTraceInput {
+  renderCount: number
+  /** Dirty-bit names captured BEFORE the pipeline consumed the flags. */
+  dirtyReasons: string[]
+  /** True when this render ran because terminal dims changed. */
+  dimsChanged: boolean
+  /** Height of the produced buffer (rows). */
+  bufferHeight: number
+  /** Per-row dirty predicate over the produced buffer. */
+  isRowDirty: (y: number) => boolean
+  /** Render-phase signal delta (visited/rendered/skipped). */
+  signalDelta: RenderDispatchedEvent["signalDelta"]
+  /** Root node count for the fiber hash. */
+  rootNodeCount: number
+  /** Root dirty epoch for the fiber hash. */
+  rootDirtyEpoch: number
+}
+
+// ── Env gate ────────────────────────────────────────────────────────────────
+//
+// `SILVERY_TRACE_FRAMES` names the trace directory; when unset, every export
+// below is a no-op. The env var is read lazily (not folded at module load)
+// so the gate is testable — render tracing is an opt-in diagnostic, never on
+// the production hot path, so a per-render env read costs nothing that
+// matters. (Contrast `pass-cause.ts`, which folds its gate at load because
+// it sits inside the convergence loop.)
+
+let sidecarFile: string | null = null
+let sidecarReady = false
+
+/** The configured trace directory, or `null` when `SILVERY_TRACE_FRAMES` is unset. */
+export function renderTraceDir(): string | null {
+  return process.env.SILVERY_TRACE_FRAMES?.trim() || null
+}
+
+/** True when `SILVERY_TRACE_FRAMES` is set — render tracing is active. */
+export function isRenderTraceEnabled(): boolean {
+  return renderTraceDir() !== null
+}
+
+// ── In-process event bus ────────────────────────────────────────────────────
+//
+// A bounded ring of recent events on globalThis so a same-process consumer
+// (km-tui wiring both silvery + termless) can read events without filesystem
+// round-trips. Bounded so a long-running app can't leak.
+
+const MAX_BUFFERED_EVENTS = 4096
+
+interface RenderEventBus {
+  events: RenderDispatchedEvent[]
+}
+
+function bus(): RenderEventBus {
+  const g = globalThis as { __silvery_render_events?: RenderEventBus }
+  if (!g.__silvery_render_events) {
+    g.__silvery_render_events = { events: [] }
+  }
+  return g.__silvery_render_events
+}
+
+/**
+ * Recent render events from the in-process bus. Consumers running in the
+ * same process as silvery (e.g. a km-tui-wired termless tracer) can poll
+ * this instead of reading the sidecar file.
+ */
+export function recentRenderEvents(): readonly RenderDispatchedEvent[] {
+  return bus().events
+}
+
+// ── Emit ────────────────────────────────────────────────────────────────────
+
+/** Convert the buffer's per-row dirty predicate into contiguous ranges. */
+function dirtyRegionsFromBuffer(
+  height: number,
+  isRowDirty: (y: number) => boolean,
+): { row: number; height: number }[] {
+  const regions: { row: number; height: number }[] = []
+  let runStart = -1
+  for (let y = 0; y < height; y++) {
+    if (isRowDirty(y)) {
+      if (runStart === -1) runStart = y
+    } else if (runStart !== -1) {
+      regions.push({ row: runStart, height: y - runStart })
+      runStart = -1
+    }
+  }
+  if (runStart !== -1) {
+    regions.push({ row: runStart, height: height - runStart })
+  }
+  return regions
+}
+
+/**
+ * Emit a `RENDER_DISPATCHED` event for the just-completed render pass.
+ *
+ * No-op when `SILVERY_TRACE_FRAMES` is unset. Called from `renderer.ts`'s
+ * `doRender()` at the flush boundary — AFTER reconciliation + the render
+ * pipeline, just before the buffer is returned. Purely additive: reads
+ * already-computed state, writes to the opt-in sink, never throws into the
+ * render path.
+ */
+export function emitRenderDispatched(input: RenderTraceInput): void {
+  const traceDir = renderTraceDir()
+  if (traceDir === null) return
+  try {
+    const reasonParts: string[] = [...input.dirtyReasons]
+    if (input.dimsChanged) reasonParts.push("dims-changed")
+    const event: RenderDispatchedEvent = {
+      type: "RENDER_DISPATCHED",
+      ts: Date.now(),
+      renderCount: input.renderCount,
+      reason: reasonParts.length > 0 ? reasonParts.join(",") : "initial",
+      dirtyRegions: dirtyRegionsFromBuffer(input.bufferHeight, input.isRowDirty),
+      signalDelta: input.signalDelta,
+      fiberHash: `${input.rootNodeCount}:${input.rootDirtyEpoch}`,
+    }
+
+    // In-process bus (bounded ring).
+    const b = bus()
+    b.events.push(event)
+    if (b.events.length > MAX_BUFFERED_EVENTS) {
+      b.events.splice(0, b.events.length - MAX_BUFFERED_EVENTS)
+    }
+
+    // Sidecar JSONL — lazily created on first emit so a disabled trace dir
+    // never gets touched.
+    if (!sidecarReady) {
+      if (!existsSync(traceDir)) mkdirSync(traceDir, { recursive: true })
+      sidecarFile = join(traceDir, "render-events.jsonl")
+      // Truncate any prior sidecar for this dir.
+      appendFileSync(sidecarFile, "", { flag: "w" })
+      sidecarReady = true
+    }
+    if (sidecarFile) {
+      appendFileSync(sidecarFile, JSON.stringify(event) + "\n")
+    }
+  } catch {
+    // Tracing must never destabilise rendering. Swallow any sink error
+    // (full disk, permission, race) — the in-process bus still has the
+    // event if the push succeeded before the throw.
+  }
+}
+
+/**
+ * Test-only: reset module state (in-process bus + sidecar latch). Lets a
+ * test exercise the enabled and disabled paths without a fresh process.
+ */
+export function __resetRenderTraceForTests(): void {
+  bus().events.length = 0
+  sidecarReady = false
+  sidecarFile = null
+}
