@@ -70,6 +70,8 @@
  * ```
  */
 export { Box } from "./components/Box"
+export { Viewport } from "./components/Viewport"
+export type { ViewportProps, ViewportRef, ForeignSource } from "./components/Viewport"
 export { MeasuredBox } from "./ui/components"
 export type { MeasuredBoxProps, MeasuredBoxRect, MeasuredBoxRenderFn } from "./ui/components"
 export { Scrollbar } from "./ui/components"
