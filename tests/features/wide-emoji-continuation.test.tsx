@@ -163,7 +163,9 @@ describe("wide-emoji continuation cell after layout shift (13047)", () => {
     // Critical assertion: col 72 (new continuation column) MUST NOT be 's'
     // (the stale first letter of "start" from prev).
     const c72 = term.getCell(0, 72)?.char
-    expect(["", " "], `col 72 (new continuation of 📋) must be cleared, got "${c72}"`).toContain(c72)
+    expect(["", " "], `col 72 (new continuation of 📋) must be cleared, got "${c72}"`).toContain(
+      c72,
+    )
     // The emoji is at col 71 in next.
     expect(term.getCell(0, 71)?.char).toBe("📋")
     // 'star' should appear at cols 73..76.

@@ -2373,10 +2373,7 @@ function changesToAnsi(
           // terminal may not have auto-claimed x; explicitly clear it.
           const clearRenderY = isInline ? y - startLine : y
           // Reset bg before CUF/CUP to prevent traversed-cell bg bleed
-          if (
-            currentStyle &&
-            (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))
-          ) {
+          if (currentStyle && (currentStyle.bg !== null || hasActiveAttrs(currentStyle.attrs))) {
             output += "\x1b[0m"
             currentStyle = null
           }
