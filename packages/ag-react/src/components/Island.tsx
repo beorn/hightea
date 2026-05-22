@@ -45,6 +45,7 @@ import { trackContentDirty } from "@silvery/ag/dirty-tracking"
 import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
 import type { AgNode } from "@silvery/ag/types"
 import type { ViewportPalette } from "@silvery/ag/viewport-types"
+import type { IslandLayoutProps } from "../reconciler/nodes"
 import { useScopeEffect } from "../hooks/useScopeEffect"
 
 // The `silvery-island` JSX intrinsic is declared in `@silvery/ag-react/jsx.d.ts`
@@ -57,12 +58,33 @@ import { useScopeEffect } from "../hooks/useScopeEffect"
 // Props
 // ============================================================================
 
-export interface IslandProps {
+/**
+ * <Island> props. Composes:
+ *
+ * - `IslandLayoutProps` — flex-item layout participation (`width`, `height`,
+ *   `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `minWidth` /
+ *   `minHeight` / `maxWidth` / `maxHeight`, plus the guest-contract `cols` /
+ *   `rows`). See `IslandLayoutProps` for the full decoupling rationale —
+ *   `cols` / `rows` drive the **guest's cell grid**; `width` / `height` /
+ *   `flex*` drive the **layout slot**. When the two diverge, the host calls
+ *   `handle.size.requestResize` and the guest acknowledges via the two-phase
+ *   protocol.
+ *
+ * - Guest contract — `guest`, `focusable`, `palettePolicy`, `hydrate`,
+ *   `capabilities`, `onSignal`, `onError`, `hostPalette`.
+ *
+ * `cols` and `rows` are required at the React surface because every shipped
+ * guest needs initial cell-grid dims to spawn (PTY children, snapshot frames,
+ * replay first frame). Future guests that can defer-spawn until first layout
+ * MAY make them optional — see `@km/silvery/15646-islands` Phase 2 hydration
+ * scheduler.
+ */
+export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
   /** Guest contract — provides cells + optional input/modes/signals/palette. */
   guest: IslandGuest
-  /** Island width in cells. */
+  /** Initial guest cell-grid width. Required (see {@link IslandLayoutProps}). */
   cols: number
-  /** Island height in cells. */
+  /** Initial guest cell-grid height. Required (see {@link IslandLayoutProps}). */
   rows: number
   /** Whether the island can receive focus. Default: `false`. */
   focusable?: boolean
@@ -132,6 +154,19 @@ export const Island = forwardRef(function Island(
     onSignal,
     onError,
     hostPalette,
+    // IslandLayoutProps passthrough (width/height/flex*/etc) — spread into
+    // the `<silvery-island>` JSX intrinsic so flexily picks them up via the
+    // reconciler's createNode/commitUpdate → applyIslandProps path.
+    width,
+    height,
+    flexGrow,
+    flexShrink,
+    flexBasis,
+    alignSelf,
+    minWidth,
+    minHeight,
+    maxWidth,
+    maxHeight,
   } = props
 
   const nodeRef = useRef<AgNode | null>(null)
@@ -308,7 +343,26 @@ export const Island = forwardRef(function Island(
 
   // Leaf — no React children. The reconciler creates an AgNode with type
   // `silvery-island` and a real layoutNode; we capture it via `nodeRef`.
-  return <silvery-island ref={nodeRef} cols={cols} rows={rows} />
+  // Spread all IslandLayoutProps so flexily picks them up via createNode /
+  // commitUpdate → applyIslandProps. cols/rows are the guest cell-grid dims;
+  // width/height/flex* override them for the layout slot when present.
+  return (
+    <silvery-island
+      ref={nodeRef}
+      cols={cols}
+      rows={rows}
+      width={width}
+      height={height}
+      flexGrow={flexGrow}
+      flexShrink={flexShrink}
+      flexBasis={flexBasis}
+      alignSelf={alignSelf}
+      minWidth={minWidth}
+      minHeight={minHeight}
+      maxWidth={maxWidth}
+      maxHeight={maxHeight}
+    />
+  )
 })
 
 // ============================================================================
