@@ -81,19 +81,27 @@ function createFakeTtyStdin(): { stream: NodeJS.ReadStream; spy: Spy } {
   return { stream: out, spy }
 }
 
-function createFakeTtyStdout(): NodeJS.WriteStream {
+function createFakeTtyStdout(): NodeJS.WriteStream & { written: string[] } {
   const ee = new EventEmitter()
+  const written: string[] = []
   const stream = Object.assign(ee, {
     isTTY: true as const,
     columns: 80,
     rows: 24,
     fd: 1,
-    write(): true {
+    written,
+    write(data?: string | Uint8Array): true {
+      if (data != null) {
+        written.push(typeof data === "string" ? data : Buffer.from(data).toString("utf8"))
+      }
       return true
     },
   })
-  return stream as unknown as NodeJS.WriteStream
+  return stream as unknown as NodeJS.WriteStream & { written: string[] }
 }
+
+/** CSI > <flags> u — the Kitty keyboard ENABLE (push) sequence. */
+const KITTY_ENABLE_RE = /\x1b\[>\d*u/
 
 describe("run({ input: false }) — stdin hands-off contract", () => {
   test("does not touch stdin (no setRawMode, no setEncoding, no data listener)", async () => {
@@ -121,6 +129,80 @@ describe("run({ input: false }) — stdin hands-off contract", () => {
       expect(spy.setEncodingCalls).toEqual([])
       expect(spy.dataListenerCount).toBe(0)
       expect(spy.readableListenerCount).toBe(0)
+    } finally {
+      handle.unmount?.()
+    }
+  })
+
+  // Regression for `@km/termless/15575-rec-input-broken`.
+  //
+  // The Kitty keyboard protocol is a *stdin-encoding* mode. When silvery
+  // does not own stdin (`input: false` — e.g. termless `rec`'s live
+  // overlay), it must not flip the host terminal into Kitty mode: the
+  // actual input owner (the recorded child reached through the PTY)
+  // negotiates its own keyboard protocol. If silvery enables Kitty behind
+  // its back, the host emits CSI-u key reports the child cannot parse —
+  // keystrokes leak as raw `[57441;2u` text and every hotkey (incl. Ctrl-D)
+  // goes dead. The fix gates the Kitty enable on `!inputDisabled` in
+  // create-app.tsx.
+  test("does NOT enable the Kitty keyboard protocol on the host", async () => {
+    const { stream: stdin } = createFakeTtyStdin()
+    const stdout = createFakeTtyStdout()
+
+    const handle = await run(
+      <Box>
+        <Text>hi</Text>
+      </Box>,
+      {
+        stdin,
+        stdout,
+        cols: 80,
+        rows: 24,
+        input: false,
+        mouse: false,
+        selection: false,
+        focusReporting: false,
+      },
+    )
+
+    try {
+      const all = stdout.written.join("")
+      expect(
+        KITTY_ENABLE_RE.test(all),
+        `input:false render must not write a Kitty-enable sequence (CSI > … u); ` +
+          `got: ${JSON.stringify(all.slice(0, 200))}`,
+      ).toBe(false)
+    } finally {
+      handle.unmount?.()
+    }
+  })
+
+  // Control: the SAME render WITHOUT `input: false` *does* enable Kitty.
+  // This proves the gate is scoped to the input-disabled case and silvery's
+  // normal keyboard-protocol setup is intact for apps that own stdin.
+  test("control — a normal (input-owning) render DOES enable Kitty", async () => {
+    const { stream: stdin } = createFakeTtyStdin()
+    const stdout = createFakeTtyStdout()
+
+    const handle = await run(
+      <Box>
+        <Text>hi</Text>
+      </Box>,
+      {
+        stdin,
+        stdout,
+        cols: 80,
+        rows: 24,
+        // input not disabled — silvery owns stdin, Kitty enable is correct.
+        mouse: false,
+        selection: false,
+        focusReporting: false,
+      },
+    )
+
+    try {
+      const all = stdout.written.join("")
+      expect(KITTY_ENABLE_RE.test(all)).toBe(true)
     } finally {
       handle.unmount?.()
     }

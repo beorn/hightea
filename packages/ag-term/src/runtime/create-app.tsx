@@ -1694,8 +1694,13 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
 
   function disableInteractiveProtocolsEarly(): void {
     if (headless || !stdout.isTTY) return
+    // `disableKittyKeyboard()` is gated by `!inputDisabled` — the Kitty
+    // keyboard protocol is a stdin-encoding mode. When silvery does not own
+    // stdin (`input: false`) it never pushed a Kitty stack (see the enable
+    // block in the render path) and must not pop one the actual input owner
+    // may rely on. See `@km/termless/15575-rec-input-broken`.
     const earlyDisable = [
-      disableKittyKeyboard(), // Stop Kitty release events
+      inputDisabled ? "" : disableKittyKeyboard(), // Stop Kitty release events — only if silvery owns stdin
       disableMouse(), // Stop mouse events
       "\x1b[?1004l", // Stop focus reporting
     ].join("")
@@ -2058,10 +2063,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       // Step 2: Send ALL protocol disable sequences unconditionally.
       // Sending a disable for an inactive protocol is harmless, and unconditional
       // cleanup is more robust than tracking enable/disable state.
+      //
+      // Exception: `disableKittyKeyboard()` is gated by `!inputDisabled`. The
+      // Kitty keyboard protocol is a stdin-encoding mode; when silvery does not
+      // own stdin (`input: false`), it never enabled Kitty (see the enable block
+      // above) and must not pop a Kitty stack the input owner may be relying on.
       const sequences = [
         "\x1b[?1004l", // Disable focus reporting
         disableMouse(), // Disable SGR mouse tracking (modes 1003, 1006, optional 1016)
-        disableKittyKeyboard(), // Pop Kitty keyboard protocol
+        inputDisabled ? "" : disableKittyKeyboard(), // Pop Kitty keyboard protocol — only if silvery owns stdin
         "\x1b[?2004l", // Disable bracketed paste
         "\x1b[0m", // Reset SGR attributes
         resetCursorStyle(), // Reset cursor shape to terminal default (DECSCUSR 0)
@@ -2110,7 +2120,7 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       const sequences = [
         "\x1b[?1004l",
         disableMouse(),
-        disableKittyKeyboard(),
+        inputDisabled ? "" : disableKittyKeyboard(),
         "\x1b[?2004l",
         "\x1b[0m",
         resetCursorStyle(),
@@ -2709,7 +2719,22 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (!headless) {
       // Kitty keyboard protocol — all paths go through the Modes owner so state
       // is tracked for race-free teardown.
-      if (kittyOption != null && kittyOption !== false) {
+      //
+      // `inputDisabled` short-circuits the whole block: the Kitty keyboard
+      // protocol changes how the terminal *encodes keystrokes*. When silvery
+      // does not own stdin (`input: false` — e.g. termless `rec`'s live
+      // overlay, which keeps the host's stdin → child-PTY pipe intact), it
+      // must not put the terminal into Kitty mode. The actual input owner
+      // (the recorded child app reached through the PTY) negotiates its own
+      // keyboard protocol; if silvery flips the host into Kitty mode behind
+      // its back, the host emits CSI-u key reports the child cannot parse —
+      // keystrokes leak to the screen as raw `[57441;2u`-style text and
+      // hotkeys (incl. Ctrl-D) go dead. The teardown's `disableKittyKeyboard()`
+      // is likewise scoped: see the `!inputDisabled` guard below.
+      // See `docs/design/terminal-component.md` § "render({ input: false })".
+      if (inputDisabled) {
+        // No-op — leave keyboard-protocol negotiation to the stdin owner.
+      } else if (kittyOption != null && kittyOption !== false) {
         if (kittyOption === true) {
           // Auto-detect: probe terminal, enable if supported.
           // If caller already detected Kitty support synchronously (via caps from
