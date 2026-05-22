@@ -30,6 +30,7 @@ import type { CellBuffer } from "./viewport-types"
 import { createCellBuffer, type MutableCellBuffer } from "./viewport-buffer"
 import type { Cell } from "./types"
 import type {
+  IslandContext,
   IslandGuest,
   IslandHandle,
   IslandOutputOwner,
@@ -249,4 +250,197 @@ function makeStringCell(char: string): Cell {
     wide: false,
     continuation: false,
   }
+}
+
+// ============================================================================
+// sandbox(inner) wrapper
+// ============================================================================
+
+/**
+ * Options for {@link sandbox}.
+ */
+export interface SandboxOptions {
+  /**
+   * Background color the sandbox returns for OSC 11 ; ? (background) queries.
+   * Default: `"#000000"` (black). Use the host theme's resolved bg here when
+   * you want the guest's color detection to agree with the rest of the app.
+   *
+   * Format: any silvery-acceptable color string (`"#rrggbb"`, `"rgb:..."`,
+   * a token like `"$bg-surface"` after resolution).
+   */
+  background?: string
+  /** Foreground color for OSC 10 ; ? queries. Default: `"#cccccc"`. */
+  foreground?: string
+  /**
+   * Optional 16-color ANSI map (palette indices 0..15) for OSC 4 ; <idx> ; ?
+   * queries. When omitted, sandbox returns the canonical xterm-256 base16
+   * palette so guests see a sane color world even though the host's real
+   * palette is hidden.
+   */
+  ansi16?: readonly string[]
+  /**
+   * Window title returned for OSC 21 (icon name) / OSC 2 (window title) /
+   * `\x1b[21t` queries. Default: `""` (empty — guests detect "no title set").
+   */
+  windowTitle?: string
+}
+
+/**
+ * Wrap any {@link IslandGuest} in a sandbox that neutralizes the 8 query
+ * families documented in `@km/silvery/15646-islands`:
+ *
+ * - **OSC 4 ; idx ; ?**   — palette color (index 0..255)
+ * - **OSC 10 ; ?**        — default foreground color
+ * - **OSC 11 ; ?**        — default background color
+ * - **DSR 5**             — device status report (`\x1b[5n`)
+ * - **DSR 6**             — cursor position report (`\x1b[6n`)
+ * - **DA1**               — primary device attributes (`\x1b[c`)
+ * - **DA2**               — secondary device attributes (`\x1b[>c`)
+ * - **Window title query** — `\x1b[21t`, `\x1b]2;?\x07`, `\x1b]21;?\x07`
+ *
+ * The wrapper intercepts the inner guest's calls to
+ * {@link IslandContext.execOSC}. Recognized queries get canned responses
+ * (sourced from `SandboxOptions` or sensible defaults); unrecognized
+ * sequences pass through to the host's real `execOSC` so the guest still
+ * has access to host-fulfilled OS side-effects it depends on (clipboard
+ * write via OSC 52 stays functional).
+ *
+ * Why: the interim termless `--live-chrome=none` flip exists because the
+ * silvery overlay didn't have this. Phase 3 rec adoption replaces the
+ * chrome-overlay path with `<Island guest={sandbox(ptyGuest(...))}>`; the
+ * sandbox absorbs the recorded program's queries so the host terminal
+ * never echoes responses into the recorded grid.
+ *
+ * @example
+ * ```ts
+ * const guest = sandbox(ptyGuest({ cmd: ["nvim"] }), {
+ *   background: theme.bg,     // align with host's resolved theme
+ *   foreground: theme.fg,
+ * })
+ * <Island guest={guest} cols={120} rows={40} focusable />
+ * ```
+ */
+export function sandbox(inner: IslandGuest, options: SandboxOptions = {}): IslandGuest {
+  return {
+    // Pass through the inner guest's capabilities verbatim — sandbox is a
+    // query-neutralization wrapper, not a capability gate. The host applies
+    // capability intersection with per-island overrides as usual.
+    capabilities: inner.capabilities,
+    async init(ctx) {
+      const wrappedCtx: IslandContext = {
+        cols: ctx.cols,
+        rows: ctx.rows,
+        emit: ctx.emit.bind(ctx),
+        requestResize: ctx.requestResize.bind(ctx),
+        async execOSC(command: string): Promise<string | void> {
+          const synthetic = synthesizeOSCResponse(command, options)
+          if (synthetic !== undefined) return synthetic
+          // Unknown sequence — pass through to host (e.g. OSC 52 clipboard).
+          return ctx.execOSC(command)
+        },
+        abortSignal: ctx.abortSignal,
+        now: ctx.now.bind(ctx),
+      }
+      return inner.init(wrappedCtx)
+    },
+  }
+}
+
+// ============================================================================
+// Internal — synthesize canned responses for the 8 query families
+// ============================================================================
+
+const XTERM_BASE16: readonly string[] = [
+  "#000000",
+  "#cd0000",
+  "#00cd00",
+  "#cdcd00",
+  "#0000ee",
+  "#cd00cd",
+  "#00cdcd",
+  "#e5e5e5",
+  "#7f7f7f",
+  "#ff0000",
+  "#00ff00",
+  "#ffff00",
+  "#5c5cff",
+  "#ff00ff",
+  "#00ffff",
+  "#ffffff",
+]
+
+/**
+ * Recognize and respond to one of the 8 sandboxed query families. Returns
+ * the synthetic response (ANSI escape sequence) or `undefined` if the
+ * command isn't a recognized query — caller should fall through to the
+ * host's real execOSC for unknown sequences (OSC 52 clipboard, etc).
+ *
+ * Response format mirrors what a real terminal would emit so the guest's
+ * parser handles it without special-casing the sandbox.
+ */
+export function synthesizeOSCResponse(
+  command: string,
+  options: SandboxOptions = {},
+): string | undefined {
+  // OSC 4 ; idx ; ? — palette query
+  const osc4 = command.match(/^\x1b\]4;(\d+);\?(\x07|\x1b\\)$/)
+  if (osc4) {
+    const idx = Number(osc4[1])
+    const palette = options.ansi16 ?? XTERM_BASE16
+    const color = palette[idx] ?? options.background ?? "#000000"
+    return `\x1b]4;${idx};rgb:${hexToRgbColon(color)}\x07`
+  }
+
+  // OSC 10 ; ? — foreground
+  if (/^\x1b\]10;\?(\x07|\x1b\\)$/.test(command)) {
+    return `\x1b]10;rgb:${hexToRgbColon(options.foreground ?? "#cccccc")}\x07`
+  }
+
+  // OSC 11 ; ? — background
+  if (/^\x1b\]11;\?(\x07|\x1b\\)$/.test(command)) {
+    return `\x1b]11;rgb:${hexToRgbColon(options.background ?? "#000000")}\x07`
+  }
+
+  // DSR 5 — device status. Real terminals respond "0" (OK). `\x1b[0n` is
+  // the canonical OK response.
+  if (command === "\x1b[5n") {
+    return "\x1b[0n"
+  }
+
+  // DSR 6 — cursor position. Canned: row 1, col 1 (top-left). The guest
+  // doesn't actually need a meaningful answer; this just keeps probe-
+  // protocols from hanging.
+  if (command === "\x1b[6n") {
+    return "\x1b[1;1R"
+  }
+
+  // DA1 — primary device attributes (\x1b[c, \x1b[0c). Respond as VT220
+  // with 132-column mode + ANSI color (the canonical baseline most guests
+  // accept).
+  if (command === "\x1b[c" || command === "\x1b[0c") {
+    return "\x1b[?62;1;6c"
+  }
+
+  // DA2 — secondary device attributes (\x1b[>c, \x1b[>0c). Respond as
+  // xterm version 0 (the most generic possible answer; nothing in the
+  // ecosystem depends on the patch level field).
+  if (command === "\x1b[>c" || command === "\x1b[>0c") {
+    return "\x1b[>0;0;0c"
+  }
+
+  // Window title query — OSC 21 (icon name) / OSC 2 (title) / CSI 21t.
+  if (command === "\x1b[21t" || /^\x1b\]2(1)?;\?(\x07|\x1b\\)$/.test(command)) {
+    return `\x1b]l${options.windowTitle ?? ""}\x1b\\`
+  }
+
+  return undefined
+}
+
+function hexToRgbColon(hex: string): string {
+  // Convert `"#rrggbb"` → `"rrrr/gggg/bbbb"` (xterm canonical OSC response).
+  // Real terminals return 4-digit hex per channel; we duplicate the 2-digit
+  // values for compatibility with guests that strictly parse the format.
+  const m = hex.match(/^#([0-9a-fA-F]{2})([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/)
+  if (!m) return "0000/0000/0000"
+  return `${m[1]}${m[1]}/${m[2]}${m[2]}/${m[3]}${m[3]}`
 }

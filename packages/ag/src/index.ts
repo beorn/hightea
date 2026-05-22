@@ -104,8 +104,8 @@ export { createCellBuffer } from "./viewport-buffer"
 export type { MutableCellBuffer } from "./viewport-buffer"
 
 // Islands — built-in guests (Phase 2 of @km/silvery/15646)
-export { snapshotGuest } from "./island-guests"
-export type { SnapshotGuestOptions, SnapshotGuestHandle } from "./island-guests"
+export { snapshotGuest, sandbox, synthesizeOSCResponse } from "./island-guests"
+export type { SnapshotGuestOptions, SnapshotGuestHandle, SandboxOptions } from "./island-guests"
 
 // Islands (cell-grid mount primitive — see bead @km/silvery/15646)
 export type {
