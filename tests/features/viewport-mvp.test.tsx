@@ -119,19 +119,16 @@ function BoardWithViewport({
             </Box>
             {Array.from({ length: Math.floor(cardCount / 4) }).map((_, cardIdx) => (
               <Box key={cardIdx} width={12} height={1}>
-                <Text>c{colIdx}.{cardIdx}</Text>
+                <Text>
+                  c{colIdx}.{cardIdx}
+                </Text>
               </Box>
             ))}
           </Box>
         ))}
       </Box>
       <Box borderStyle="round" borderColor="yellow" padding={0}>
-        <Viewport
-          cols={cols}
-          rows={rows}
-          source={source}
-          ref={viewportRef}
-        />
+        <Viewport cols={cols} rows={rows} source={source} ref={viewportRef} />
       </Box>
       <Box>
         <Text dimColor>footer</Text>
@@ -193,10 +190,7 @@ describe("Viewport — v1 MVP", () => {
     // Push a different pattern via the captured context.
     const ctx = mock.ctx()!
     expect(ctx).toBeTruthy()
-    ctx.blit(
-      [{ row: 0, col: 0, width: 12, height: 2 }],
-      uniformBuffer(12, 2, "D"),
-    )
+    ctx.blit([{ row: 0, col: 0, width: 12, height: 2 }], uniformBuffer(12, 2, "D"))
 
     // Trigger a re-render so the pipeline picks up the dirty viewport.
     app.rerender(<BoardWithViewport source={mock.source} cols={12} rows={2} />)
@@ -279,20 +273,10 @@ describe("Viewport — v1 MVP", () => {
     // 5 cycles of source-driven update + chrome-side state change.
     const chars = ["I", "J", "K", "L", "M"]
     for (let i = 0; i < chars.length; i++) {
-      mock.ctx()!.blit(
-        [{ row: 0, col: 0, width: 10, height: 3 }],
-        uniformBuffer(10, 3, chars[i]!),
-      )
+      mock.ctx()!.blit([{ row: 0, col: 0, width: 10, height: 3 }], uniformBuffer(10, 3, chars[i]!))
       // Vary the chrome too (cardCount tweak) so we exercise the cascade
       // when the viewport's siblings shift.
-      app.rerender(
-        <BoardWithViewport
-          source={mock.source}
-          cols={10}
-          rows={3}
-          cardCount={24 + i}
-        />,
-      )
+      app.rerender(<BoardWithViewport source={mock.source} cols={10} rows={3} cardCount={24 + i} />)
       expect(app.text).toContain(chars[i]!.repeat(10))
     }
   })
