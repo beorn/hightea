@@ -349,4 +349,22 @@ describe("Viewport — v1 MVP", () => {
     expect(app.text).toContain("QQQQQQQQ")
     expect(app.text).toContain("tick=1")
   })
+
+  test("9. v1 nesting guard — Viewport-in-Viewport throws at mount", () => {
+    // Sibling viewports are fine (covered implicitly by tests 1-8). Nested
+    // viewports must throw on mount with a message pointing to the bead.
+    const render = createRenderer({ cols: 40, rows: 10 })
+    const { source: outerSource } = mockSource("X")
+    const { source: innerSource } = mockSource("Y")
+    function Nested() {
+      return (
+        <Viewport cols={20} rows={4} source={outerSource}>
+          {/* @ts-expect-error — Viewport is typed as a leaf; React still
+              allows children at runtime, which is the path we're guarding. */}
+          <Viewport cols={5} rows={2} source={innerSource} />
+        </Viewport>
+      )
+    }
+    expect(() => render(<Nested />)).toThrow(/Viewport cannot be nested/)
+  })
 })

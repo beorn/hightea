@@ -142,6 +142,22 @@ export const Viewport = forwardRef(function Viewport(
     const node = nodeRef.current
     const slot = stateRef.current
     if (!node || !slot) return
+    // v1 nesting guard — Viewport cannot live inside another Viewport. Walk the
+    // AgNode parent chain at mount; throw if any ancestor is a viewport. See
+    // bead @km/silvery/15513 § "Out of scope for v1" for the rationale (the
+    // foreign cell domains compose by sibling split, not by nesting; a future
+    // LocalSource handles the genuine subtree-inside-viewport case).
+    let ancestor: AgNode | null = node.parent
+    while (ancestor) {
+      if (ancestor.type === "silvery-viewport") {
+        throw new Error(
+          "Viewport cannot be nested inside another Viewport (v1 restriction — " +
+            "see bead @km/silvery/15513). Use sibling Viewports in a split " +
+            "layout instead.",
+        )
+      }
+      ancestor = ancestor.parent
+    }
     node.viewportState = slot.state
     if (source) {
       source.connect(slot.ctx)
