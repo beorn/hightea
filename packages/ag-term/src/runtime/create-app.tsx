@@ -1098,6 +1098,16 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       stdin: termStdin,
       stdout: termStdout,
       mouse: mouseParseOptions,
+      // Propagate `input: false` to the auto-created Term so its lazy
+      // `.input` accessor returns undefined instead of constructing an
+      // InputOwner on first access. Without this, createApp's input
+      // subscription is gated by `inputDisabled` but the term-provider
+      // subscription at line ~3902 reads `maybeTerm.input` and triggers
+      // InputOwner construction — which calls `stdin.setEncoding("utf8")` +
+      // `stdin.setRawMode(true)` and steals stdin out from under a host
+      // process that's piping its own stdin to a child PTY (e.g. termless
+      // `rec`). See `@km/termless/15541-rec-recording-mode-ux`.
+      ...(inputDisabled ? { input: false as const } : {}),
       ...(explicitResizeCoalesceMs !== undefined
         ? { resizeCoalesceMs: explicitResizeCoalesceMs }
         : {}),
