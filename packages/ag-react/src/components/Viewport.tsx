@@ -25,10 +25,11 @@ import {
   useImperativeHandle,
   useLayoutEffect,
   useRef,
+  useState,
 } from "react"
 import type { AgNode, Cell } from "@silvery/ag/types"
 import { trackContentDirty } from "@silvery/ag/dirty-tracking"
-import { CONTENT_BIT, getRenderEpoch } from "@silvery/ag/epoch"
+import { CONTENT_BIT, SUBTREE_BIT, getRenderEpoch, isDirty } from "@silvery/ag/epoch"
 import { createCellBuffer, type MutableCellBuffer } from "@silvery/ag/viewport-buffer"
 import type {
   CellBuffer,
@@ -84,6 +85,14 @@ export const Viewport = forwardRef(function Viewport(
   } = props
 
   const nodeRef = useRef<AgNode | null>(null)
+  // Force a second-pass paint AFTER source.connect runs so the very first
+  // visible frame reflects the source's startup content. react-reconciler
+  // fires `resetAfterCommit` (which triggers the silvery pipeline) BEFORE
+  // `flushLayoutEffects` — without this bump the first frame paints an empty
+  // buffer (source.connect hasn't run yet). The state change scheduled by
+  // setMountTick(1) is processed by `flushSyncWork()` in `render.tsx` and
+  // re-enters the pipeline with viewportState attached + dirty bit set.
+  const [, setMountTick] = useState(0)
   // Backing cell buffer + per-instance state. Created lazily on mount so that
   // hot-reload remounts get fresh state; kept in a ref so re-renders don't
   // reallocate.
@@ -137,6 +146,11 @@ export const Viewport = forwardRef(function Viewport(
     if (source) {
       source.connect(slot.ctx)
     }
+    // Schedule a second render so the silvery pipeline re-runs with the
+    // viewportState attached + any source-pushed startup cells in the buffer.
+    // The bump triggers React → commit → resetAfterCommit → onRender →
+    // pipeline → renderViewport with content. See comment on setMountTick.
+    setMountTick((t) => t + 1)
     return () => {
       try {
         if (source) source.disconnect()
@@ -172,16 +186,7 @@ export const Viewport = forwardRef(function Viewport(
         // Imperative writes need the same dirty signal as source-driven blit
         // so the next pipeline run paints the change.
         const node = nodeRef.current
-        if (node) {
-          const epoch = getRenderEpoch()
-          if (node.dirtyEpoch !== epoch) {
-            node.dirtyBits = CONTENT_BIT
-            node.dirtyEpoch = epoch
-          } else {
-            node.dirtyBits |= CONTENT_BIT
-          }
-          trackContentDirty(node)
-        }
+        if (node) markNodeDirty(node)
       },
       writeAnsi(_chunk) {
         // v1: not implemented — apps that want ANSI parsing should use an
@@ -197,16 +202,7 @@ export const Viewport = forwardRef(function Viewport(
         if (!slot) return
         slot.state.cursor = { row: pos.row, col: pos.col, style: style ?? "block" }
         const node = nodeRef.current
-        if (node) {
-          const epoch = getRenderEpoch()
-          if (node.dirtyEpoch !== epoch) {
-            node.dirtyBits = CONTENT_BIT
-            node.dirtyEpoch = epoch
-          } else {
-            node.dirtyBits |= CONTENT_BIT
-          }
-          trackContentDirty(node)
-        }
+        if (node) markNodeDirty(node)
       },
       resize(_nextCols, _nextRows) {
         // v1: ref-driven resize is informational only — the AgNode's layout
@@ -231,6 +227,49 @@ export const Viewport = forwardRef(function Viewport(
   // viewports are leaves — no React children.
   return <silvery-viewport ref={nodeRef} {...props} />
 })
+
+// ============================================================================
+// Dirty propagation helper
+// ============================================================================
+
+/**
+ * Mark the viewport's host AgNode dirty so the next pipeline run repaints
+ * the foreign cell buffer, AND propagate SUBTREE_BIT up the parent chain so
+ * `renderPhase`'s no-op-frame-skip (which gates on the root's dirty bits)
+ * actually enters the walk. Mirrors `markSubtreeDirty` in host-config.ts —
+ * inlined here to avoid widening the reconciler's public surface for a
+ * single consumer.
+ */
+function markNodeDirty(node: AgNode): void {
+  const epoch = getRenderEpoch()
+  // Set CONTENT_BIT (for renderOwnContent dispatch) AND SUBTREE_BIT (so
+  // `canSkipChildSubtree` in render-phase.ts:2261 — which gates on
+  // SUBTREE_BIT, not CONTENT_BIT — doesn't bypass the viewport's
+  // `renderNodeToBuffer` call).
+  const ownBits = CONTENT_BIT | SUBTREE_BIT
+  if (node.dirtyEpoch !== epoch) {
+    node.dirtyBits = ownBits
+    node.dirtyEpoch = epoch
+  } else {
+    node.dirtyBits |= ownBits
+  }
+  trackContentDirty(node)
+  // Propagate SUBTREE_BIT up the parent chain so renderPhase's no-op-frame
+  // skip (`!isAnyDirty(root.dirtyBits, root.dirtyEpoch)` at render-phase.ts
+  // ~line 114) actually enters the walk. Mirrors `markSubtreeDirty` in
+  // host-config.ts — inlined here to avoid widening the reconciler's public
+  // surface for a single consumer.
+  let ancestor: AgNode | null = node.parent
+  while (ancestor && !isDirty(ancestor.dirtyBits, ancestor.dirtyEpoch, SUBTREE_BIT)) {
+    if (ancestor.dirtyEpoch !== epoch) {
+      ancestor.dirtyBits = SUBTREE_BIT
+      ancestor.dirtyEpoch = epoch
+    } else {
+      ancestor.dirtyBits |= SUBTREE_BIT
+    }
+    ancestor = ancestor.parent
+  }
+}
 
 // ============================================================================
 // ViewportContext factory
@@ -260,14 +299,7 @@ function createViewportContext(
   function markDirty(): void {
     const node = getNode()
     if (!node) return
-    const epoch = getRenderEpoch()
-    if (node.dirtyEpoch !== epoch) {
-      node.dirtyBits = CONTENT_BIT
-      node.dirtyEpoch = epoch
-    } else {
-      node.dirtyBits |= CONTENT_BIT
-    }
-    trackContentDirty(node)
+    markNodeDirty(node)
   }
 
   return {

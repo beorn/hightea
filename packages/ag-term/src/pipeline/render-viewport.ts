@@ -5,8 +5,15 @@
  * {@link ViewportNodeState} is copied 1:1 into the parent buffer at the node's
  * `boxRect`. The viewport does NOT participate in bg-coherence with the parent
  * — the bg-conflict throw in `render-text.ts` is structurally side-stepped
- * because viewport cells route through {@link TerminalBuffer.setCell} directly,
- * never through {@link renderText}.
+ * because viewport cells route through the render-sink directly, never through
+ * {@link renderText}.
+ *
+ * IMPORTANT: writes go through {@link RenderSink.emitSetCell}, NOT
+ * `buffer.setCell`. Under `SILVERY_RENDER_PLAN` (default ON) the silvery
+ * pipeline captures sink emissions into a plan and commits them onto a
+ * replay buffer — direct buffer mutations are silently dropped. Routing
+ * through the sink keeps viewport cells in the plan so they survive
+ * commitSectionedPlan.
  *
  * See {@link viewport-types.ts} in `@silvery/ag` and bead
  * `@km/silvery/15513-surface-nested-composition-primitive`.
@@ -14,17 +21,20 @@
 
 import type { TerminalBuffer, CellPatch, Color } from "../buffer"
 import type { AgNode, Cell, Rect } from "@silvery/ag/types"
+import type { RenderSink } from "./render-sink"
 import { parseColor } from "./render-helpers"
 
 /**
  * Blit the foreign cell buffer at `node.viewportState.buffer` into `buffer`
- * at `layout` (the viewport's content rect in absolute parent-buffer
- * coordinates). Cells outside `buffer`'s bounds are silently clipped — the
- * Viewport rect's right/bottom may extend off-screen and that's fine.
+ * (via `sink.emitSetCell`) at `layout` (the viewport's content rect in
+ * absolute parent-buffer coordinates). Cells outside `buffer`'s bounds are
+ * silently clipped — the Viewport rect's right/bottom may extend off-screen
+ * and that's fine.
  */
 export function renderViewport(
   node: AgNode,
   buffer: TerminalBuffer,
+  sink: RenderSink,
   layout: Rect,
   scrollOffset: number,
 ): void {
@@ -48,11 +58,7 @@ export function renderViewport(
       const dstX = baseX + c
       if (dstX < 0 || dstX >= buffer.width) continue
       const cell = src.getCell(c, r)
-      // The viewport's CellBuffer is the source of truth — we copy the cell's
-      // visible state verbatim (char, fg, bg, attrs, wide). Continuation cells
-      // surface as-is so wide-char handling round-trips through the foreign
-      // source's encoding.
-      buffer.setCell(dstX, dstY, viewportCellToPatch(cell))
+      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell))
     }
   }
 }

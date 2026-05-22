@@ -1162,9 +1162,9 @@ function renderOwnContent(
   } else if (node.type === "silvery-viewport") {
     // Opaque blit of the foreign cell domain. The viewport doesn't participate
     // in bg-coherence with the parent — `renderText`'s bg-conflict throw is
-    // never reached because viewport cells go through `buffer.setCell` directly.
-    // See bead @km/silvery/15513.
-    renderViewport(node, buffer, layout, nodeState.scrollOffset)
+    // never reached because viewport cells route through `sink.emitSetCell`
+    // directly. See bead @km/silvery/15513.
+    renderViewport(node, buffer, sink, layout, nodeState.scrollOffset)
   } else if (node.type === "silvery-text") {
     if (instrumentEnabled) stats.textNodes++
     // O(1) inherited bg/fg — threaded top-down through nodeState.
