@@ -1544,6 +1544,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
   // Cleanup state
   let cleanedUp = false
   let storeUnsubscribeFn: (() => void) | null = null
+  let processUncaughtHandler:
+    | ((error: Error, origin: NodeJS.UncaughtExceptionOrigin) => void)
+    | null = null
+  let processUnhandledRejectionHandler:
+    | ((reason: unknown, promise: Promise<unknown>) => void)
+    | null = null
 
   // Errors caught by SilveryErrorBoundary — flushed to stderr on cleanup so
   // the user sees them after the alt screen exits. Also dumped to a temp file
@@ -1972,6 +1978,15 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
     if (cleanedUp) return
     cleanedUp = true
 
+    if (processUncaughtHandler) {
+      process.off("uncaughtException", processUncaughtHandler)
+      processUncaughtHandler = null
+    }
+    if (processUnhandledRejectionHandler) {
+      process.off("unhandledRejection", processUnhandledRejectionHandler)
+      processUnhandledRejectionHandler = null
+    }
+
     // Log keypress performance summary before teardown (only emits when TRACE was active)
     logExitSummary()
 
@@ -2332,6 +2347,17 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
       cleanup()
       exitResolve()
     })()
+  }
+
+  if (!headless) {
+    processUncaughtHandler = (error: Error) => {
+      panicApp(error, { title: "uncaughtException" })
+    }
+    processUnhandledRejectionHandler = (reason: unknown) => {
+      panicApp(reason, { title: "unhandledRejection" })
+    }
+    process.on("uncaughtException", processUncaughtHandler)
+    process.on("unhandledRejection", processUnhandledRejectionHandler)
   }
 
   // Create SilveryNode container.
