@@ -132,7 +132,7 @@ export function ClipboardDemo() {
     // response using parseClipboardResponse(). For this demo we just
     // show that the request was sent.
     if (input === "v") {
-      void createOsc52Backend(stdout).read()
+      void createOsc52Backend(stdout).read?.()
       setLastPasted("(request sent — check terminal)")
     }
 

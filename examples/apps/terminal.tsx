@@ -516,7 +516,7 @@ function ClipboardTab() {
 
     // Request clipboard — backend.read() writes the OSC 52 query
     if (input === "v") {
-      void createOsc52Backend(stdout).read()
+      void createOsc52Backend(stdout).read?.()
       setHistory((h) => [
         ...h.slice(-7),
         { action: "request", text: "(paste requested)", time: now() },
