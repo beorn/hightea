@@ -26,10 +26,7 @@ import {
   resolveNonTTYMode,
   stripAnsi,
 } from "./non-tty"
-import {
-  getCursorState as globalGetCursorState,
-  type CursorAccessors,
-} from "@silvery/ag-react/hooks/useCursor"
+import type { CursorAccessors } from "@silvery/ag-react/hooks/useCursor"
 import {
   commitLayoutSnapshot,
   findActiveCursorRect,
@@ -117,7 +114,14 @@ export interface SchedulerOptions {
   slowFrameThreshold?: number
   /** Pipeline configuration (caps-scoped measurer + output phase) */
   pipelineConfig?: PipelineConfig
-  /** Per-instance cursor accessors. Falls back to module-level globals if not provided. */
+  /**
+   * Per-instance cursor accessors. When omitted, `getCursorState` falls
+   * back to a `() => null` no-op (no hardware cursor) and no
+   * subscribeCursor subscription is wired up. Callers that want cursor
+   * visibility must construct accessors via `createCursorStore()` and
+   * pass them here. (The legacy module-level global fallback was removed
+   * in `km-silvery.delete-cursor-globals`.)
+   */
   cursorAccessors?: CursorAccessors
   /**
    * Custom output writer. When provided, all render output is routed through
@@ -273,7 +277,11 @@ export class RenderScheduler {
     this.slowFrameThreshold = options.slowFrameThreshold ?? 50
     this.mode = options.mode ?? "fullscreen"
     this.pipelineConfig = options.pipelineConfig
-    this.getCursorState = options.cursorAccessors?.getCursorState ?? globalGetCursorState
+    // No-op fallback for callers that don't pass `cursorAccessors`. The
+    // legacy `globalGetCursorState` shim was deleted in
+    // km-silvery.delete-cursor-globals; callers wanting cursor visibility
+    // must wire `cursorAccessors` explicitly via createCursorStore().
+    this.getCursorState = options.cursorAccessors?.getCursorState ?? (() => null)
     // Subscribe to cursor-state changes so the scheduler re-renders when
     // useCursor's store updates land between render frames. The
     // `subscribeCursor` accessor was previously exported but never wired up

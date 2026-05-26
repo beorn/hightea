@@ -679,8 +679,6 @@ export { useConsole } from "./hooks/useConsole"
 export {
   useCursor,
   resetCursorState,
-  getCursorState,
-  subscribeCursor,
   createCursorStore,
   CursorProvider,
 } from "./hooks/useCursor"
