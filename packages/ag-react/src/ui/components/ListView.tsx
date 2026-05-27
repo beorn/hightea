@@ -1089,7 +1089,12 @@ function ListViewInner<T>(
   // onWheel only to plumb the layout-anchor suppression into the same
   // moment as the displacement and to flip the wheel-driven sentinel.
   const handleWheel = useCallback(
-    (event: { deltaY: number; timeStamp?: number }) => {
+    (event: { deltaY: number; timeStamp?: number; preventDefault?: () => void }) => {
+      // ListView is the wheel owner for events targeted inside it. Claim the
+      // event before layout-readiness checks so app-level term:mouse fallback
+      // handlers cannot install a second scroll authority while this list is
+      // still converging.
+      event.preventDefault?.()
       const maxRow = maxScrollRowRef.current
       if (maxRow <= 0) {
         // Diagnostic — wheel event arrived but layout hasn't converged
