@@ -72,13 +72,14 @@ export function renderViewport(
  * pre-resolved RGB strings, so parseColor's fast path runs.
  *
  * Reused by {@link renderIsland} — both viewport and island share the same
- * Cell shape from `@silvery/ag/types`, so the conversion is identical.
+ * Cell shape from `@silvery/ag/types`. Islands pass an inherited background
+ * so snapshot guests can leave cell.bg null and still sit on host chrome.
  */
-function viewportCellToPatch(cell: Cell): CellPatch {
+function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
   return {
     char: cell.char,
     fg: cell.fg === null ? null : (parseColor(cell.fg) as Color),
-    bg: cell.bg === null ? null : (parseColor(cell.bg) as Color),
+    bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg) as Color),
     attrs: cell.attrs,
     wide: cell.wide,
     continuation: cell.continuation,
@@ -122,6 +123,7 @@ export function renderIsland(
   sink: RenderSink,
   layout: Rect,
   scrollOffset: number,
+  inheritedBg: Color = null,
 ): void {
   const state = node.islandState
   if (!state) return
@@ -152,7 +154,7 @@ export function renderIsland(
       const dstX = baseX + c
       if (dstX < 0 || dstX >= buffer.width) continue
       const cell = src.getCell(c, r)
-      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell))
+      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell, inheritedBg))
     }
   }
 }

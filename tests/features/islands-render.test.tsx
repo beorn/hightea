@@ -317,6 +317,34 @@ describe("Island — render-phase blit", () => {
     expect(app.text).toContain("BBBBBBBBBBBB")
   })
 
+  test("2c. null-bg snapshot cells inherit the host chrome background", async () => {
+    const render = createRenderer({ cols: 80, rows: 24 })
+    const wrap = makeTestScopeWrapper()
+    const g = snapshotGuest("I")
+    const view = (backgroundColor: string) =>
+      wrap(
+        <Box width={80} height={24} backgroundColor={backgroundColor}>
+          <Island guest={g.guest} cols={4} rows={1} />
+        </Box>,
+      )
+
+    const app = render(view("$bg-surface-subtle"))
+    await flushMicrotasks()
+    app.rerender(view("$bg-surface-subtle"))
+
+    const island = app.locator("silvery-island").boundingBox()
+    expect(island).toBeTruthy()
+    const x = island!.x
+    const y = island!.y
+    expect(app.cell(x, y).char).toBe("I")
+    const restingBg = app.cell(x, y).bg
+    expect(restingBg).toBeTruthy()
+
+    app.rerender(view("$bg-surface-hover"))
+    expect(app.cell(x, y).char).toBe("I")
+    expect(app.cell(x, y).bg).not.toEqual(restingBg)
+  })
+
   test("3. island renders correctly when its layout shrinks (clipping cascade)", async () => {
     // Validate that renderIsland clips to the smaller of layout.width and
     // src.cols when the layout slot is smaller than the guest's own cell
