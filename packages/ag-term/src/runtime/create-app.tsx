@@ -92,6 +92,7 @@ import {
 import { map, merge, takeUntil } from "@silvery/create/streams"
 import { createRuntime } from "./create-runtime"
 import {
+  canRouteKeyToFocusedIsland,
   createHandlerContext,
   dispatchKeyToHandlers,
   handleFocusNavigation,
@@ -3840,7 +3841,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         const data = event.data as { input: string; key: Key }
 
         // Ctrl+Z: suspend (parseKey returns input="z" with key.ctrl=true)
-        if (data.input === "z" && data.key.ctrl && suspendOption) {
+        if (
+          data.input === "z" &&
+          data.key.ctrl &&
+          suspendOption &&
+          !canRouteKeyToFocusedIsland(data.input, data.key, focusManager)
+        ) {
           const prevented = onSuspendHook?.() === false
           if (!prevented) {
             // Remove this event from the batch
@@ -3870,7 +3876,12 @@ async function initApp<I extends Record<string, unknown>, S extends Record<strin
         }
 
         // Ctrl+C: exit (parseKey returns input="c" with key.ctrl=true)
-        if (data.input === "c" && data.key.ctrl && exitOnCtrlCOption) {
+        if (
+          data.input === "c" &&
+          data.key.ctrl &&
+          exitOnCtrlCOption &&
+          !canRouteKeyToFocusedIsland(data.input, data.key, focusManager)
+        ) {
           const prevented = onInterruptHook?.() === false
           if (!prevented) {
             exit()

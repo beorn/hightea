@@ -27,6 +27,7 @@ import {
   type ForwardedRef,
   type JSX,
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useRef,
   useState,
@@ -359,6 +360,16 @@ export const Island = forwardRef(function Island(
     },
     [guest, hydrate],
   )
+
+  // Host-driven resize: prop/layout owners update cols/rows without
+  // re-instantiating the guest. Forward the new grid dimensions through the
+  // IslandSizeOwner so PTY guests can resize their child process.
+  useEffect(() => {
+    const handle = slotRef.current?.factory.handle
+    if (!handle) return
+    if (handle.size.cols === cols && handle.size.rows === rows) return
+    handle.size.requestResize(cols, rows)
+  }, [cols, rows, guest, hydrate])
 
   // ── Imperative ref handle ────────────────────────────────────────────────
   // The user-facing ref resolves to the guest's IslandHandle (null until
