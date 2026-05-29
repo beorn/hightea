@@ -39,6 +39,7 @@
     "./ui/components/CursorLine": "./src/ui/components/CursorLine.tsx",
     "./ui/components/Divider": "./src/ui/components/Divider.tsx",
     "./ui/components/EditContextDisplay": "./src/ui/components/EditContextDisplay.tsx",
+    "./ui/components/Pulse": "./src/ui/components/Pulse.tsx",
     "./ui/components/Spinner": "./src/ui/components/Spinner.tsx",
     "./ui/components/TextArea": "./src/ui/components/TextArea.tsx",
     "./ui/components/TextInput": "./src/ui/components/TextInput.tsx",
@@ -191,6 +192,10 @@
         "types": "./dist/ui/components/EditContextDisplay.d.mts",
         "import": "./dist/ui/components/EditContextDisplay.mjs"
       },
+      "./ui/components/Pulse": {
+        "types": "./dist/ui/components/Pulse.d.mts",
+        "import": "./dist/ui/components/Pulse.mjs"
+      },
       "./ui/components/Spinner": {
         "types": "./dist/ui/components/Spinner.d.mts",
         "import": "./dist/ui/components/Spinner.mjs"
@@ -305,6 +310,7 @@
       "src/ui/components/CursorLine.tsx",
       "src/ui/components/Divider.tsx",
       "src/ui/components/EditContextDisplay.tsx",
+      "src/ui/components/Pulse.tsx",
       "src/ui/components/Spinner.tsx",
       "src/ui/components/TextArea.tsx",
       "src/ui/components/TextInput.tsx",

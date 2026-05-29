@@ -272,6 +272,9 @@ export type { SpinnerProps } from "./ui/components"
 export { ProgressBar } from "./ui/components"
 export type { ProgressBarProps } from "./ui/components"
 
+export { Pulse, usePulse } from "./ui/components"
+export type { PulseProps, UsePulseOptions } from "./ui/components"
+
 export { SelectList } from "./ui/components"
 export type { SelectListProps, SelectOption } from "./ui/components"
 
