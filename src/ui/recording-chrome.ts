@@ -2,6 +2,8 @@ export {
   RECORDING_CHROME_STYLES as unstable_RECORDING_CHROME_STYLES,
   composeRecordingChromeSpec as unstable_composeRecordingChromeSpec,
   recordingChromeOverhead as unstable_recordingChromeOverhead,
+  recordingChromeSvgContentOffset as unstable_recordingChromeSvgContentOffset,
+  recordingChromeSvgLayout as unstable_recordingChromeSvgLayout,
   recordingChromeSpecToSvgOptions as unstable_recordingChromeSpecToSvgOptions,
 } from "@silvery/ag-react/ui/recording-chrome/spec"
 export type {
@@ -14,8 +16,8 @@ export type {
   RecordingChromeOverhead as unstable_RecordingChromeOverhead,
   RecordingChromeSpec as unstable_RecordingChromeSpec,
   RecordingChromeStyle as unstable_RecordingChromeStyle,
+  RecordingChromeSvgLayout as unstable_RecordingChromeSvgLayout,
   RecordingChromeSvgOptions as unstable_RecordingChromeSvgOptions,
-  RecordingChromeSvgSpec as unstable_RecordingChromeSvgSpec,
   RecordingChromeSvgWindowBar as unstable_RecordingChromeSvgWindowBar,
   RecordingChromeTitleBarSpec as unstable_RecordingChromeTitleBarSpec,
 } from "@silvery/ag-react/ui/recording-chrome/spec"

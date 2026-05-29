@@ -4,6 +4,8 @@ import { createRenderer } from "@silvery/test"
 import { Text } from "../src/components/Text"
 import {
   composeRecordingChromeSpec,
+  recordingChromeSpecToSvgOptions,
+  recordingChromeSvgContentOffset,
   unstable_RecordingChrome as RecordingChrome,
 } from "../src/ui/recording-chrome"
 
@@ -23,15 +25,6 @@ describe("composeRecordingChromeSpec", () => {
           controlsSide: "left",
         },
       },
-      svg: {
-        windowBar: "colorful",
-        windowBarSize: 38,
-        padding: 28,
-        borderRadius: 10,
-        margin: 24,
-        shadow: 14,
-        contentOffset: { x: 52, y: 90 },
-      },
     })
   })
 
@@ -46,16 +39,23 @@ describe("composeRecordingChromeSpec", () => {
         borderStyle: "none",
         titleBar: null,
       },
-      svg: {
-        windowBar: "none",
-        windowBarSize: 0,
-        padding: 0,
-        borderRadius: 0,
-        margin: 0,
-        shadow: 0,
-        contentOffset: { x: 0, y: 0 },
-      },
     })
+  })
+
+  test("keeps SVG dimensions in the SVG adapter, not in the target-neutral spec", () => {
+    const spec = composeRecordingChromeSpec({ style: "macos", title: "Vault" })
+
+    expect("svg" in spec).toBe(false)
+    expect(recordingChromeSpecToSvgOptions(spec)).toMatchObject({
+      windowBar: "colorful",
+      windowBarSize: 38,
+      padding: 28,
+      borderRadius: 10,
+      margin: 24,
+      shadow: 14,
+      windowTitle: "Vault",
+    })
+    expect(recordingChromeSvgContentOffset(spec)).toEqual({ x: 52, y: 90 })
   })
 })
 

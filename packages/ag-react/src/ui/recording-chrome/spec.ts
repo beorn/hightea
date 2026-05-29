@@ -27,16 +27,6 @@ export interface RecordingChromeLiveSpec {
   titleBar: RecordingChromeTitleBarSpec | null
 }
 
-export interface RecordingChromeSvgSpec {
-  windowBar: RecordingChromeSvgWindowBar
-  windowBarSize: number
-  padding: number
-  borderRadius: number
-  margin: number
-  shadow: number
-  contentOffset: { x: number; y: number }
-}
-
 export interface RecordingChromeSpec {
   style: RecordingChromeStyle
   title: string
@@ -44,13 +34,22 @@ export interface RecordingChromeSpec {
   hasChrome: boolean
   overhead: RecordingChromeOverhead
   live: RecordingChromeLiveSpec
-  svg: RecordingChromeSvgSpec
 }
 
 export interface ComposeRecordingChromeSpecOptions {
   style?: RecordingChromeStyle
   title?: string
   alignment?: RecordingChromeAlignment
+}
+
+export interface RecordingChromeSvgLayout {
+  windowBar: RecordingChromeSvgWindowBar
+  windowBarSize: number
+  padding: number
+  borderRadius: number
+  margin: number
+  shadow: number
+  contentOffset: { x: number; y: number }
 }
 
 export interface RecordingChromeSvgOptions {
@@ -94,10 +93,7 @@ export function composeRecordingChromeSpec(
   const alignment = options.alignment ?? "center"
 
   switch (style) {
-    case "macos": {
-      const padding = 28
-      const margin = 24
-      const windowBarSize = 38
+    case "macos":
       return {
         style,
         title,
@@ -112,21 +108,8 @@ export function composeRecordingChromeSpec(
             separator: "·",
           },
         },
-        svg: {
-          windowBar: "colorful",
-          windowBarSize,
-          padding,
-          borderRadius: 10,
-          margin,
-          shadow: 14,
-          contentOffset: { x: margin + padding, y: margin + padding + windowBarSize },
-        },
       }
-    }
-    case "windows": {
-      const padding = 24
-      const margin = 0
-      const windowBarSize = 34
+    case "windows":
       return {
         style,
         title,
@@ -141,17 +124,7 @@ export function composeRecordingChromeSpec(
             separator: null,
           },
         },
-        svg: {
-          windowBar: "windows",
-          windowBarSize,
-          padding,
-          borderRadius: 0,
-          margin,
-          shadow: 0,
-          contentOffset: { x: margin + padding, y: margin + padding + windowBarSize },
-        },
       }
-    }
     case "none":
     default:
       return {
@@ -164,31 +137,74 @@ export function composeRecordingChromeSpec(
           borderStyle: "none",
           titleBar: null,
         },
-        svg: {
-          windowBar: "none",
-          windowBarSize: 0,
-          padding: 0,
-          borderRadius: 0,
-          margin: 0,
-          shadow: 0,
-          contentOffset: { x: 0, y: 0 },
-        },
       }
   }
+}
+
+export function recordingChromeSvgLayout(spec: RecordingChromeSpec): RecordingChromeSvgLayout {
+  switch (spec.style) {
+    case "macos": {
+      const padding = 28
+      const margin = 24
+      const windowBarSize = 38
+      return {
+        windowBar: "colorful",
+        windowBarSize,
+        padding,
+        borderRadius: 10,
+        margin,
+        shadow: 14,
+        contentOffset: { x: margin + padding, y: margin + padding + windowBarSize },
+      }
+    }
+    case "windows": {
+      const padding = 24
+      const margin = 0
+      const windowBarSize = 34
+      return {
+        windowBar: "windows",
+        windowBarSize,
+        padding,
+        borderRadius: 0,
+        margin,
+        shadow: 0,
+        contentOffset: { x: margin + padding, y: margin + padding + windowBarSize },
+      }
+    }
+    case "none":
+    default:
+      return {
+        windowBar: "none",
+        windowBarSize: 0,
+        padding: 0,
+        borderRadius: 0,
+        margin: 0,
+        shadow: 0,
+        contentOffset: { x: 0, y: 0 },
+      }
+  }
+}
+
+export function recordingChromeSvgContentOffset(spec: RecordingChromeSpec): {
+  x: number
+  y: number
+} {
+  return recordingChromeSvgLayout(spec).contentOffset
 }
 
 export function recordingChromeSpecToSvgOptions(
   spec: RecordingChromeSpec,
 ): RecordingChromeSvgOptions {
   if (!spec.hasChrome) return {}
+  const layout = recordingChromeSvgLayout(spec)
   const options: RecordingChromeSvgOptions = {
-    windowBar: spec.svg.windowBar,
-    windowBarSize: spec.svg.windowBarSize,
-    padding: spec.svg.padding,
-    borderRadius: spec.svg.borderRadius,
+    windowBar: layout.windowBar,
+    windowBarSize: layout.windowBarSize,
+    padding: layout.padding,
+    borderRadius: layout.borderRadius,
     ...(spec.title ? { windowTitle: spec.title } : {}),
   }
-  if (spec.svg.margin > 0) options.margin = spec.svg.margin
-  if (spec.svg.shadow > 0) options.shadow = spec.svg.shadow
+  if (layout.margin > 0) options.margin = layout.margin
+  if (layout.shadow > 0) options.shadow = layout.shadow
   return options
 }

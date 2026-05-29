@@ -2,6 +2,8 @@ export {
   RECORDING_CHROME_STYLES,
   composeRecordingChromeSpec,
   recordingChromeOverhead,
+  recordingChromeSvgContentOffset,
+  recordingChromeSvgLayout,
   recordingChromeSpecToSvgOptions,
 } from "./spec"
 export type {
@@ -14,8 +16,8 @@ export type {
   RecordingChromeOverhead,
   RecordingChromeSpec,
   RecordingChromeStyle,
+  RecordingChromeSvgLayout,
   RecordingChromeSvgOptions,
-  RecordingChromeSvgSpec,
   RecordingChromeSvgWindowBar,
   RecordingChromeTitleBarSpec,
 } from "./spec"

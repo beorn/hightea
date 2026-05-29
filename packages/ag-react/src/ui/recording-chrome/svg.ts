@@ -1,4 +1,8 @@
-import type { RecordingChromeSpec, RecordingChromeSvgWindowBar } from "./spec"
+import {
+  recordingChromeSvgLayout,
+  type RecordingChromeSpec,
+  type RecordingChromeSvgWindowBar,
+} from "./spec"
 
 export interface ComposeRecordingChromeSvgOptions {
   spec?: RecordingChromeSpec
@@ -64,12 +68,13 @@ function titleColorFor(barColor: string): string {
 }
 
 export function composeRecordingChromeSvg(options: ComposeRecordingChromeSvgOptions): string[] {
-  const windowBar = options.spec?.svg.windowBar ?? options.windowBar ?? "none"
+  const specLayout = options.spec ? recordingChromeSvgLayout(options.spec) : null
+  const windowBar = specLayout?.windowBar ?? options.windowBar ?? "none"
   if (windowBar === "none") return []
 
   const barWidth = options.barWidth
-  const barHeight = options.barHeight ?? options.spec?.svg.windowBarSize ?? 40
-  const borderRadius = options.borderRadius ?? options.spec?.svg.borderRadius ?? 0
+  const barHeight = options.barHeight ?? specLayout?.windowBarSize ?? 40
+  const borderRadius = options.borderRadius ?? specLayout?.borderRadius ?? 0
   const themeBg = options.themeBackground
   const title = options.title ?? options.spec?.title ?? null
   const fontSize = options.fontSize ?? 16
