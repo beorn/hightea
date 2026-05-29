@@ -468,3 +468,69 @@ describe("HorizontalVirtualList — edge-only horizontal scroll", () => {
     expect(stripAnsi(handle.text)).toContain("Column 1")
   })
 })
+
+// ============================================================================
+// Variable-width board scroll (17065)
+// ============================================================================
+
+describe("HorizontalVirtualList — variable-width board scroll (17065)", () => {
+  // Models the km board: the CURSOR's column is EXPANDED (wide), all others
+  // COLLAPSED (narrow). As the cursor moves, widths reflow (the new cursor
+  // column expands, the old one collapses). User report 17065: moving the
+  // cursor LEFT from the rightmost column scrolls the whole board — it should
+  // only scroll when the cursor would go OFF-SCREEN (edge-only). The uniform-
+  // width path is already edge-only (km-qlib7 flip); this pins the VARIABLE-
+  // width path that the live board actually hits.
+  const COLS = 6
+  const EXPANDED = 57
+  const COLLAPSED = 20
+  const VIEWPORT = 90
+
+  const visibleCols = (text: string): number[] => {
+    const out: number[] = []
+    for (let i = 0; i < COLS; i++) if (text.includes(`Column ${i}`)) out.push(i)
+    return out
+  }
+
+  const App = ({ cursor }: { cursor: number }) => {
+    const widthFor = (i: number) => (i === cursor ? EXPANDED : COLLAPSED)
+    return (
+      <HorizontalVirtualList
+        items={makeColumns(COLS)}
+        width={VIEWPORT}
+        height={3}
+        itemWidth={(_c, i) => widthFor(i)}
+        scrollTo={cursor}
+        renderItem={(c, i) => (
+          <Box width={widthFor(i)}>
+            <Text>{c.title}</Text>
+          </Box>
+        )}
+        getKey={(c) => c.id}
+      />
+    )
+  }
+
+  test("moving left from the rightmost column does not scroll the window start (edge-only)", () => {
+    const r = createRenderer({ cols: VIEWPORT, rows: 8 })
+    const handle = r(<App cursor={0} />)
+    // Walk the cursor all the way right (advance), recording the visible window.
+    const trail: { cursor: number; visible: number[] }[] = []
+    for (let c = 0; c < COLS; c++) {
+      handle.rerender(<App cursor={c} />)
+      trail.push({ cursor: c, visible: visibleCols(stripAnsi(handle.text)) })
+    }
+    const beforeLeft = visibleCols(stripAnsi(handle.text)) // cursor at rightmost
+    // Move the cursor LEFT one column (it was already visible at the right edge).
+    handle.rerender(<App cursor={COLS - 2} />)
+    const afterLeft = visibleCols(stripAnsi(handle.text))
+
+    const ctx = `walk: ${JSON.stringify(trail)}\nbeforeLeft: ${beforeLeft}\nafterLeft: ${afterLeft}`
+    // Cursor (col 4) must remain visible after the move.
+    expect(afterLeft, ctx).toContain(COLS - 2)
+    // Edge-only: the window START must NOT jump left when moving the cursor to
+    // an already-visible column. If it does, the board "scrolled on leaving the
+    // edge" — the 17065 bug.
+    expect(Math.min(...afterLeft), ctx).toBeGreaterThanOrEqual(Math.min(...beforeLeft))
+  })
+})
