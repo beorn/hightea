@@ -1738,6 +1738,17 @@ function parseUnderlineStyle(subparam: number): UnderlineStyle {
   }
 }
 
+function packRgb(r: number, g: number, b: number): number {
+  return 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+}
+
+function parseColonRgb(subparts: number[]): number | null {
+  if (subparts.length < 5) return null
+  const [r, g, b] = subparts.slice(-3)
+  if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return null
+  return packRgb(r!, g!, b!)
+}
+
 /**
  * Parse text with ANSI escape sequences into styled segments.
  * Handles basic SGR (Select Graphic Rendition) codes including:
@@ -1911,18 +1922,12 @@ export function parseAnsiText(text: string): StyledSegment[] {
           currentStyle.underline = currentStyle.underlineStyle !== false
         } else if (mainCode === 58) {
           // SGR 58 - underline color
-          // Format: 58:5:N (256-color) or 58:2::r:g:b (RGB, note double colon)
+          // Format: 58:5:N, 58:2::r:g:b, 58:2:r:g:b, or 58:2:colorspace:r:g:b.
           if (subparts[1] === 5 && subparts[2] !== undefined) {
             currentStyle.underlineColor = subparts[2]
           } else if (subparts[1] === 2) {
-            // RGB: 58:2::r:g:b (indices 3,4,5 after the empty slot)
-            // or 58:2:r:g:b (indices 2,3,4)
-            // Handle both formats by looking for valid RGB values
-            const r = subparts[3] ?? subparts[2] ?? 0
-            const g = subparts[4] ?? subparts[3] ?? 0
-            const b = subparts[5] ?? subparts[4] ?? 0
-            currentStyle.underlineColor =
-              0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
+            const rgb = parseColonRgb(subparts)
+            if (rgb !== null) currentStyle.underlineColor = rgb
           }
         } else if (mainCode === 38) {
           // SGR 38:2::r:g:b or 38:5:N format (colon-separated)
@@ -1930,11 +1935,11 @@ export function parseAnsiText(text: string): StyledSegment[] {
             currentStyle.fg = subparts[2]
             currentStyle.colonFg = true
           } else if (subparts[1] === 2) {
-            const r = subparts[3] ?? subparts[2] ?? 0
-            const g = subparts[4] ?? subparts[3] ?? 0
-            const b = subparts[5] ?? subparts[4] ?? 0
-            currentStyle.fg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
-            currentStyle.colonFg = true
+            const rgb = parseColonRgb(subparts)
+            if (rgb !== null) {
+              currentStyle.fg = rgb
+              currentStyle.colonFg = true
+            }
           }
         } else if (mainCode === 48) {
           // SGR 48:2::r:g:b or 48:5:N format (colon-separated)
@@ -1942,11 +1947,11 @@ export function parseAnsiText(text: string): StyledSegment[] {
             currentStyle.bg = subparts[2]
             currentStyle.colonBg = true
           } else if (subparts[1] === 2) {
-            const r = subparts[3] ?? subparts[2] ?? 0
-            const g = subparts[4] ?? subparts[3] ?? 0
-            const b = subparts[5] ?? subparts[4] ?? 0
-            currentStyle.bg = 0x1000000 | ((r & 0xff) << 16) | ((g & 0xff) << 8) | (b & 0xff)
-            currentStyle.colonBg = true
+            const rgb = parseColonRgb(subparts)
+            if (rgb !== null) {
+              currentStyle.bg = rgb
+              currentStyle.colonBg = true
+            }
           }
         }
         continue

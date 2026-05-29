@@ -425,6 +425,13 @@ export interface ColonSGRReplacement {
   colonForm: string
 }
 
+function parseColonRgbSubparams(parts: string[]): { r: number; g: number; b: number } | null {
+  if (parts.length < 5) return null
+  const [r, g, b] = parts.slice(-3).map(Number)
+  if (!Number.isFinite(r) || !Number.isFinite(g) || !Number.isFinite(b)) return null
+  return { r: r!, g: g!, b: b! }
+}
+
 /**
  * Detect colon-format SGR sequences in an SGR token and return replacement pairs.
  *
@@ -449,12 +456,11 @@ export function extractColonSGRReplacements(sgrSequence: string): ColonSGRReplac
     const subs = part.split(":")
     const code = Number(subs[0])
     if ((code === 38 || code === 48) && Number(subs[1]) === 2) {
-      // True color colon format: code:2::R:G:B or code:2:R:G:B
-      // Extract R, G, B (skip empty colorspace ID)
-      const nums = subs.map((s) => (s === "" ? 0 : Number(s)))
-      const r = nums[3] ?? nums[2] ?? 0
-      const g = nums[4] ?? nums[3] ?? 0
-      const b = nums[5] ?? nums[4] ?? 0
+      // True color colon format: code:2::R:G:B, code:2:R:G:B, or
+      // code:2:colorspace:R:G:B. RGB is always the final three subparams.
+      const rgb = parseColonRgbSubparams(subs)
+      if (!rgb) continue
+      const { r, g, b } = rgb
       const semicolonForm = `\x1b[${code};2;${r};${g};${b}m`
       replacements.push({ semicolonForm, colonForm: `\x1b[${part}m` })
     }
