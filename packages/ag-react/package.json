@@ -21,6 +21,9 @@
     "./reconciler": "./src/reconciler/index.ts",
     "./ui": "./src/ui/index.ts",
     "./ui/animation": "./src/ui/animation.ts",
+    "./ui/recording-chrome": "./src/ui/recording-chrome/index.ts",
+    "./ui/recording-chrome/spec": "./src/ui/recording-chrome/spec.ts",
+    "./ui/recording-chrome/svg": "./src/ui/recording-chrome/svg.ts",
     "./ui/image/*": "./src/ui/image/*.ts",
     "./ui/*/*": "./src/ui/*/*.ts",
     "./ui/*": "./src/ui/*/index.ts",
@@ -220,6 +223,18 @@
         "types": "./dist/ui/progress/index.d.mts",
         "import": "./dist/ui/progress/index.mjs"
       },
+      "./ui/recording-chrome": {
+        "types": "./dist/ui/recording-chrome/index.d.mts",
+        "import": "./dist/ui/recording-chrome/index.mjs"
+      },
+      "./ui/recording-chrome/spec": {
+        "types": "./dist/ui/recording-chrome/spec.d.mts",
+        "import": "./dist/ui/recording-chrome/spec.mjs"
+      },
+      "./ui/recording-chrome/svg": {
+        "types": "./dist/ui/recording-chrome/svg.d.mts",
+        "import": "./dist/ui/recording-chrome/svg.mjs"
+      },
       "./ui/react": {
         "types": "./dist/ui/react/index.d.mts",
         "import": "./dist/ui/react/index.mjs"
@@ -298,6 +313,10 @@
       "src/ui/image/index.ts",
       "src/ui/input/index.ts",
       "src/ui/progress/index.ts",
+      "src/ui/recording-chrome/index.ts",
+      "src/ui/recording-chrome/spec.ts",
+      "src/ui/recording-chrome/svg.ts",
+      "src/ui/recording-chrome/RecordingChrome.tsx",
       "src/ui/react/index.ts",
       "src/ui/utils/index.ts",
       "src/ui/wrappers/index.ts",
