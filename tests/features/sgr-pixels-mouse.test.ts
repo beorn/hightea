@@ -41,6 +41,23 @@ describe("SGR mouse coordinates", () => {
     })
   })
 
+  test("SGR-Pixels conversion honors alternate cell sizes", () => {
+    const parsed = parseMouseSequence("\x1b[<64;101;141M", {
+      coordinateMode: "pixel",
+      cellSize: { width: 10, height: 20 },
+    })
+
+    expect(parsed).toMatchObject({
+      x: 10,
+      y: 7,
+      clientX: 100,
+      clientY: 140,
+      coordinateMode: "pixel",
+      action: "wheel",
+      delta: -1,
+    })
+  })
+
   test("synthetic events expose layout x/y and optional physical client coordinates", () => {
     const target = { props: {}, children: [] } as never
     const parsed = parseMouseSequence("\x1b[<0;101;141M", {
