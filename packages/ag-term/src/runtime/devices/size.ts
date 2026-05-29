@@ -14,11 +14,14 @@
  * debounce**: every incoming SIGWINCH resets a 200 ms timer, and the snapshot
  * publishes only after `coalesceMs` of silence. A four-event burst at ~80 ms
  * intervals (the observed cmux pattern) collapses to one published snapshot
- * carrying the final geometry. Discrete resizes spaced further apart than
- * `coalesceMs` pass through individually. The cost is a small per-resize
- * latency — fine for "settle after the workspace switch" but perceptible for
- * a continuous drag-resize; consumers that want zero-latency live preview
- * pass `coalesceMs: 0`.
+ * carrying the final geometry. Same-size resize notifications still publish a
+ * fresh snapshot: cmux/focus restores can corrupt terminal screen state
+ * without changing cols/rows, and fullscreen runtimes need the event so they
+ * can repaint/clear. Discrete resizes spaced further apart than `coalesceMs`
+ * pass through individually. The cost is a small per-resize latency — fine for
+ * "settle after the workspace switch" but perceptible for a continuous
+ * drag-resize; consumers that want zero-latency live preview pass
+ * `coalesceMs: 0`.
  *
  * ## API shape
  *
@@ -221,6 +224,10 @@ function validDimension(value: number | undefined, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) && value > 0 ? value : fallback
 }
 
+function isValidDimension(value: number | undefined): boolean {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+}
+
 /**
  * Create a `Size` owner from a WriteStream. Subscribes to the stream's
  * `resize` event, coalesces bursts, and publishes the final geometry to
@@ -254,14 +261,18 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
   let installed = false
   let detachShared: (() => void) | null = null
 
-  /** Publish a new snapshot if the dims actually changed (equal-value guard). */
-  const publish = (cols: number, rows: number) => {
+  /**
+   * Publish a new snapshot when dims changed, or when a valid same-size
+   * `resize` event needs to wake resize subscribers.
+   */
+  const publish = (cols: number, rows: number, opts: { force?: boolean } = {}) => {
     const prev = _snapshot()
-    if (prev.cols === cols && prev.rows === rows) {
+    if (!opts.force && prev.cols === cols && prev.rows === rows) {
       logSize(`publish skipped — no change (cols=${cols} rows=${rows})`)
       return
     }
-    logSize(`publish: ${prev.cols}x${prev.rows} → ${cols}x${rows}`)
+    const suffix = prev.cols === cols && prev.rows === rows ? " (same-size resize)" : ""
+    logSize(`publish: ${prev.cols}x${prev.rows} → ${cols}x${rows}${suffix}`)
     _snapshot(Object.freeze({ cols, rows }))
   }
 
@@ -269,10 +280,13 @@ export function createSize(stdout: NodeJS.WriteStream, options: CreateSizeOption
     coalesceTimer = null
     if (disposed) return
     const prev = _snapshot()
-    const liveCols = validDimension(stdout.columns, prev.cols)
-    const liveRows = validDimension(stdout.rows, prev.rows)
+    const rawCols = stdout.columns
+    const rawRows = stdout.rows
+    const liveCols = validDimension(rawCols, prev.cols)
+    const liveRows = validDimension(rawRows, prev.rows)
+    const validResize = isValidDimension(rawCols) && isValidDimension(rawRows)
     logSize(`flush: stdout=${liveCols}x${liveRows} prev=${prev.cols}x${prev.rows}`)
-    publish(liveCols, liveRows)
+    publish(liveCols, liveRows, { force: validResize })
   }
 
   const onResize = () => {
@@ -385,8 +399,6 @@ export function createFixedSize(initial: SizeSnapshot): Size & {
     snapshot,
     update(nextCols: number, nextRows: number) {
       if (disposed) return
-      const prev = _snapshot()
-      if (prev.cols === nextCols && prev.rows === nextRows) return
       _snapshot(Object.freeze({ cols: nextCols, rows: nextRows }))
     },
     [Symbol.dispose]() {

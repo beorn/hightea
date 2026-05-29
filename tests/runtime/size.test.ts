@@ -125,6 +125,22 @@ describe("createSize: resize coalescing", () => {
     stop()
   })
 
+  test("same-size resize still publishes after coalescing", async () => {
+    const stdout = createMockStdout(80, 24)
+    using size = mkSize(stdout)
+
+    const { changes, stop } = observeChanges(size)
+
+    setDims(stdout, 80, 24)
+    await sleep(50)
+
+    expect(changes).toEqual([{ cols: 80, rows: 24 }])
+    expect(size.cols()).toBe(80)
+    expect(size.rows()).toBe(24)
+
+    stop()
+  })
+
   test("burst of 3 resizes within 16ms coalesces to ONE notification", async () => {
     const stdout = createMockStdout(80, 24)
     using size = mkSize(stdout)
@@ -507,6 +523,18 @@ describe("createFixedSize", () => {
     expect(size.cols()).toBe(100)
     expect(size.rows()).toBe(30)
     expect(size.snapshot()).toEqual({ cols: 100, rows: 30 })
+  })
+
+  test("same-size explicit update still notifies subscribers", () => {
+    using size = createFixedSize({ cols: 100, rows: 30 })
+
+    const { changes, stop } = observeChanges(size)
+
+    size.update(100, 30)
+
+    expect(changes).toEqual([{ cols: 100, rows: 30 }])
+
+    stop()
   })
 
   test("update() fires effects with new dims", () => {

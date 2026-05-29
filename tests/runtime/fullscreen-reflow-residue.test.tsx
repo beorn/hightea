@@ -98,6 +98,23 @@ describe("fullscreen reflow residue", () => {
     handle.unmount()
   })
 
+  test("same-size resize notification clears fullscreen residue without focus-in", async () => {
+    using term = createTermless({ cols: 40, rows: 8, reflowResidue: true })
+    const handle = await run(<StableFullscreenApp />, term)
+
+    expect(term.screen).toContainText("stable top")
+    term.out.clear()
+
+    term.reflowResidue!.arm()
+    term.resize!(40, 8)
+    await waitForResize()
+
+    const outputAfterResize = term.out.getText()
+    expect(outputAfterResize).toContain("\x1b[2J")
+
+    handle.unmount()
+  })
+
   test("same-size workspace restore residue is cleared on focus-in", async () => {
     using term = createTermless({ cols: 40, rows: 8, reflowResidue: true })
     const handle = await run(<StableFullscreenApp />, term)
