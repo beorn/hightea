@@ -31,9 +31,11 @@ import {
   sumHeights,
 } from "../../packages/ag-react/src/hooks/useVirtualizer"
 import {
+  computeIndexTrailingSpacer,
   resolveRetainedIndexWindow,
   resolveTrailingSpacerFillEnd,
 } from "../../packages/ag-react/src/ui/components/list-view/index-window"
+import { createHeightModel } from "../../packages/ag-react/src/ui/components/list-view/height-model"
 
 // ============================================================================
 // Helpers
@@ -138,6 +140,24 @@ describe("Refinement 1: width-keyed measurement cache", () => {
 // ============================================================================
 
 describe("Refinement 2: scroll spacers preserve virtual scroll extent", () => {
+  test("HeightModel spacers include boundary gaps owned by spacer boxes", () => {
+    const gap = 2
+    const heights = [1, 2, 3, 4]
+    const model = createHeightModel({
+      itemCount: heights.length,
+      estimate: (index) => heights[index]!,
+      gap,
+    })
+
+    const visibleHeight = heights[1]! + gap + heights[2]!
+    const leadingSpacer = model.rowOfIndex(1)
+    const trailingSpacer = computeIndexTrailingSpacer(model, 3, heights.length, gap)
+
+    expect(leadingSpacer + visibleHeight + trailingSpacer).toBe(model.totalRows())
+    expect(leadingSpacer).toBe(heights[0]! + gap)
+    expect(trailingSpacer).toBe(gap + heights[3]!)
+  })
+
   test("index-mode rendered output ≈ leading-spacer + items + trailing-spacer", () => {
     // 1000 items, cursor at 500 — index-window renders ~101 items
     // (50 overscan + cursor + 50 overscan). The leading spacer should

@@ -9,6 +9,7 @@
 import { describe, test, expect } from "vitest"
 import { createHeightModel, shouldKeepHeightModelSnapshot } from "@silvery/ag-react"
 import type { HeightModel } from "@silvery/ag-react"
+import { sumHeights } from "../../packages/ag-react/src/hooks/useVirtualizer"
 // Touch the type so it isn't pruned by the linter — semi-public surface check.
 const _typeCheck: HeightModel | null = null
 void _typeCheck
@@ -83,20 +84,36 @@ describe("HeightModel", () => {
     const m = createHeightModel({ itemCount: 4, estimate: (i) => i + 1, gap: 2 })
     // heights [1, 2, 3, 4], two-row gaps between items.
     expect(m.rowOfIndex(0)).toBe(0)
-    expect(m.rowOfIndex(1)).toBe(1)
-    expect(m.rowOfIndex(2)).toBe(1 + 2 + 2)
-    expect(m.rowOfIndex(3)).toBe(1 + 2 + 3 + 2 + 2)
+    expect(m.rowOfIndex(1)).toBe(1 + 2)
+    expect(m.rowOfIndex(2)).toBe(1 + 2 + 2 + 2)
+    expect(m.rowOfIndex(3)).toBe(1 + 2 + 2 + 2 + 3 + 2)
     expect(m.rowOfIndex(99)).toBe(m.totalRows())
+  })
+
+  test("rowOfIndex matches useVirtualizer spacer row math", () => {
+    const heights = [1, 2, 3, 4]
+    const gap = 2
+    const m = createHeightModel({ itemCount: heights.length, estimate: (i) => heights[i]!, gap })
+
+    for (let i = 0; i < heights.length; i++) {
+      const virtualizerTop = sumHeights(0, i, (j) => heights[j]!, gap) + (i > 0 ? gap : 0)
+      expect(m.rowOfIndex(i)).toBe(virtualizerTop)
+    }
   })
 
   test("indexAtRow returns the item at or before a row", () => {
     const m = createHeightModel({ itemCount: 4, estimate: (i) => i + 1, gap: 2 })
     expect(m.indexAtRow(-1)).toBe(0)
     expect(m.indexAtRow(0)).toBe(0)
-    expect(m.indexAtRow(1)).toBe(1)
+    expect(m.indexAtRow(1)).toBe(0)
+    expect(m.indexAtRow(2)).toBe(0)
+    expect(m.indexAtRow(3)).toBe(1)
     expect(m.indexAtRow(4)).toBe(1)
-    expect(m.indexAtRow(5)).toBe(2)
-    expect(m.indexAtRow(11)).toBe(3)
+    expect(m.indexAtRow(5)).toBe(1)
+    expect(m.indexAtRow(6)).toBe(1)
+    expect(m.indexAtRow(7)).toBe(2)
+    expect(m.indexAtRow(11)).toBe(2)
+    expect(m.indexAtRow(12)).toBe(3)
     expect(m.indexAtRow(999)).toBe(3)
   })
 

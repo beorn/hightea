@@ -686,7 +686,7 @@ describe("ListView maintainVisibleContentPosition", () => {
     const app = r(renderList(initial, listRef, props))
 
     act(() => {
-      listRef.current!.scrollBy(19)
+      listRef.current!.scrollBy(20)
     })
     app.rerender(renderList(initial, listRef, props))
     expect(visibleLines(app.text)[0]).toContain("Item 10")

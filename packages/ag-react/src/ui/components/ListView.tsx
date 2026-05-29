@@ -2126,17 +2126,14 @@ function ListViewInner<T>(
   // Phase 2 (`km-silvery.listview-heightmodel-unify`) — formerly two
   // `sumHeights(s, e, …)` calls; the model now owns this math.
   //
-  // Gap accounting matches `sumHeights(s, e)`: for a contiguous range
-  // [s, e) of m=e-s items the gap contribution is max(0, m-1)*gap
-  // (gaps between items in the range; cross-boundary gaps to neighbours
-  // outside the range are NOT counted — that mirrors the rendered
-  // layout, which inserts a gap-Box only between visible items, never
-  // between the spacer and the first visible item).
+  // Gap accounting assigns boundary gaps to spacer Boxes. ListView renders
+  // explicit gap nodes only between visible items, never between a spacer and
+  // its adjacent visible item. That means:
+  // - leading spacer includes the gap before the first visible item
+  // - trailing spacer includes the gap after the last visible item
   //
-  //   sumHeights(0, start) = prefixSum(start) + max(0, start-1)*gap
-  //   sumHeights(end, n)   = (totalRows - prefixSum(end) - (n-1)*gap)
-  //                          + max(0, n-end-1)*gap
-  //                        = (sum of heights[end..n)) + (n-end-1)*gap
+  //   leading(start)  = prefixSum(start) + start*gap
+  //   trailing(end,n) = totalRows - prefixSum(end) - max(0,end-1)*gap
   const indexLeadingSpacer = usingIndexWindow
     ? toPhysicalRows(heightModel.rowOfIndex(indexWindowStart))
     : 0

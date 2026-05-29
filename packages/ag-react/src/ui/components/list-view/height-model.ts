@@ -178,7 +178,8 @@ export function createHeightModel(opts: HeightModelOptions): HeightModel {
 
   function rowOfIndex(index: number): number {
     const clamped = Math.max(0, Math.min(index, self.itemCount))
-    return prefixSum(clamped) + Math.max(0, clamped - 1) * self.gap
+    if (clamped >= self.itemCount) return totalRows()
+    return prefixSum(clamped) + clamped * self.gap
   }
 
   function indexAtRow(row: number): number | null {
