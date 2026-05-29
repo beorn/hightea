@@ -505,9 +505,9 @@ export async function run(
     // thing, and `term.profile` is the caps base when no override is passed.
     const { stdin: termStdin, stdout: termStdout } = getInternalStreams(term)
     // `input: false` opts the host out of stdin ownership entirely — skip
-    // both the transient probe owner and the OSC theme probe so we never
-    // touch stdin. The recording-overlay use case keeps stdin raw for its
-    // own child PTY pipe and typically supplies its own colorLevel anyway.
+    // the transient probe owner so we never touch stdin. The probe falls
+    // back to caller-supplied caps + the heuristic theme; the recording
+    // overlay use case typically supplies its own colorLevel anyway.
     const termInputDisabled = termOptions?.input === false
     const probeOwner =
       termStdin?.isTTY && termStdout?.isTTY && !termInputDisabled
@@ -527,7 +527,6 @@ export async function run(
         (await probeTerminalProfile({
           colorLevel: termOptsAny?.colorLevel,
           caps: term.profile.caps,
-          probeTheme: !termInputDisabled,
           fallbackDark: nord,
           fallbackLight: catppuccinLatte,
           ...(probeOwner ? { input: probeOwner } : {}),
@@ -597,9 +596,8 @@ export async function run(
   const headless = rest.writable != null || (rest.cols != null && rest.rows != null && !rest.stdout)
   const runStdin = (rest.stdin ?? process.stdin) as NodeJS.ReadStream
   const runStdout = (rest.stdout ?? process.stdout) as NodeJS.WriteStream
-  // Mirror the Term-path: when the caller opts out of stdin, skip both the
-  // transient probe owner and the OSC theme probe. `input: false` means
-  // every stdin-touching path belongs to the embedding host, not silvery.
+  // Mirror the Term-path: when the caller opts out of stdin, skip the
+  // transient probe owner. The probe falls back to caps + heuristic theme.
   const optsInputDisabled = (rest as { input?: false }).input === false
 
   // Transient InputOwner around the probe window — owns raw-mode + stdin
@@ -619,7 +617,6 @@ export async function run(
         : await probeTerminalProfile({
             colorLevel: colorLevelOption,
             caps: capsOption,
-            probeTheme: !optsInputDisabled,
             fallbackDark: nord,
             fallbackLight: catppuccinLatte,
             ...(optsProbeOwner ? { input: optsProbeOwner } : {}),
@@ -639,11 +636,6 @@ export async function run(
       element
     )
   const app = createApp(() => () => ({}))
-  const kittyOption = Object.prototype.hasOwnProperty.call(rest, "kitty")
-    ? rest.kitty
-    : caps.kittyKeyboard
-      ? true
-      : undefined
   const handle = await app.run(themed, {
     ...rest,
     caps,
@@ -653,7 +645,7 @@ export async function run(
     profile: optsProfile,
     alternateScreen: mode !== "inline",
     virtualInline: mode === "virtualInline",
-    kitty: kittyOption,
+    kitty: rest.kitty ?? caps.kittyKeyboard,
     mouse: optsMouseOption,
     focusReporting: rest.focusReporting ?? mode !== "inline",
     textSizing: rest.textSizing ?? "auto",

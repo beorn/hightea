@@ -357,22 +357,28 @@ describe("HorizontalVirtualList — boundary widths", () => {
 })
 
 // ============================================================================
-// Symmetric scroll-back (km-qlib7)
+// Edge-only horizontal scroll (supersedes km-qlib7 scroll-back per 2bd239845)
 // ============================================================================
 
-describe("HorizontalVirtualList — symmetric scroll-back", () => {
+describe("HorizontalVirtualList — edge-only horizontal scroll", () => {
   // 4 columns × 39 cols in a viewport that fits exactly 2 columns. Walking
   // right with scrollTo: 0 → 1 → 2 advances the viewport when the cursor
-  // exits the right edge. Walking back (scrollTo 2 → 1) must symmetrically
-  // retreat — without the symmetric scroll-back rule in useVirtualizer, the
-  // viewport stays anchored at [col2, col3] even though the cursor moved to
-  // col2, leaving col1 hidden. Bug: km-qlib7 (asymmetric horizontal scroll).
+  // exits the right edge. Walking back (scrollTo 2 → 1) keeps the viewport
+  // ANCHORED — edge-only: the window only scrolls when the cursor would
+  // leave the visible range. Retreating to col1 (still visible in [col1, col2])
+  // does NOT scroll back to reveal col0.
+  //
+  // History: km-qlib7 (Feb, 3917a09bb) added symmetric scroll-back-for-context
+  // on retreat; 2bd239845 ("scroll virtualizer only when target leaves view")
+  // later superseded that with edge-only, matching the 17065 user report
+  // ("km view board scrolls on leaving edge"). This test was left asserting the
+  // old scroll-back behavior (RED on main) and is updated here to edge-only.
   //
   // Re-renders the same component with successive scrollTo props; the
   // virtualizer's scrollOffsetRef is preserved across renders by React's
   // ref machinery (single component instance), so this exercises the same
   // code path the live app hits when the user presses l, l, h.
-  test("walking l,l then h restores col1 visibility", () => {
+  test("walking l,l then h keeps viewport anchored (edge-only)", () => {
     const columns = makeColumns(4)
     const indicatorWidth = 1
     const itemWidth = 39
@@ -416,15 +422,16 @@ describe("HorizontalVirtualList — symmetric scroll-back", () => {
     expect(stripAnsi(handle.text)).toContain("Column 2")
     expect(stripAnsi(handle.text)).not.toContain("Column 0")
 
-    // h → cursor=1, retreating into leading edge with col0 hidden →
-    // SYMMETRIC SCROLL-BACK: visible=[col0, col1]. Without the fix this
-    // assertion fails because viewport stays anchored at [col1, col2].
+    // h → cursor=1, still visible in [col1, col2] → EDGE-ONLY: no scroll.
+    // Viewport stays anchored at [col1, col2]; col0 stays hidden. (km-qlib7's
+    // scroll-back-for-context was superseded by 2bd239845 — see block comment.)
     handle.rerender(<App scrollTo={1} />)
     expect(
       stripAnsi(handle.text),
-      "col0 should be visible after h-back from col2 to col1 (km-qlib7)",
-    ).toContain("Column 0")
+      "col0 must stay hidden after h-back to a still-visible col1 (edge-only, supersedes km-qlib7)",
+    ).not.toContain("Column 0")
     expect(stripAnsi(handle.text)).toContain("Column 1")
+    expect(stripAnsi(handle.text)).toContain("Column 2")
   })
 
   // Mirror: walking l from col0 must NOT retreat (cursor-stuck-col-0

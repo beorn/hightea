@@ -23,7 +23,6 @@ import type { TerminalBuffer, CellPatch, Color } from "../buffer"
 import type { AgNode, Cell, Rect } from "@silvery/ag/types"
 import type { RenderSink } from "./render-sink"
 import { parseColor } from "./render-helpers"
-import { assertIslandRenderInvariants, ensureIslandStrictInstrumentation } from "../strict-island"
 
 /**
  * Blit the foreign cell buffer at `node.viewportState.buffer` into `buffer`
@@ -72,14 +71,13 @@ export function renderViewport(
  * pre-resolved RGB strings, so parseColor's fast path runs.
  *
  * Reused by {@link renderIsland} — both viewport and island share the same
- * Cell shape from `@silvery/ag/types`. Islands pass an inherited background
- * so snapshot guests can leave cell.bg null and still sit on host chrome.
+ * Cell shape from `@silvery/ag/types`, so the conversion is identical.
  */
-function viewportCellToPatch(cell: Cell, inheritedBg: Color = null): CellPatch {
+function viewportCellToPatch(cell: Cell): CellPatch {
   return {
     char: cell.char,
     fg: cell.fg === null ? null : (parseColor(cell.fg) as Color),
-    bg: cell.bg === null ? inheritedBg : (parseColor(cell.bg) as Color),
+    bg: cell.bg === null ? null : (parseColor(cell.bg) as Color),
     attrs: cell.attrs,
     wide: cell.wide,
     continuation: cell.continuation,
@@ -123,7 +121,6 @@ export function renderIsland(
   sink: RenderSink,
   layout: Rect,
   scrollOffset: number,
-  inheritedBg: Color = null,
 ): void {
   const state = node.islandState
   if (!state) return
@@ -133,8 +130,6 @@ export function renderIsland(
   // would catch a guest writing past its rect; the null-handle bail is a
   // structural guard that runs at every paint regardless of STRICT.
   if (!handle) return
-  ensureIslandStrictInstrumentation(node)
-  assertIslandRenderInvariants(node, layout)
   const src = handle.output.buffer
   const baseX = layout.x
   const baseY = layout.y - scrollOffset
@@ -154,7 +149,7 @@ export function renderIsland(
       const dstX = baseX + c
       if (dstX < 0 || dstX >= buffer.width) continue
       const cell = src.getCell(c, r)
-      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell, inheritedBg))
+      sink.emitSetCell(dstX, dstY, viewportCellToPatch(cell))
     }
   }
 }

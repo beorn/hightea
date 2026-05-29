@@ -11,8 +11,7 @@
  */
 import { describe, test, expect } from "vitest"
 import { TerminalBuffer } from "@silvery/ag-term/buffer"
-import { outputPhase } from "@silvery/ag-term/pipeline/output-phase"
-import { replayAnsiWithStyles } from "@silvery/ag-term/pipeline/output-verify"
+import { outputPhase, replayAnsiWithStyles } from "@silvery/ag-term/pipeline/output-phase"
 
 /** Write a string into a buffer row starting at column x. */
 function writeStr(buf: TerminalBuffer, x: number, y: number, text: string, fg?: number): void {

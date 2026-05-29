@@ -29,8 +29,7 @@
 
 import { describe, test, expect, beforeEach, afterEach } from "vitest"
 import { TerminalBuffer } from "../packages/ag-term/src/buffer.ts"
-import { outputPhase } from "../packages/ag-term/src/pipeline/output-phase.ts"
-import { replayAnsiWithStyles } from "../packages/ag-term/src/pipeline/output-verify.ts"
+import { outputPhase, replayAnsiWithStyles } from "../packages/ag-term/src/pipeline/output-phase.ts"
 
 const ORIGINAL_HYBRID = process.env.SILVERY_HYBRID_OUTPUT
 

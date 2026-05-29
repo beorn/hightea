@@ -10,7 +10,7 @@ description: Every token category silvery ships — when to use each, how they r
 Silvery ships six distinct token categories. Each has a _different contract_ — picking the right one makes your UI adapt correctly across 84 schemes, four tiers, and every user's terminal. Picking the wrong one produces hardcoded-looking apps that don't respect user themes.
 
 ::: info Sterling tokens
-Silvery 0.20.0 ships [Sterling](/reference/sterling) as THE Theme. The `$fg-accent` / `$fg-muted` / `$bg-selected` tokens used below are Sterling's flat hyphen-keys. Migrating from pre-0.20.0? Legacy `$tokens` keep resolving through 0.20.x — see the [migration map](/reference/sterling#token-migration-map).
+Silvery 0.20.0 ships [Sterling](/guide/sterling) as THE Theme. The `$fg-accent` / `$fg-muted` / `$bg-selected` tokens used below are Sterling's flat hyphen-keys. Migrating from pre-0.20.0? Legacy `$tokens` keep resolving through 0.20.x — see the [migration map](/guide/sterling#token-migration-map).
 :::
 
 The decision tree, memorized:
@@ -104,7 +104,7 @@ Plus `bg-X-hover` and `bg-X-active` for interactive surfaces. Note that text on 
 
 **When an app needs a red that's NOT an error** (e.g. "delete button" or a red tag category): use `$red` or `$brand`. `$fg-error` is reserved for _error state_.
 
-**Visual state cue chain**: don't rely on color alone. Pair with icons / attrs / text prefixes so colorblind users and monochrome terminals still convey state. See the [Capability Tiers](/reference/capability-tiers) tier degradation section.
+**Visual state cue chain**: don't rely on color alone. Pair with icons / attrs / text prefixes so colorblind users and monochrome terminals still convey state. See the [Capability Tiers](/guide/capability-tiers) tier degradation section.
 
 ## 4. UI chrome — `$fg`, `$bg`, `$fg-accent`, `$fg-muted`, `$border-default`, and friends
 
@@ -248,7 +248,7 @@ What color are you choosing for?
 - **`$fg-accent` for app brand** — `$fg-accent` is the _scheme's_ canonical interactive color. For _app brand_, use `$brand`.
 - **Hardcoded hex for a tinted surface** — use `$bg-surface-subtle` / `$bg-surface-overlay` or `mix($bg, $token, N%)`.
 - **`dim` or `dimColor` anywhere** — `dim` is a rendering detail. Use `$fg-muted` or `<Small>` instead. (See the [Styling Guide](/guide/styling) for the full deprecation rationale.)
-- **Legacy `$tokens` after migrating** — `$primary`, `$muted`, `$selectionbg`, etc. resolve through 0.20.x but go away in 0.21.0. Migrate now via the [Sterling migration map](/reference/sterling#token-migration-map).
+- **Legacy `$tokens` after migrating** — `$primary`, `$muted`, `$selectionbg`, etc. resolve through 0.20.x but go away in 0.21.0. Migrate now via the [Sterling migration map](/guide/sterling#token-migration-map).
 
 ## Defining your own tokens
 
@@ -269,12 +269,12 @@ const appTokens = defineTokens({
 </ThemeProvider>
 ```
 
-See the [Custom Tokens](/reference/custom-tokens) guide for the full API.
+See the [Custom Tokens](/guide/custom-tokens) guide for the full API.
 
 ## See also
 
-- **[Sterling primer](/reference/sterling)** — silvery's design system: roles, flat tokens, derivation, migration.
-- [Color Schemes](/reference/color-schemes) — the 22-slot ColorScheme model (what `$tokens` derive from)
-- [Capability Tiers](/reference/capability-tiers) — how tokens render at truecolor / 256 / ANSI 16 / mono
-- [Custom Tokens](/reference/custom-tokens) — `defineTokens()` API for app extensions
+- **[Sterling primer](/guide/sterling)** — silvery's design system: roles, flat tokens, derivation, migration.
+- [Color Schemes](/guide/color-schemes) — the 22-slot ColorScheme model (what `$tokens` derive from)
+- [Capability Tiers](/guide/capability-tiers) — how tokens render at truecolor / 256 / ANSI 16 / mono
+- [Custom Tokens](/guide/custom-tokens) — `defineTokens()` API for app extensions
 - [Styling Guide](/guide/styling) — component defaults, typography presets, contrast guarantees

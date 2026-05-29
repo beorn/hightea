@@ -7,8 +7,7 @@
  */
 
 import { describe, test, expect } from "vitest"
-import { outputPhase } from "@silvery/ag-term/pipeline/output-phase"
-import { replayAnsiWithStyles } from "@silvery/ag-term/pipeline/output-verify"
+import { outputPhase, replayAnsiWithStyles } from "@silvery/ag-term/pipeline/output-phase"
 import { createBuffer } from "@silvery/ag-term/buffer"
 
 describe("combined SGR sequences", () => {

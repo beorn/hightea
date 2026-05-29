@@ -33,7 +33,8 @@ import {
   useStdout,
   createTerm,
   parseKeypress,
-  createOsc52Backend,
+  copyToClipboard,
+  requestClipboard,
   parseClipboardResponse,
   enableMouse,
   disableMouse,
@@ -506,17 +507,17 @@ function ClipboardTab() {
       setSelectedIndex((i) => Math.min(snippets.length - 1, i + 1))
     }
 
-    // Copy selected item via the canonical clipboard backend
+    // Copy selected item
     if (input === "c") {
       const text = snippets[selectedIndex]!
-      createOsc52Backend(stdout).write({ text })
+      copyToClipboard(stdout, text)
       setLastCopied(text)
       setHistory((h) => [...h.slice(-7), { action: "copy", text, time: now() }])
     }
 
-    // Request clipboard — backend.read() writes the OSC 52 query
+    // Request clipboard
     if (input === "v") {
-      void createOsc52Backend(stdout).read?.()
+      requestClipboard(stdout)
       setHistory((h) => [
         ...h.slice(-7),
         { action: "request", text: "(paste requested)", time: now() },
