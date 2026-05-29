@@ -30,6 +30,7 @@
     "./components/Static": "./src/components/Static.tsx",
     "./components/Text": "./src/components/Text.tsx",
     "./components/Transform": "./src/components/Transform.tsx",
+    "./components/Island": "./src/components/Island.tsx",
     "./error-boundary": "./src/error-boundary.tsx",
     "./render": "./src/render.tsx",
     "./render-string": "./src/render-string.tsx",
@@ -83,6 +84,10 @@
       "./components/Transform": {
         "types": "./dist/components/Transform.d.mts",
         "import": "./dist/components/Transform.mjs"
+      },
+      "./components/Island": {
+        "types": "./dist/components/Island.d.mts",
+        "import": "./dist/components/Island.mjs"
       },
       "./context": {
         "types": "./dist/context.d.mts",
@@ -264,6 +269,7 @@
       "src/components/Static.tsx",
       "src/components/Text.tsx",
       "src/components/Transform.tsx",
+      "src/components/Island.tsx",
       "src/context.ts",
       "src/error-boundary.tsx",
       "src/hooks/index.ts",

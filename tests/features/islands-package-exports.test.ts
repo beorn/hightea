@@ -22,3 +22,21 @@ describe("@silvery/ag Islands package exports", () => {
     expect(entries.has("src/island-types.ts")).toBe(true)
   })
 })
+
+describe("@silvery/ag-react Islands package exports", () => {
+  test("component subpath exposes the Island React binding", () => {
+    const pkg = JSON.parse(
+      readFileSync(join(repoRoot, "packages/ag-react/package.json"), "utf8"),
+    ) as {
+      exports?: Record<string, unknown>
+      publishConfig?: { exports?: Record<string, unknown> }
+      tsdown?: { entry?: string[] }
+    }
+
+    expect(pkg.exports ?? {}).toHaveProperty("./components/Island")
+    expect(pkg.publishConfig?.exports ?? {}).toHaveProperty("./components/Island")
+
+    const entries = new Set(pkg.tsdown?.entry ?? [])
+    expect(entries.has("src/components/Island.tsx")).toBe(true)
+  })
+})
