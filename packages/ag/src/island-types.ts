@@ -512,6 +512,17 @@ export interface IslandNodeState {
   /** True iff this island is currently in the focused subtree. */
   focused: boolean
   /**
+   * Host-designated cursor activation, INDEPENDENT of input focus
+   * (@km/silvery/19426). When true, `findActiveCursorRect` renders this
+   * island's guest cursor (`handle.output.cursor` + `cursorVisible`) as the
+   * host hardware caret, translated into the island's screen rect. The host
+   * is responsible for the one-cursor invariant — at most one island should
+   * carry `cursorActive` at a time (e.g. silvermux sets it for the focused
+   * pane only). Lets a host show a pane caret without giving the island input
+   * focus (which would route keys away from the host's own input handler).
+   */
+  cursorActive?: boolean
+  /**
    * Effective palette policy. Frozen palette: snapshot held in
    * `frozenPalette`. Inherit: `null` (host theme cascades).
    */

@@ -1327,6 +1327,29 @@ export function findActiveCursorRect(root: AgNode): CursorRect | null {
       }
     }
 
+    // Host-designated island cursor (@km/silvery/19426): a `cursorActive`
+    // island renders its guest cursor as the host caret, INDEPENDENT of input
+    // focus. Translate the island-local cursor (col,row) into the island's
+    // screen rect and apply the same clip stack as Box carets. Fallback track
+    // only (never `focusedResult`) — focus-independent by design; the host owns
+    // the one-cursor invariant (at most one island carries `cursorActive`).
+    if (node.type === "silvery-island" && node.islandState?.cursorActive) {
+      const out = node.islandState.handle?.output
+      const cur = out?.cursor
+      const base = node.screenRect ?? node.boxRect
+      if (cur && out?.cursorVisible && base) {
+        const rect: CursorRect = {
+          x: base.x + cur.col,
+          y: base.y + cur.row,
+          visible: true,
+          shape: cur.style,
+        }
+        if (!isClipped(rect)) {
+          fallbackResult = rect
+        }
+      }
+    }
+
     if (isClip) {
       clipStack.pop()
     }

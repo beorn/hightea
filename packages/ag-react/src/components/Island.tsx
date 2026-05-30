@@ -89,6 +89,14 @@ export interface IslandProps extends Omit<IslandLayoutProps, "cols" | "rows"> {
   /** Whether the island can receive focus. Default: `false`. */
   focusable?: boolean
   /**
+   * Host-designated cursor activation, INDEPENDENT of input focus
+   * (@km/silvery/19426). When true the host renders this island's guest cursor
+   * as the hardware caret (no input focus, so the host keeps its own key
+   * handling). The host owns the one-cursor invariant — set on at most one
+   * island at a time. Default: `false`.
+   */
+  cursorActive?: boolean
+  /**
    * Palette ownership. Default: `"freeze"` when the guest doesn't declare
    * `capabilities.palette`, `"inherit"` when it does. The per-island prop
    * always wins. See {@link IslandPalettePolicy}.
@@ -148,6 +156,7 @@ export const Island = forwardRef(function Island(
     cols,
     rows,
     focusable = false,
+    cursorActive = false,
     palettePolicy,
     hydrate = "load",
     capabilities,
@@ -383,6 +392,20 @@ export const Island = forwardRef(function Island(
     if (handle.size.cols === cols && handle.size.rows === rows) return
     handle.size.requestResize(cols, rows)
   }, [cols, rows, guest, hydrate])
+
+  // Host-designated cursor activation (@km/silvery/19426). Mirror the prop onto
+  // the reconciler node's islandState so `findActiveCursorRect` renders this
+  // island's guest cursor as the host caret WITHOUT focusing the island (which
+  // would route input away from the host's own handler). Mark the node dirty so
+  // the active-cursor walk re-evaluates on the next frame. Runs after the
+  // factory effect attaches islandState (effect declaration order).
+  useEffect(() => {
+    const node = nodeRef.current
+    if (node?.islandState) {
+      node.islandState.cursorActive = cursorActive
+      markNodeDirty(node)
+    }
+  }, [cursorActive, guest, hydrate])
 
   // ── Imperative ref handle ────────────────────────────────────────────────
   // The user-facing ref resolves to the guest's IslandHandle (null until
