@@ -189,6 +189,14 @@ export const Island = forwardRef(function Island(
   // populated. Mirrors the equivalent comment in `Viewport.tsx`.
   const [, setMountTick] = useState(0)
 
+  // Bumped once when `guest.init()` resolves so the imperative ref below
+  // refreshes to the real handle. `useImperativeHandle` captures its factory's
+  // return value (it is NOT a live getter), and `guest.init()` is async — so
+  // without a dep that changes on handle-ready, a callback-ref consumer
+  // (`ref={(h) => …}`, e.g. silvermux pane registration) would be invoked once
+  // at mount with `null` and never again. @km/silvery/19426.
+  const [handleEpoch, setHandleEpoch] = useState(0)
+
   // ── Lifecycle: build factory + attach state, dispose on unmount ──────────
   // The factory's `node` (hand-rolled in @silvery/ag/island, no layoutNode)
   // is discarded — we use the reconciler-created node from nodeRef. We
@@ -306,7 +314,12 @@ export const Island = forwardRef(function Island(
         }
 
         void handleReady.then(
-          () => queueMicrotask(subscribeWhenAttached),
+          () => {
+            queueMicrotask(subscribeWhenAttached)
+            // Refresh the imperative ref now that the handle exists so
+            // callback-ref consumers receive it. @km/silvery/19426.
+            if (slot.alive) setHandleEpoch((e) => e + 1)
+          },
           () => {
             // createIsland routes init failures through onError / ErrorBoundary.
           },
@@ -373,15 +386,18 @@ export const Island = forwardRef(function Island(
 
   // ── Imperative ref handle ────────────────────────────────────────────────
   // The user-facing ref resolves to the guest's IslandHandle (null until
-  // init resolves). We re-read the slot on each access so a late-arriving
-  // handle is visible without forcing the component to re-render.
+  // init resolves). `useImperativeHandle` captures its factory's RETURN VALUE
+  // on each deps change — it is NOT a live getter — so `handleEpoch` (bumped
+  // when `guest.init()` resolves) must be a dep, otherwise a callback-ref
+  // consumer is invoked once at mount with `null` and never refreshed to the
+  // real handle. @km/silvery/19426.
   useImperativeHandle<IslandHandle | null, IslandHandle | null>(
     ref,
     () => slotRef.current?.factory.handle ?? null,
-    // The handle identity changes when the factory re-instantiates (guest /
-    // hydrate change). Cols/rows changes leave the handle stable.
+    // Handle identity changes when the factory re-instantiates (guest / hydrate
+    // change) and becomes non-null when init resolves (handleEpoch).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [guest, hydrate],
+    [guest, hydrate, handleEpoch],
   )
 
   // Leaf — no React children. The reconciler creates an AgNode with type

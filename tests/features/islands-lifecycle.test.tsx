@@ -419,6 +419,36 @@ describe("<Island> React binding — mount / unmount", () => {
     expect(refTarget.current?.size.rows).toBe(5)
   })
 
+  test("callback ref receives the handle after init WITHOUT a manual rerender (19426)", async () => {
+    // Regression for @km/silvery/19426: a callback-ref consumer (e.g. silvermux
+    // pane registration) does NOT force a rerender after mount. The handle must
+    // still arrive on its own once `guest.init()` resolves — otherwise the ref
+    // is invoked once at mount with `null` and never refreshed, and the consumer
+    // has no live handle (silvermux dropped all keyboard input until pane churn).
+    const m = mockGuest({ capabilities: { input: true } })
+    const received: Array<IslandHandle | null> = []
+    render(
+      withTestScope(
+        <Box>
+          <Island
+            guest={m.guest}
+            cols={20}
+            rows={5}
+            ref={(handle) => {
+              received.push(handle)
+            }}
+          />
+        </Box>,
+      ),
+    )
+    await flushMicrotasks()
+    // No app.rerender() — the handle must propagate via the handle-ready
+    // refresh, not a caller-driven render.
+    const resolved = received.filter(Boolean).at(-1) ?? null
+    expect(resolved).not.toBeNull()
+    expect(resolved?.size.cols).toBe(20)
+  })
+
   test("unmount triggers handle.dispose() via useScopeEffect", async () => {
     const m = mockGuest()
     const app = render(
