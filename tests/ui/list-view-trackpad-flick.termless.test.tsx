@@ -708,6 +708,68 @@ describe("ListView trackpad flick replay through termless", () => {
     }
   }, 20_000)
 
+  // km @km/silvery/15369 acceptance #5 — the watermark-thaw zero-jump guard at the
+  // 10k-row transcript scale the bead names (siblings above cover 1265 rows). The
+  // makeIdleHandoffRows shape rises the measured average during the upward flick;
+  // when the wheel gesture idles and the HeightModel snapshot thaws, the visible row
+  // must not rebase. This is the convergence invariant for the single-source-with-
+  // watermark model: snapshot freeze → live thaw is the SAME cache, never a source swap.
+  test("keeps row position stable across idle-handoff thaw on a 10k-row transcript", async () => {
+    using term = createTermless({ cols: 302, rows: 117 })
+    const listRef = React.createRef<ListViewHandle>()
+    const items = makeIdleHandoffRows(10_000)
+    const handle: RunHandle = await run(<FlickList items={items} listRef={listRef} />, term, {
+      mouse: true,
+    })
+    try {
+      await settle(120)
+      act(() => {
+        listRef.current?.scrollToBottom()
+      })
+      await settle(120)
+
+      const samples: { label: string; newest: number | null; eventCount: number }[] = [
+        { label: "initial", newest: newestVisibleLine(term.screen.getText()), eventCount: 0 },
+      ]
+      const result = await term.mouse.trackpadFlick(USER_LOG_SINGLE_UP_FLICK_PACKETS, {
+        afterGroup(group) {
+          samples.push({
+            label: `packet-${group.atMs}`,
+            newest: newestVisibleLine(term.screen.getText()),
+            eventCount: group.eventCount,
+          })
+        },
+      })
+      await settle(1000)
+      samples.push({
+        label: "settled",
+        newest: newestVisibleLine(term.screen.getText()),
+        eventCount: result.eventCount,
+      })
+
+      // The flick is upward (follow=end → scrollToBottom → flick up), so the newest
+      // visible line must move up, never rebase back down on thaw.
+      expect(samples[0]?.newest).not.toBeNull()
+      expect(samples.at(-1)?.newest).toBeLessThan(samples[0]!.newest!)
+
+      const beforeSettled = samples[samples.length - 2]!
+      const settled = samples.at(-1)!
+      const handoffJump =
+        beforeSettled.newest === null || settled.newest === null
+          ? 0
+          : Math.abs(settled.newest - beforeSettled.newest)
+      expect(
+        handoffJump,
+        samples
+          .slice(-8)
+          .map((sample) => `${sample.label}@${sample.eventCount}:${sample.newest}`)
+          .join(", "),
+      ).toBeLessThanOrEqual(8)
+    } finally {
+      handle.unmount()
+    }
+  }, 30_000)
+
   test("keeps upward direction active while a burst backlog drains across idle handoff", async () => {
     using term = createTermless({ cols: 302, rows: 117 })
     const listRef = React.createRef<ListViewHandle>()
