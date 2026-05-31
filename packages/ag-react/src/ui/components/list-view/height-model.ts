@@ -1,23 +1,24 @@
 /**
- * HeightModel — canonical predicted-height source for variable-height lists.
+ * HeightModel — the canonical row-height cache for variable-height lists.
+ * Exported as `RowHeightCache` (the canonical interface name); `HeightModel` is
+ * the historical implementation name. They are the same type.
  *
  * Backed by a Fenwick (binary-indexed) tree for O(log n) point updates and
  * O(log n) prefix-sum queries. Replaces the ad-hoc `sumHeights()` callsites
  * + `totalRowsStable` / `totalRowsMeasured` / `rowsAboveViewport` triplets
- * that have grown organically inside `ListView.tsx` and now disagree with
- * each other depending on which scroll-related fix touched them last.
+ * that grew organically inside `ListView.tsx` and used to disagree.
  *
- * Phase 1 (this file) — scaffolding + tests, no consumers wired up.
- *
- * Phase 2 (separate bead `km-silvery.listview-heightmodel-unify` follow-up)
- * replaces `totalRowsStable`, `totalRowsMeasured`, and the `sumHeights()`
- * callsites in `ListView.tsx` with this model. ListView keeps its current
- * behaviour; only the source of truth changes.
- *
- * Phase 3 (separate bead) replaces `rowsAboveViewport`,
- * `indexLeadingSpacer`, and `indexTrailingSpacer` with HeightModel queries
- * (prefixSum + binary search via prefix), unifying scrollbar math with the
- * placeholder math.
+ * Convergence status (km 15369 — "measurement-source convergence", DONE):
+ * - THE single row-height authority. ListView consults it for scrollbar extent
+ *   (`totalRows`), follow-end (`ContentGeometry`), and index-mode viewport
+ *   projection (`rowOfIndex`/`indexAtRow`/`prefixSum`).
+ * - The gesture snapshot is a named state on this model — `reconcile()` + `frozen`
+ *   (Phase B), not scattered ListView refs.
+ * - The measured-mode `useVirtualizer.sumHeights` path is a parity-LOCKED
+ *   projection of the same width-keyed data (Phase A: `height-model.test.ts`
+ *   pins `sumHeights` == this model), NOT an independent authority.
+ * - The competing W5 `MeasurementCache` / W6 `IdlePrefillScheduler` primitives
+ *   were retired (Phase C) so they cannot become a second authority.
  *
  * Why Fenwick (vs. Segment Tree, vs. cumulative array):
  * - Cumulative array — O(1) query, O(n) update on any change. Bad fit:
@@ -73,6 +74,14 @@ export interface HeightModel {
   /** True when the most recent `reconcile()` held the frozen watermark (no rebuild). */
   readonly frozen: boolean
 }
+
+/**
+ * Canonical name for the single row-height cache interface this list converges on
+ * (km 15369 acceptance #1). `HeightModel` is the same type under its historical
+ * implementation name; new code should prefer `RowHeightCache`. There is exactly one
+ * row-height authority in ListView, and this is its interface.
+ */
+export type RowHeightCache = HeightModel
 
 export interface HeightModelReconcileInput {
   itemCount: number

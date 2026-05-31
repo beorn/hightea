@@ -116,14 +116,20 @@ export type {
 export { HorizontalVirtualList } from "./ui/components"
 export type { HorizontalVirtualListProps, HorizontalVirtualListHandle } from "./ui/components"
 
-// HeightModel — Fenwick-backed predicted-height source.
-// Phase 1 of `km-silvery.listview-heightmodel-unify`: semi-public scaffolding
-// so tests can import it; ListView is rewired in Phase 2 (separate bead).
+// RowHeightCache (aka HeightModel) — the single canonical row-height authority for
+// ListView (km 15369). Fenwick-backed; consulted for scrollbar extent, follow-end,
+// and index-mode viewport projection, with the gesture snapshot as a named
+// `reconcile()`/`frozen` state.
 export {
   createHeightModel,
   shouldKeepHeightModelSnapshot,
 } from "./ui/components/list-view/height-model"
-export type { HeightModel, HeightModelOptions } from "./ui/components/list-view/height-model"
+export type {
+  HeightModel,
+  HeightModelOptions,
+  HeightModelReconcileInput,
+  RowHeightCache,
+} from "./ui/components/list-view/height-model"
 // Pure index-window helpers — extracted from ListView for unit-testability.
 export {
   computeIndexTrailingSpacer,

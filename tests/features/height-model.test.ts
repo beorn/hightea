@@ -461,4 +461,35 @@ describe("HeightModel.reconcile (named gesture-snapshot state)", () => {
       }),
     )
   })
+
+  // km @km/silvery/15369 acceptance #3 — width-change invalidates the cache cleanly.
+  test("a viewport-width change invalidates the frozen watermark and re-derives heights", () => {
+    // Wrap-aware heights depend on width: the estimate closure reads a width-keyed
+    // source. A width change (even mid-gesture) must release the watermark and
+    // re-derive — never hold the previous width's heights. estimateKey is held
+    // constant here to isolate width as the sole invalidator.
+    const heightForWidth = (width: number) => () => (width === 80 ? 2 : 5)
+    const m = createHeightModel({ itemCount: 4, estimate: heightForWidth(80), gap: 0 })
+    m.reconcile({
+      itemCount: 4,
+      gap: 0,
+      estimate: heightForWidth(80),
+      viewportWidth: 80,
+      estimateKey: 1,
+      gestureActive: false,
+    })
+    expect(m.totalRows()).toBe(8) // 4 * 2 at width 80
+
+    // Width 80 → 120 during an active gesture, estimateKey unchanged.
+    m.reconcile({
+      itemCount: 4,
+      gap: 0,
+      estimate: heightForWidth(120),
+      viewportWidth: 120,
+      estimateKey: 1,
+      gestureActive: true,
+    })
+    expect(m.frozen).toBe(false) // width change released the frozen watermark
+    expect(m.totalRows()).toBe(20) // 4 * 5 at width 120 — fresh, no stale carry-over
+  })
 })
