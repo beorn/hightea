@@ -166,6 +166,7 @@ export const Island = forwardRef(function Island(
     // IslandLayoutProps passthrough (width/height/flex*/etc) — spread into
     // the `<silvery-island>` JSX intrinsic so flexily picks them up via the
     // reconciler's createNode/commitUpdate → applyIslandProps path.
+    testID,
     width,
     height,
     flexGrow,
@@ -431,6 +432,7 @@ export const Island = forwardRef(function Island(
   return (
     <silvery-island
       ref={nodeRef}
+      testID={testID}
       cols={cols}
       rows={rows}
       focusable={focusable}

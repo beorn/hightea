@@ -535,6 +535,8 @@ export function applyViewportProps(
  * and will land here in a follow-up. See `@km/silvery/15646-islands`.
  */
 export interface IslandLayoutProps {
+  /** Stable focus/test identity, matching Box/Text `testID` semantics. */
+  testID?: string
   /** Initial guest cell-grid width (cells). Required at the <Island> surface;
    *  optional here because oldProps may have already pinned it on a re-apply. */
   cols?: number
