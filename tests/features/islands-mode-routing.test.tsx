@@ -267,4 +267,69 @@ describe("island protocol-mode routing", () => {
       stdout.closeFd()
     }
   })
+
+  // @km/silvery/17271 — multi-pane focus-aggregator slice. The single-island
+  // cases above prove focus/blur + re-aggregation; this proves the multi-PANE
+  // switch: moving focus from island A to island B re-aggregates term.modes in
+  // ONE frame — A's island-only modes go OFF and B's go ON in the same Tab — so
+  // a silvermux-style row of panes flips protocol modes to the focused pane with
+  // no stale-mode frame between them.
+  test("focus SWITCH between two islands re-aggregates term.modes within one frame", async () => {
+    const { stream: stdin } = createFakeTtyStdin()
+    const stdout = createFakeTtyStdout()
+    // Disjoint mode sets so each direction's transition is unambiguous.
+    const a = createModeGuest({ kittyKeyboard: true, mouseTracking: "any" })
+    const b = createModeGuest({ bracketedPaste: true, focusReporting: true })
+
+    const handle = await run(
+      <Box flexDirection="row">
+        <Island guest={a.guest} cols={1} rows={1} focusable />
+        <Island guest={b.guest} cols={1} rows={1} focusable />
+      </Box>,
+      {
+        stdin,
+        stdout,
+        cols: 80,
+        rows: 24,
+        mode: "inline",
+        input: false,
+        kitty: false,
+        mouse: false,
+        focusReporting: false,
+        selection: false,
+      },
+    )
+
+    try {
+      // Tab → focus island A: only A's modes (kitty + mouse) are enabled.
+      clearWrites(stdout)
+      await handle.press("Tab")
+      const onA = stdout.written.join("")
+      expect(KITTY_ENABLE_RE.test(onA)).toBe(true)
+      expect(MOUSE_ENABLE_RE.test(onA)).toBe(true)
+      expect(BRACKETED_PASTE_ENABLE_RE.test(onA)).toBe(false) // B's mode — not focused
+      expect(FOCUS_ENABLE_RE.test(onA)).toBe(false)
+
+      // Tab → focus island B: ONE frame flips A's modes OFF and B's modes ON.
+      clearWrites(stdout)
+      await handle.press("Tab")
+      const onB = stdout.written.join("")
+      expect(KITTY_DISABLE_RE.test(onB)).toBe(true) // A's kitty released
+      expect(MOUSE_DISABLE_RE.test(onB)).toBe(true) // A's mouse released
+      expect(BRACKETED_PASTE_ENABLE_RE.test(onB)).toBe(true) // B's bracketed paste on
+      expect(FOCUS_ENABLE_RE.test(onB)).toBe(true) // B's focus reporting on
+
+      // Tab → focus island A again: the inverse transition, also one frame.
+      clearWrites(stdout)
+      await handle.press("Tab")
+      const backToA = stdout.written.join("")
+      expect(BRACKETED_PASTE_DISABLE_RE.test(backToA)).toBe(true) // B's released
+      expect(FOCUS_DISABLE_RE.test(backToA)).toBe(true)
+      expect(KITTY_ENABLE_RE.test(backToA)).toBe(true) // A's re-enabled
+      expect(MOUSE_ENABLE_RE.test(backToA)).toBe(true)
+    } finally {
+      handle.unmount()
+      stdout.closeFd()
+    }
+  })
 })
