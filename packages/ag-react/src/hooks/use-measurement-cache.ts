@@ -20,6 +20,10 @@
  *   `invalidateFrom(i)` → watermark drops to `i − 1`. Stored heights are
  *   preserved past the new watermark so callers can re-measure or trust them.
  *   Pass `dropStoredHeights: true` to also forget the heights themselves.
+ * - **Scheduler bound**: `rowCount` is the finite row domain an idle prefill
+ *   scheduler should walk. It does not cap offset reads or measurement writes;
+ *   those remain sparse/unbounded so callers can stage measurements before
+ *   updating the scheduler bound.
  *
  * Bead: @km/silvery/15337-W5-measurement-cache-prefix-sum-watermark
  * Design doc: hub/silvercode/design/scroll-wave3-plan.md § W5
@@ -82,6 +86,14 @@ export interface MeasurementCache {
   readonly watermark: number
 
   /**
+   * Finite row domain for watermark walkers such as `createIdlePrefill`.
+   *
+   * `rowCount` is deliberately not a read/write cap for this cache. Callers may
+   * read offsets or store measurements beyond it, then grow the bound later.
+   */
+  readonly rowCount: number
+
+  /**
    * Default row height used for estimates past the watermark.
    *
    * Mutable: callers can refine the estimate as more data arrives. Changing
@@ -102,11 +114,23 @@ export interface MeasurementCache {
    * Primarily useful for tests + introspection.
    */
   getStoredHeight(index: number): number | undefined
+
+  /**
+   * Update the finite row domain used by idle-prefill/watermark walkers.
+   *
+   * Shrinking below the current watermark drops the watermark to
+   * `rowCount - 1`. Stored measurements beyond the new row count are preserved
+   * by default so a later grow can reuse them; pass `dropStoredHeights: true`
+   * to discard them.
+   */
+  setRowCount(rowCount: number, options?: { dropStoredHeights?: boolean }): void
 }
 
 export interface CreateMeasurementCacheOptions {
   /** Default row height for unmeasured rows. Must be > 0. Default: 1. */
   defaultRowHeight?: number
+  /** Finite row domain for idle-prefill/watermark walkers. Default: 0. */
+  rowCount?: number
 }
 
 // =============================================================================
@@ -138,6 +162,8 @@ export function createMeasurementCache(
       `createMeasurementCache: defaultRowHeight must be a positive finite number, got ${initialDefault}`,
     )
   }
+  const initialRowCount = options.rowCount ?? 0
+  assertRowCount(initialRowCount, "createMeasurementCache")
 
   /** Stored measurements keyed by index. Sparse-safe. */
   const heights = new Map<number, number>()
@@ -151,6 +177,7 @@ export function createMeasurementCache(
 
   let watermark = -1
   let defaultRowHeight = initialDefault
+  let rowCount = initialRowCount
 
   /**
    * Walk the watermark forward through any contiguous stored heights starting
@@ -181,6 +208,9 @@ export function createMeasurementCache(
   const cache: MeasurementCache = {
     get watermark(): number {
       return watermark
+    },
+    get rowCount(): number {
+      return rowCount
     },
     get defaultRowHeight(): number {
       return defaultRowHeight
@@ -303,7 +333,26 @@ export function createMeasurementCache(
     getStoredHeight(index: number): number | undefined {
       return heights.get(index)
     },
+
+    setRowCount(value: number, options: { dropStoredHeights?: boolean } = {}): void {
+      assertRowCount(value, "MeasurementCache.setRowCount")
+      rowCount = value
+      if (value <= watermark) {
+        dropWatermark(value - 1)
+      }
+      if (options.dropStoredHeights) {
+        for (const key of heights.keys()) {
+          if (key >= value) heights.delete(key)
+        }
+      }
+    },
   }
 
   return cache
+}
+
+function assertRowCount(value: number, context: string): void {
+  if (!Number.isFinite(value) || value < 0 || !Number.isInteger(value)) {
+    throw new RangeError(`${context}: rowCount must be a non-negative finite integer, got ${value}`)
+  }
 }

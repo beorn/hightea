@@ -52,6 +52,18 @@ describe("createMeasurementCache — initial state", () => {
     expect(cache.defaultRowHeight).toBe(3)
   })
 
+  test("rowCount defaults to 0 and can be configured for watermark walkers", () => {
+    expect(createMeasurementCache().rowCount).toBe(0)
+    expect(createMeasurementCache({ rowCount: 5 }).rowCount).toBe(5)
+  })
+
+  test("rejects invalid rowCount at construction", () => {
+    expect(() => createMeasurementCache({ rowCount: -1 })).toThrow(RangeError)
+    expect(() => createMeasurementCache({ rowCount: 1.5 })).toThrow(RangeError)
+    expect(() => createMeasurementCache({ rowCount: Number.NaN })).toThrow(RangeError)
+    expect(() => createMeasurementCache({ rowCount: Number.POSITIVE_INFINITY })).toThrow(RangeError)
+  })
+
   test("rejects non-positive defaultRowHeight at construction", () => {
     expect(() => createMeasurementCache({ defaultRowHeight: 0 })).toThrow(RangeError)
     expect(() => createMeasurementCache({ defaultRowHeight: -1 })).toThrow(RangeError)
@@ -256,6 +268,53 @@ describe("invalidateFrom", () => {
     expect(cache.hasMeasurement(3)).toBe(false)
     // Heights before `index` are kept.
     expect(cache.hasMeasurement(1)).toBe(true)
+  })
+})
+
+// =============================================================================
+// rowCount scheduler bound
+// =============================================================================
+
+describe("rowCount", () => {
+  test("setRowCount grows without changing watermark or stored measurements", () => {
+    const cache = createMeasurementCache({ rowCount: 2 })
+    seedInOrder(cache, [2, 3])
+    cache.setMeasurement(4, 11)
+
+    cache.setRowCount(5)
+    expect(cache.rowCount).toBe(5)
+    expect(cache.watermark).toBe(1)
+    expect(cache.getStoredHeight(4)).toBe(11)
+  })
+
+  test("setRowCount shrink clamps watermark and preserves stored heights by default", () => {
+    const cache = createMeasurementCache({ rowCount: 5 })
+    seedInOrder(cache, [2, 3, 5, 7, 11])
+
+    cache.setRowCount(3)
+    expect(cache.rowCount).toBe(3)
+    expect(cache.watermark).toBe(2)
+    expect(cache.getOffset(3)).toBe(10)
+    expect(cache.getStoredHeight(4)).toBe(11)
+  })
+
+  test("setRowCount can drop stored heights outside the new domain", () => {
+    const cache = createMeasurementCache({ rowCount: 5 })
+    seedInOrder(cache, [2, 3, 5, 7, 11])
+
+    cache.setRowCount(3, { dropStoredHeights: true })
+    expect(cache.rowCount).toBe(3)
+    expect(cache.watermark).toBe(2)
+    expect(cache.hasMeasurement(2)).toBe(true)
+    expect(cache.hasMeasurement(3)).toBe(false)
+    expect(cache.hasMeasurement(4)).toBe(false)
+  })
+
+  test("setRowCount rejects invalid values", () => {
+    const cache = createMeasurementCache()
+    expect(() => cache.setRowCount(-1)).toThrow(RangeError)
+    expect(() => cache.setRowCount(1.5)).toThrow(RangeError)
+    expect(() => cache.setRowCount(Number.NaN)).toThrow(RangeError)
   })
 })
 

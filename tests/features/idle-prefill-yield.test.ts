@@ -15,6 +15,7 @@ import {
   type IdleScheduler,
   type WatermarkSource,
 } from "../../packages/ag-react/src/hooks/use-idle-prefill"
+import { createMeasurementCache } from "../../packages/ag-react/src/hooks/use-measurement-cache"
 
 // ============================================================================
 // Harness — fake cache + manually-pumped scheduler
@@ -96,6 +97,24 @@ function makeFakeScheduler(): FakeScheduler {
 // ============================================================================
 
 describe("createIdlePrefill — basic walk", () => {
+  test("walks a real MeasurementCache WatermarkSource without an adapter", () => {
+    const cache = createMeasurementCache({ defaultRowHeight: 1, rowCount: 5 })
+    const sched = makeFakeScheduler()
+    const prefill = createIdlePrefill({
+      source: cache,
+      measureRow: (i) => cache.setMeasurement(i, i + 1),
+      scheduler: sched,
+      chunkSize: 2,
+    })
+
+    prefill.start()
+    expect(sched.drain()).toBe(3)
+    expect(cache.rowCount).toBe(5)
+    expect(cache.watermark).toBe(4)
+    expect(prefill.complete).toBe(true)
+    expect(cache.getOffset(5)).toBe(15)
+  })
+
   test("walks watermark from -1 to rowCount-1 in chunkSize-sized slices", () => {
     const cache = makeFakeCache(64)
     const sched = makeFakeScheduler()
