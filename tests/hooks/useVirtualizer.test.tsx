@@ -42,8 +42,8 @@ describe("useVirtualizer", () => {
   })
 
   test("measured spacer heights include boundary gaps owned by spacer boxes", () => {
-    let latest: VirtualizerResult | null = null
-    let measure: VirtualizerResult["measureItem"] | null = null
+    let latest!: VirtualizerResult
+    let measure!: VirtualizerResult["measureItem"]
 
     function Harness() {
       const virtualizer = useVirtualizer({
@@ -67,14 +67,14 @@ describe("useVirtualizer", () => {
 
     const render = createRenderer({ cols: 40, rows: 4 })
     const app = render(<Harness />)
-    expect(latest?.range).toEqual({ startIndex: 10, endIndex: 12 })
+    expect(latest.range).toEqual({ startIndex: 10, endIndex: 12 })
 
-    expect(measure?.("row-0", 3)).toBe(true)
+    expect(measure("row-0", 3)).toBe(true)
     app.rerender(<Harness />)
 
-    expect(latest?.measurementVersion).toBe(1)
-    expect(latest?.range).toEqual({ startIndex: 10, endIndex: 11 })
-    expect(latest?.leadingHeight).toBe(50)
-    expect(latest?.trailingHeight).toBe(95)
+    expect(latest.measurementVersion).toBe(1)
+    expect(latest.range).toEqual({ startIndex: 10, endIndex: 11 })
+    expect(latest.leadingHeight).toBe(50)
+    expect(latest.trailingHeight).toBe(95)
   })
 })
