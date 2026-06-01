@@ -431,6 +431,24 @@ function renderCenteredIndicator(
   // clears, incremental output leaves stale item glyphs around the centered
   // token. Keep the clears unstyled so fresh and incremental buffers agree on
   // the surrounding blank cells.
-  renderTextLine(buffer, x, y, " ".repeat(width), { fg: null, bg: null, attrs: {} }, maxCol, undefined, ctx)
-  renderTextLine(buffer, indicatorX, y, text, style, Math.min(maxCol, indicatorX + text.length), undefined, ctx)
+  renderTextLine(
+    buffer,
+    x,
+    y,
+    " ".repeat(width),
+    { fg: null, bg: null, attrs: {} },
+    maxCol,
+    undefined,
+    ctx,
+  )
+  renderTextLine(
+    buffer,
+    indicatorX,
+    y,
+    text,
+    style,
+    Math.min(maxCol, indicatorX + text.length),
+    undefined,
+    ctx,
+  )
 }

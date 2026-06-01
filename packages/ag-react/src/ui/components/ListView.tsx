@@ -1739,7 +1739,10 @@ function ListViewInner<T>(
     followPinnedTopRow ??
     (scrollRow !== null ? scrollRow : rowsAboveViewport)
   const cursorScrollTargetActive =
-    scrollToProp === undefined && nav === true && adjustedScrollTo !== undefined && scrollRow === null
+    scrollToProp === undefined &&
+    nav === true &&
+    adjustedScrollTo !== undefined &&
+    scrollRow === null
   const anchoringEnabled =
     !cursorScrollTargetActive &&
     shouldApplyVisibleContentAnchoring({
