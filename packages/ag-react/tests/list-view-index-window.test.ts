@@ -63,8 +63,7 @@ describe("computeIndexTrailingSpacer (Bug B — never negative)", () => {
     for (let end = 0; end <= n; end++) {
       const trailingCount = n - end
       const sumHeights = heights.slice(end).reduce((s, h) => s + h, 0)
-      const hiddenGaps =
-        (end === 0 ? Math.max(0, trailingCount - 1) : trailingCount) * gap
+      const hiddenGaps = (end === 0 ? Math.max(0, trailingCount - 1) : trailingCount) * gap
       const expected = sumHeights + hiddenGaps
       expect(
         computeIndexTrailingSpacer(m, end, n, gap),
