@@ -21,7 +21,7 @@
  * before `Box.useLayoutEffect` has captured its ref). A MINIMAL count-based
  * seed: anchor the window at `scrollTo ?? 0`, render `minWindowSize` items
  * (estimatedVisibleCount + 2*overscan), and compute placeholder heights via
- * `sumHeights`. No height-aware forward walk, no mid-cycle
+ * the shared height model. No height-aware forward walk, no mid-cycle
  * `calcEdgeBasedScrollOffset` dance — those were the feedback-loop sources
  * the old bootstrap carried over from pre-steady-state designs. The next
  * frame, steady-state takes over via `containerNode` + `scrollState` and
@@ -53,9 +53,9 @@
  * window shifts once and converges on the next iteration.
  *
  * Critically, avgMeasured is NOT used for the window bounds — it's only used
- * for placeholder heights (leading/trailing) via `sumHeights`, which doesn't
- * influence which items render. Measurement arrivals therefore can't feed
- * back into the window decision.
+ * for placeholder heights (leading/trailing) via the shared height model,
+ * which doesn't influence which items render. Measurement arrivals therefore
+ * can't feed back into the window decision.
  *
  * Two components consume this hook:
  * - VirtualView: items mount/unmount based on scroll position (in-tree)
@@ -66,6 +66,7 @@
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
 import type { AgNode } from "@silvery/ag/types"
+import { createHeightModel, type HeightModel } from "../ui/components/list-view/height-model"
 import { useScrollState } from "./useScrollState"
 
 // =============================================================================
@@ -248,6 +249,24 @@ export function getHeight(
   avgMeasuredHeight?: number,
   viewportWidth?: number,
 ): number {
+  return resolveVirtualizerHeight(
+    index,
+    estimateHeight,
+    measuredHeights,
+    getItemKey,
+    avgMeasuredHeight,
+    viewportWidth,
+  )
+}
+
+function resolveVirtualizerHeight(
+  index: number,
+  estimateHeight: number | ((index: number) => number),
+  measuredHeights: ReadonlyMap<string, number> | undefined,
+  getItemKey: ((index: number) => string | number) | undefined,
+  avgMeasuredHeight: number | undefined,
+  viewportWidth: number | undefined,
+): number {
   if (measuredHeights && measuredHeights.size > 0) {
     const baseKey = getItemKey ? getItemKey(index) : index
     const cacheKey = makeMeasureKey(baseKey, viewportWidth)
@@ -258,6 +277,73 @@ export function getHeight(
     }
   }
   return typeof estimateHeight === "function" ? estimateHeight(index) : estimateHeight
+}
+
+export interface VirtualizerHeightModelConfig {
+  count: number
+  estimateHeight: number | ((index: number) => number)
+  gap?: number
+  measuredHeights?: ReadonlyMap<string, number>
+  getItemKey?: (index: number) => string | number
+  viewportWidth?: number
+}
+
+export function createVirtualizerHeightModel({
+  count,
+  estimateHeight,
+  gap = 0,
+  measuredHeights,
+  getItemKey,
+  viewportWidth,
+}: VirtualizerHeightModelConfig): HeightModel {
+  const avgMeasuredHeight = averageMeasuredHeightForWidth(measuredHeights, viewportWidth)
+  return createHeightModel({
+    itemCount: count,
+    gap,
+    estimate: (index) =>
+      resolveVirtualizerHeight(
+        index,
+        estimateHeight,
+        measuredHeights,
+        getItemKey,
+        avgMeasuredHeight,
+        viewportWidth,
+      ),
+  })
+}
+
+function sumHeightModelRange(
+  heightModel: HeightModel,
+  startIndex: number,
+  endIndex: number,
+  gap: number,
+): number {
+  const start = Math.max(0, startIndex)
+  const end = Math.max(start, endIndex)
+  const itemCount = end - start
+  if (itemCount <= 0) return 0
+  return heightModel.prefixSum(end) - heightModel.prefixSum(start) + (itemCount - 1) * gap
+}
+
+export function virtualizerLeadingSpacerHeight(
+  heightModel: HeightModel,
+  startIndex: number,
+): number {
+  return heightModel.rowOfIndex(startIndex)
+}
+
+export function virtualizerTrailingSpacerHeight(
+  heightModel: HeightModel,
+  endIndex: number,
+  itemCount: number,
+  gap: number,
+): number {
+  if (itemCount <= 0) return 0
+  const end = Math.max(0, Math.min(endIndex, itemCount))
+  if (end <= 0) return heightModel.totalRows()
+  if (end >= itemCount) return 0
+  const rowsBeforeTrailingSpacer = heightModel.prefixSum(end) + Math.max(0, end - 1) * gap
+  return Math.max(0, heightModel.totalRows() - rowsBeforeTrailingSpacer)
 }
 
 /** Calculate average item height using measurements when available, sampling estimates otherwise. */
@@ -287,6 +373,10 @@ export function calcAverageHeight(
  * Sum heights for a range of items, using measurements when available.
  * Optimized: when no measurements exist, uses multiplication instead of iteration.
  *
+ * Compatibility range helper. Runtime placeholder spacers use the
+ * HeightModel-backed boundary helpers above; this API intentionally returns
+ * only the range's internal height, with no boundary spacer gap.
+ *
  * When measurements exist with a fixed numeric estimate, unmeasured items in
  * the range use the average measured height as fallback. Function estimates
  * remain per-index fallbacks so variable-height callers do not lose their
@@ -311,17 +401,15 @@ export function sumHeights(
     return itemCount * estimateHeight + gapTotal
   }
 
-  // Compute average measured height once for use as fallback for unmeasured items.
-  // This is more accurate than the original estimate for items outside the render window.
-  let avgMeasured: number | undefined
-  avgMeasured = averageMeasuredHeightForWidth(measuredHeights, viewportWidth)
-
-  // Slow path: per-item lookup (checks measurement cache, falls back to avg measured or estimate)
-  let total = 0
-  for (let i = startIndex; i < endIndex; i++) {
-    total += getHeight(i, estimateHeight, measuredHeights, getItemKey, avgMeasured, viewportWidth)
-  }
-  return total + gapTotal
+  const heightModel = createVirtualizerHeightModel({
+    count: Math.max(0, endIndex),
+    estimateHeight,
+    gap,
+    measuredHeights,
+    getItemKey,
+    viewportWidth,
+  })
+  return sumHeightModelRange(heightModel, startIndex, endIndex, gap)
 }
 
 // Note: findViewportTopItem / findViewportBottomItem were removed on
@@ -420,6 +508,18 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
   )
 
   const measuredHeights = measuredHeightsRef.current
+  const virtualizerHeightModel = useMemo(
+    () =>
+      createVirtualizerHeightModel({
+        count,
+        estimateHeight,
+        gap,
+        measuredHeights,
+        getItemKey,
+        viewportWidth,
+      }),
+    [count, estimateHeight, gap, measuredHeights, measurementVersion, getItemKey, viewportWidth],
+  )
 
   // ── Track previous rendered window structure ───────────────────────
   // Needed to interpret `scrollState.firstVisibleChild` / `lastVisibleChild`
@@ -652,7 +752,7 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
 
   // Effective scroll-state fields for the window calc. Only firstVisibleChild
   // / lastVisibleChild influence the window (offset affects only placeholder
-  // heights via sumHeights, which is stable when indices don't shift).
+  // heights via the height model, which is stable when indices don't shift).
   //
   // Extracted outside useMemo so the memo dependency list is just primitives
   // (no new object allocation per render).
@@ -872,23 +972,12 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
         const cappedEnd = Math.max(cursorFloor, start + maxRendered)
         end = Math.min(end, cappedEnd)
 
-        const leadingSize = sumHeights(
-          0,
-          start,
-          estimateHeight,
-          gap,
-          measuredHeights,
-          getItemKey,
-          viewportWidth,
-        )
-        const trailingSize = sumHeights(
+        const leadingSize = virtualizerLeadingSpacerHeight(virtualizerHeightModel, start)
+        const trailingSize = virtualizerTrailingSpacerHeight(
+          virtualizerHeightModel,
           end,
           count,
-          estimateHeight,
           gap,
-          measuredHeights,
-          getItemKey,
-          viewportWidth,
         )
 
         return {
@@ -910,8 +999,8 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     //
     // Window: anchor at `effectiveScrollOffset` (= cursor or 0), render
     // `minWindowSize` items (estimatedVisibleCount + 2*overscan). Placeholder
-    // heights come from `sumHeights` so `representsItems` / ▲N ▼N counts
-    // still reflect the full list.
+    // heights come from the shared height model so `representsItems` / ▲N ▼N
+    // counts still reflect the full list.
     //
     // The old bootstrap did a height-aware forward walk + mid-cycle
     // `calcEdgeBasedScrollOffset` dance. That was the source of the
@@ -954,26 +1043,8 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     const cappedEnd = Math.max(cursorFloor, start + maxRendered)
     end = Math.min(end, cappedEnd)
 
-    // Placeholder sizes using measured heights when available; sumHeights
-    // falls back to estimate for unmeasured items.
-    const leadingSize = sumHeights(
-      0,
-      start,
-      estimateHeight,
-      gap,
-      measuredHeights,
-      getItemKey,
-      viewportWidth,
-    )
-    const trailingSize = sumHeights(
-      end,
-      count,
-      estimateHeight,
-      gap,
-      measuredHeights,
-      getItemKey,
-      viewportWidth,
-    )
+    const leadingSize = virtualizerLeadingSpacerHeight(virtualizerHeightModel, start)
+    const trailingSize = virtualizerTrailingSpacerHeight(virtualizerHeightModel, end, count, gap)
 
     return {
       startIndex: start,
@@ -981,7 +1052,7 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
       leadingHeight: leadingSize,
       trailingHeight: trailingSize,
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- measuredHeights is a stable ref; measurementVersion triggers recomputation
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- virtualizerHeightModel absorbs the stable measuredHeights ref; measurementVersion rebuilds it
   }, [
     count,
     effectiveScrollOffset,
@@ -1009,6 +1080,7 @@ export function useVirtualizer(config: VirtualizerConfig): VirtualizerResult {
     // Width-keyed measurement cache: re-sum placeholders when the viewport
     // width changes (cache lookups will pull a different slice of entries).
     viewportWidth,
+    virtualizerHeightModel,
   ])
 
   // Update previous-window ref AFTER the memo computes the new window. The

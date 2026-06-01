@@ -60,8 +60,9 @@ import { effect as signalEffect } from "@silvery/signals"
 import { getLayoutSignals, markObservedLayoutSignal } from "@silvery/ag/layout-signals"
 import {
   averageMeasuredHeightForWidth,
-  sumHeights,
+  createVirtualizerHeightModel,
   useVirtualizer,
+  virtualizerLeadingSpacerHeight,
 } from "../../hooks/useVirtualizer"
 import { makeMeasureKey } from "../../hooks/useVirtualizer"
 import { useBoxSize } from "../../hooks/useLayout"
@@ -1739,7 +1740,10 @@ function ListViewInner<T>(
     followPinnedTopRow ??
     (scrollRow !== null ? scrollRow : rowsAboveViewport)
   const cursorScrollTargetActive =
-    scrollToProp === undefined && nav === true && adjustedScrollTo !== undefined && scrollRow === null
+    scrollToProp === undefined &&
+    nav === true &&
+    adjustedScrollTo !== undefined &&
+    scrollRow === null
   const anchoringEnabled =
     !cursorScrollTargetActive &&
     shouldApplyVisibleContentAnchoring({
@@ -2460,13 +2464,13 @@ function ListViewInner<T>(
   const endIndex = effectiveEndIndex
   const visibleItems = activeItems.slice(startIndex, endIndex)
 
-  // STRICT invariant: virtualizer's leadingHeight must equal
-  // sumHeights(0, startIndex) — i.e. the placeholder row-count matches the
-  // prefix-sum the virtualizer used internally. This catches drift between
-  // window-placement math and placeholder-height math (e.g. the divergence
-  // that caused the column-top-disappears bug class). Scoped here (not in
-  // the hook) because it exercises a user-visible contract that affects
-  // overflow math.
+  // STRICT invariant: virtualizer's leadingHeight must equal the shared
+  // HeightModel spacer projection at `startIndex` — i.e. the placeholder
+  // row-count matches the prefix-sum the virtualizer used internally. This
+  // catches drift between window-placement math and placeholder-height math
+  // (e.g. the divergence that caused the column-top-disappears bug class).
+  // Scoped here (not in the hook) because it exercises a user-visible
+  // contract that affects overflow math.
   //
   // NOTE: The /pro review's stronger form ("sumHeights(0, virtualizer.scrollOffset)
   // == leadingHeight") does NOT hold in general — the virtualizer's `scrollOffset`
@@ -2483,26 +2487,20 @@ function ListViewInner<T>(
   if (resolvedVirtualization === "measured" && process?.env?.SILVERY_STRICT) {
     const strict = process.env.SILVERY_STRICT
     const shouldThrow = strict === "2"
-    // Phase 2 (`km-silvery.listview-heightmodel-unify`) keeps `sumHeights`
-    // here intentionally — it's an INDEPENDENT computation against which
-    // the virtualizer's `leadingHeight` is cross-checked. Replacing it
-    // with HeightModel would make this a self-consistency tautology
-    // (HeightModel and the virtualizer's leadingHeight share the same
-    // `effectiveEstimate` resolution at runtime).
-    const expectedLeading = sumHeights(
-      0,
-      range.startIndex,
-      adjustedEstimateHeight,
+    const strictHeightModel = createVirtualizerHeightModel({
+      count: activeItems.length,
+      estimateHeight: adjustedEstimateHeight,
       gap,
       measuredHeights,
-      wrappedGetKey,
-      viewportSize?.w,
-    )
+      getItemKey: wrappedGetKey,
+      viewportWidth: viewportSize?.w,
+    })
+    const expectedLeading = virtualizerLeadingSpacerHeight(strictHeightModel, range.startIndex)
     // Allow 1 row of floating-point slack for avgMeasured fallback divisions.
     if (Math.abs(leadingHeight - expectedLeading) > 1) {
       const msg =
         `[SILVERY_STRICT] ListView leadingHeight ${leadingHeight} diverges from ` +
-        `sumHeights(0, startIndex=${range.startIndex})=${expectedLeading} ` +
+        `heightModel.rowOfIndex(startIndex=${range.startIndex})=${expectedLeading} ` +
         `(scrollOffset=${scrollOffset}, count=${activeItems.length})`
       if (shouldThrow) throw new Error(msg)
       else {
